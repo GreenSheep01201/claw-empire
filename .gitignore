@@ -32,9 +32,10 @@ docs/reports/
 .climpire-worktrees/
 .climpire/
 
-# IDE / Editor
+# IDE / Editor / AI
 .vscode/
 .idea/
+CLAUDE.md
 *.swp
 *.swo
 *~

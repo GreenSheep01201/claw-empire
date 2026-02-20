@@ -1,36 +1,33 @@
 // @ts-nocheck
 
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawn, execFile, execFileSync } from "node:child_process";
+import { randomUUID, createHash } from "node:crypto";
+import {
+  CLI_OUTPUT_DEDUP_WINDOW_MS,
+  readNonNegativeIntEnv,
+  REVIEW_MAX_MEMO_ITEMS_PER_DEPT,
+  REVIEW_MAX_MEMO_ITEMS_PER_ROUND,
+  REVIEW_MAX_REMEDIATION_REQUESTS,
+  REVIEW_MAX_REVISION_SIGNALS_PER_DEPT_PER_ROUND,
+  REVIEW_MAX_REVISION_SIGNALS_PER_ROUND,
+  REVIEW_MAX_ROUNDS,
+} from "../../db/runtime.ts";
+import { BUILTIN_GOOGLE_CLIENT_ID, BUILTIN_GOOGLE_CLIENT_SECRET, decryptSecret, encryptSecret } from "../../oauth/helpers.ts";
+import { notifyTaskStatus } from "../../gateway/client.ts";
+import { createWsHub } from "../../ws/hub.ts";
+
 import { initializeWorkflowAgentProviders } from "./agents/providers.ts";
 
 export function initializeWorkflowPartB(ctx: any): any {
   const __ctx = ctx as any;
-  const BUILTIN_GOOGLE_CLIENT_ID = __ctx.BUILTIN_GOOGLE_CLIENT_ID;
-  const BUILTIN_GOOGLE_CLIENT_SECRET = __ctx.BUILTIN_GOOGLE_CLIENT_SECRET;
-  const CLI_OUTPUT_DEDUP_WINDOW_MS = __ctx.CLI_OUTPUT_DEDUP_WINDOW_MS;
-  const REVIEW_MAX_MEMO_ITEMS_PER_DEPT = __ctx.REVIEW_MAX_MEMO_ITEMS_PER_DEPT;
-  const REVIEW_MAX_MEMO_ITEMS_PER_ROUND = __ctx.REVIEW_MAX_MEMO_ITEMS_PER_ROUND;
-  const REVIEW_MAX_REMEDIATION_REQUESTS = __ctx.REVIEW_MAX_REMEDIATION_REQUESTS;
-  const REVIEW_MAX_REVISION_SIGNALS_PER_DEPT_PER_ROUND = __ctx.REVIEW_MAX_REVISION_SIGNALS_PER_DEPT_PER_ROUND;
-  const REVIEW_MAX_REVISION_SIGNALS_PER_ROUND = __ctx.REVIEW_MAX_REVISION_SIGNALS_PER_ROUND;
-  const REVIEW_MAX_ROUNDS = __ctx.REVIEW_MAX_ROUNDS;
-  const createHash = __ctx.createHash;
-  const createWsHub = __ctx.createWsHub;
   const db = __ctx.db;
-  const decryptSecret = __ctx.decryptSecret;
-  const encryptSecret = __ctx.encryptSecret;
   const ensureOAuthActiveAccount = __ctx.ensureOAuthActiveAccount;
-  const execFile = __ctx.execFile;
-  const execFileSync = __ctx.execFileSync;
-  const fs = __ctx.fs;
   const getActiveOAuthAccountIds = __ctx.getActiveOAuthAccountIds;
   const logsDir = __ctx.logsDir;
-  const notifyTaskStatus = __ctx.notifyTaskStatus;
   const nowMs = __ctx.nowMs;
-  const os = __ctx.os;
-  const path = __ctx.path;
-  const randomUUID = __ctx.randomUUID;
-  const readNonNegativeIntEnv = __ctx.readNonNegativeIntEnv;
-  const spawn = __ctx.spawn;
   const activeProcesses = __ctx.activeProcesses;
   const broadcast = __ctx.broadcast;
   const buildCliFailureMessage = __ctx.buildCliFailureMessage;

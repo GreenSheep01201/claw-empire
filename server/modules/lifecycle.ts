@@ -1,12 +1,12 @@
 // @ts-nocheck
+import path from "path";
+import { HOST, PKG_VERSION, PORT } from "../config/runtime.ts";
+import { notifyTaskStatus } from "../gateway/client.ts";
 
 export function startLifecycle(ctx: any): void {
   const {
-    HOST,
     IN_PROGRESS_ORPHAN_GRACE_MS,
     IN_PROGRESS_ORPHAN_SWEEP_MS,
-    PKG_VERSION,
-    PORT,
     SUBTASK_DELEGATION_SWEEP_MS,
     WebSocket,
     WebSocketServer,
@@ -31,9 +31,7 @@ export function startLifecycle(ctx: any): void {
     isProduction,
     killPidTree,
     notifyCeo,
-    notifyTaskStatus,
     nowMs,
-    path,
     processSubtaskDelegations,
     reconcileCrossDeptSubtasks,
     refreshGoogleToken,

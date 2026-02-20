@@ -1,63 +1,28 @@
 import express from "express";
 import path from "path";
 import fs from "node:fs";
-import os from "node:os";
 import { randomUUID, createHash } from "node:crypto";
-import { spawn, execFile, execFileSync, type ChildProcess } from "node:child_process";
-import { type SQLInputValue } from "node:sqlite";
 import { WebSocketServer, WebSocket } from "ws";
-import type { IncomingMessage } from "node:http";
 
 import {
   DIST_DIR,
-  HOST,
-  INBOX_WEBHOOK_SECRET,
   IS_PRODUCTION,
-  PKG_VERSION,
-  PORT,
 } from "./config/runtime.ts";
 import {
-  CLI_OUTPUT_DEDUP_WINDOW_MS,
   IN_PROGRESS_ORPHAN_GRACE_MS,
   IN_PROGRESS_ORPHAN_SWEEP_MS,
-  REVIEW_FINAL_DECISION_ROUND,
-  REVIEW_MAX_MEMO_ITEMS_PER_DEPT,
-  REVIEW_MAX_MEMO_ITEMS_PER_ROUND,
-  REVIEW_MAX_REMEDIATION_REQUESTS,
-  REVIEW_MAX_ROUNDS,
-  REVIEW_MAX_REVISION_SIGNALS_PER_DEPT_PER_ROUND,
-  REVIEW_MAX_REVISION_SIGNALS_PER_ROUND,
   SQLITE_BUSY_RETRY_BASE_DELAY_MS,
   SQLITE_BUSY_RETRY_JITTER_MS,
   SQLITE_BUSY_RETRY_MAX_ATTEMPTS,
   SQLITE_BUSY_RETRY_MAX_DELAY_MS,
   SUBTASK_DELEGATION_SWEEP_MS,
   initializeDatabaseRuntime,
-  readNonNegativeIntEnv,
 } from "./db/runtime.ts";
-import { gatewayHttpInvoke, notifyTaskStatus } from "./gateway/client.ts";
-import {
-  BUILTIN_GITHUB_CLIENT_ID,
-  BUILTIN_GOOGLE_CLIENT_ID,
-  BUILTIN_GOOGLE_CLIENT_SECRET,
-  OAUTH_BASE_URL,
-  OAUTH_ENCRYPTION_SECRET,
-  OAUTH_STATE_TTL_MS,
-  appendOAuthQuery,
-  b64url,
-  decryptSecret,
-  encryptSecret,
-  pkceChallengeS256,
-  pkceVerifier,
-  sanitizeOAuthRedirect,
-} from "./oauth/helpers.ts";
 import {
   installSecurityMiddleware,
   isIncomingMessageAuthenticated,
   isIncomingMessageOriginTrusted,
-  safeSecretEquals,
 } from "./security/auth.ts";
-import { createWsHub } from "./ws/hub.ts";
 import {
   assertRuntimeFunctionsResolved,
   createDeferredRuntimeProxy,
@@ -1471,52 +1436,16 @@ const runtimeContext: Record<string, any> = {
   nowMs,
   runInTransaction,
   firstQueryValue,
-  fs,
-  os,
-  path,
-  spawn,
-  execFile,
-  execFileSync,
-  randomUUID,
-  createHash,
-  readNonNegativeIntEnv,
-  createWsHub,
 
-  HOST,
-  PORT,
-  PKG_VERSION,
   IN_PROGRESS_ORPHAN_GRACE_MS,
   IN_PROGRESS_ORPHAN_SWEEP_MS,
   SUBTASK_DELEGATION_SWEEP_MS,
-  CLI_OUTPUT_DEDUP_WINDOW_MS,
-  REVIEW_MAX_ROUNDS,
-  REVIEW_MAX_REVISION_SIGNALS_PER_DEPT_PER_ROUND,
-  REVIEW_MAX_REVISION_SIGNALS_PER_ROUND,
-  REVIEW_MAX_MEMO_ITEMS_PER_DEPT,
-  REVIEW_MAX_MEMO_ITEMS_PER_ROUND,
-  REVIEW_MAX_REMEDIATION_REQUESTS,
 
-  INBOX_WEBHOOK_SECRET,
-  OAUTH_BASE_URL,
-  OAUTH_ENCRYPTION_SECRET,
-  OAUTH_STATE_TTL_MS,
-  BUILTIN_GITHUB_CLIENT_ID,
-  BUILTIN_GOOGLE_CLIENT_ID,
-  BUILTIN_GOOGLE_CLIENT_SECRET,
-  appendOAuthQuery,
-  b64url,
-  pkceVerifier,
-  sanitizeOAuthRedirect,
-  decryptSecret,
-  encryptSecret,
   ensureOAuthActiveAccount,
   getActiveOAuthAccountIds,
   setActiveOAuthAccount,
   setOAuthActiveAccounts,
   removeActiveOAuthAccount,
-  safeSecretEquals,
-  gatewayHttpInvoke,
-  notifyTaskStatus,
   isIncomingMessageAuthenticated,
   isIncomingMessageOriginTrusted,
 
