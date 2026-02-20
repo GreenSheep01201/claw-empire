@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import type { RuntimeContext, WorkflowAgentExports } from "../../types/runtime-context.ts";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -21,8 +22,8 @@ import { createWsHub } from "../../ws/hub.ts";
 
 import { initializeWorkflowAgentProviders } from "./agents/providers.ts";
 
-export function initializeWorkflowPartB(ctx: any): any {
-  const __ctx = ctx as any;
+export function initializeWorkflowPartB(ctx: RuntimeContext): WorkflowAgentExports {
+  const __ctx: RuntimeContext = ctx;
   const db = __ctx.db;
   const ensureOAuthActiveAccount = __ctx.ensureOAuthActiveAccount;
   const getActiveOAuthAccountIds = __ctx.getActiveOAuthAccountIds;

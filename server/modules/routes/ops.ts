@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import type { RuntimeContext, RouteOpsExports } from "../../types/runtime-context.ts";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -12,8 +13,8 @@ import { safeSecretEquals } from "../../security/auth.ts";
 
 import { registerOpsMessageRoutes } from "./ops/messages.ts";
 
-export function registerRoutesPartC(ctx: any): any {
-  const __ctx = ctx as any;
+export function registerRoutesPartC(ctx: RuntimeContext): RouteOpsExports {
+  const __ctx: RuntimeContext = ctx;
   const CLI_STATUS_TTL = __ctx.CLI_STATUS_TTL;
   const CLI_TOOLS = __ctx.CLI_TOOLS;
   const MODELS_CACHE_TTL = __ctx.MODELS_CACHE_TTL;

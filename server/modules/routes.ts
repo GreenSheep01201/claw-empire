@@ -1,12 +1,13 @@
 // @ts-nocheck
 
+import type { RuntimeContext, RouteCollabExports, RouteOpsExports } from "../types/runtime-context.ts";
 import { registerRoutesPartA } from "./routes/core.ts";
 import { registerRoutesPartB } from "./routes/collab.ts";
 import { registerRoutesPartC } from "./routes/ops.ts";
 import { ROUTE_RUNTIME_HELPER_KEYS } from "./runtime-helper-keys.ts";
 
-export function registerApiRoutes(ctx: any): any {
-  const runtime = ctx as any;
+export function registerApiRoutes(ctx: RuntimeContext): RouteCollabExports & RouteOpsExports {
+  const runtime: RuntimeContext = ctx;
 
 
   Object.assign(runtime, registerRoutesPartB(runtime));

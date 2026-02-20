@@ -3,6 +3,7 @@ import path from "path";
 import fs from "node:fs";
 import { randomUUID, createHash } from "node:crypto";
 import { WebSocketServer, WebSocket } from "ws";
+import type { BaseRuntimeContext, RuntimeContext } from "./types/runtime-context.ts";
 
 import {
   DIST_DIR,
@@ -1426,7 +1427,7 @@ if (agentCount === 0) {
   if (added > 0) console.log(`[Claw-Empire] Added ${added} new agents`);
 }
 
-const runtimeContext: Record<string, any> = {
+const runtimeContext: Record<string, any> & BaseRuntimeContext = {
   app,
   db,
   dbPath,
@@ -1466,9 +1467,9 @@ const runtimeContext: Record<string, any> = {
 
 const runtimeProxy = createDeferredRuntimeProxy(runtimeContext);
 
-Object.assign(runtimeContext, initializeWorkflow(runtimeProxy));
-Object.assign(runtimeContext, registerApiRoutes(runtimeContext));
+Object.assign(runtimeContext, initializeWorkflow(runtimeProxy as RuntimeContext));
+Object.assign(runtimeContext, registerApiRoutes(runtimeContext as RuntimeContext));
 
 assertRuntimeFunctionsResolved(runtimeContext, ROUTE_RUNTIME_HELPER_KEYS, "route helper wiring");
 
-startLifecycle(runtimeContext);
+startLifecycle(runtimeContext as RuntimeContext);

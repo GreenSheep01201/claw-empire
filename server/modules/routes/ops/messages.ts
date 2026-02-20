@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import type { RuntimeContext } from "../../../types/runtime-context.ts";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -10,8 +11,8 @@ import { notifyTaskStatus, gatewayHttpInvoke } from "../../../gateway/client.ts"
 import { BUILTIN_GITHUB_CLIENT_ID, BUILTIN_GOOGLE_CLIENT_ID, BUILTIN_GOOGLE_CLIENT_SECRET, OAUTH_BASE_URL, OAUTH_ENCRYPTION_SECRET, OAUTH_STATE_TTL_MS, appendOAuthQuery, b64url, pkceVerifier, sanitizeOAuthRedirect, encryptSecret, decryptSecret } from "../../../oauth/helpers.ts";
 import { safeSecretEquals } from "../../../security/auth.ts";
 
-export function registerOpsMessageRoutes(ctx: any): any {
-  const __ctx = ctx as any;
+export function registerOpsMessageRoutes(ctx: RuntimeContext): any {
+  const __ctx: RuntimeContext = ctx;
   const CLI_STATUS_TTL = __ctx.CLI_STATUS_TTL;
   const CLI_TOOLS = __ctx.CLI_TOOLS;
   const MODELS_CACHE_TTL = __ctx.MODELS_CACHE_TTL;

@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import type { RuntimeContext, RouteCollabExports } from "../../types/runtime-context.ts";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -12,8 +13,8 @@ import { safeSecretEquals } from "../../security/auth.ts";
 
 import { initializeCollabCoordination } from "./collab/coordination.ts";
 
-export function registerRoutesPartB(ctx: any): any {
-  const __ctx = ctx as any;
+export function registerRoutesPartB(ctx: RuntimeContext): RouteCollabExports {
+  const __ctx: RuntimeContext = ctx;
   const CLI_STATUS_TTL = __ctx.CLI_STATUS_TTL;
   const CLI_TOOLS = __ctx.CLI_TOOLS;
   const MODELS_CACHE_TTL = __ctx.MODELS_CACHE_TTL;

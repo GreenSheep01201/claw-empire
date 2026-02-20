@@ -1,9 +1,10 @@
 // @ts-nocheck
+import type { RuntimeContext } from "../types/runtime-context.ts";
 import path from "path";
 import { HOST, PKG_VERSION, PORT } from "../config/runtime.ts";
 import { notifyTaskStatus } from "../gateway/client.ts";
 
-export function startLifecycle(ctx: any): void {
+export function startLifecycle(ctx: RuntimeContext): void {
   const {
     IN_PROGRESS_ORPHAN_GRACE_MS,
     IN_PROGRESS_ORPHAN_SWEEP_MS,

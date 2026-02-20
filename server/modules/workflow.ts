@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import type { RuntimeContext, WorkflowCoreExports, WorkflowAgentExports, WorkflowOrchestrationExports } from "../types/runtime-context.ts";
 import { initializeWorkflowPartA } from "./workflow/core.ts";
 import { initializeWorkflowPartB } from "./workflow/agents.ts";
 import { initializeWorkflowPartC } from "./workflow/orchestration.ts";
@@ -8,8 +9,8 @@ import {
   createDeferredRuntimeProxy,
 } from "./deferred-runtime.ts";
 
-export function initializeWorkflow(ctx: any): any {
-  const runtime = ctx as any;
+export function initializeWorkflow(ctx: RuntimeContext): WorkflowCoreExports & WorkflowAgentExports & WorkflowOrchestrationExports {
+  const runtime: RuntimeContext = ctx;
   const runtimeProxy = createDeferredRuntimeProxy(runtime);
 
   runtime.DEPT_KEYWORDS = runtime.DEPT_KEYWORDS ?? {};
