@@ -1,6 +1,7 @@
 // @ts-nocheck
 
 import type { RuntimeContext, WorkflowCoreExports } from "../../types/runtime-context.ts";
+import { isLang, type Lang } from "../../types/lang.ts";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1156,13 +1157,7 @@ interface MeetingPromptOptions {
   lang: string;
 }
 
-type Lang = "ko" | "en" | "ja" | "zh";
-
-function isLang(value: string): value is Lang {
-  return value === "ko" || value === "en" || value === "ja" || value === "zh";
-}
-
-function normalizeMeetingLang(value: string): Lang {
+function normalizeMeetingLang(value: unknown): Lang {
   if (isLang(value)) return value;
   const preferred = getPreferredLanguage();
   return isLang(preferred) ? preferred : "ko";
@@ -1363,6 +1358,12 @@ const MEETING_TRANSCRIPT_TOTAL_MAX_CHARS = Math.max(
   readNonNegativeIntEnv("MEETING_TRANSCRIPT_TOTAL_MAX_CHARS", 2400),
 );
 
+/**
+ * Semantic wrapper for meeting-specific task/context compaction.
+ *
+ * Keeping this indirection gives us one stable hook if meeting prompts ever need
+ * extra pre/post processing beyond generic text compaction.
+ */
 function compactForMeetingPrompt(text: string, maxChars: number): string {
   return compactMeetingPromptText(text, maxChars);
 }

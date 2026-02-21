@@ -35,7 +35,7 @@ export function compactMeetingPromptText(text: string, maxChars: number): string
   if (trimmed.length <= maxChars) return trimmed;
 
   // For over-budget context, compact only non-line-break whitespace.
-  const cleaned = trimmed.replace(/[^\S\r\n]+/g, " ");
+  const cleaned = trimmed.replace(/[^\S\r\n\u2028\u2029]+/g, " ");
   if (cleaned.length <= maxChars) return cleaned;
 
   const sep = DEFAULT_SEPARATOR;
@@ -47,15 +47,9 @@ export function compactMeetingPromptText(text: string, maxChars: number): string
   if (maxChars < minTotal) return cleaned.slice(0, maxChars);
 
   const available = maxChars - sepLen;
-  let headSize = Math.max(minHead, Math.floor(available * 0.72));
-  if (headSize > available - minTail) {
-    headSize = available - minTail;
-  }
-  let tailSize = available - headSize;
-  if (tailSize < minTail) {
-    tailSize = minTail;
-    headSize = available - tailSize;
-  }
+  const maxHead = available - minTail;
+  const headSize = Math.min(Math.max(minHead, Math.floor(available * 0.72)), maxHead);
+  const tailSize = available - headSize;
 
   return `${cleaned.slice(0, headSize).trimEnd()}${sep}${cleaned.slice(-tailSize).trimStart()}`;
 }
@@ -87,9 +81,12 @@ export function formatMeetingTranscriptForPrompt(
   }> = [];
   const seen = new Set<string>();
   let droppedDuplicateTurns = 0;
+  let droppedEmptySummaryTurns = 0;
 
   for (let i = 0; i < recent.length; i += 1) {
     const turn = recent[i];
+    // Intentionally dedupe by normalized original content hash (not summarized text),
+    // so distinct turns that collapse to the same short summary are still preserved.
     const sig = buildDuplicateSignature(turn);
     if (seen.has(sig)) {
       droppedDuplicateTurns += 1;
@@ -98,6 +95,11 @@ export function formatMeetingTranscriptForPrompt(
     seen.add(sig);
 
     const summarized = normalizeSummarizedTurn(opts.summarize(turn.content, maxLineChars), maxLineChars);
+    if (!summarized) {
+      droppedEmptySummaryTurns += 1;
+      continue;
+    }
+
     uniqueEntries.push({
       speaker: turn.speaker,
       department: turn.department,
@@ -114,6 +116,9 @@ export function formatMeetingTranscriptForPrompt(
   if (droppedDuplicateTurns > 0) {
     baseHeader.push(`(compressed: omitted ${droppedDuplicateTurns} repetitive ${turnNoun(droppedDuplicateTurns)})`);
   }
+  if (droppedEmptySummaryTurns > 0) {
+    baseHeader.push(`(compressed: omitted ${droppedEmptySummaryTurns} empty-summary ${turnNoun(droppedEmptySummaryTurns)})`);
+  }
 
   const bodyLinesAll = uniqueEntries.map((entry) => (
     `${entry.originalTurnNumber}. ${entry.speaker} (${entry.department} ${entry.role}): ${entry.summarized}`
@@ -121,6 +126,10 @@ export function formatMeetingTranscriptForPrompt(
 
   let startIndex = 0;
 
+  // NOTE: This scan is O(m²) in the number of retained lines because it
+  // may re-render while incrementing `startIndex` one by one. In practice,
+  // m is bounded by MEETING_TRANSCRIPT_MAX_TURNS (default 12), so this keeps
+  // the implementation simple and predictable for current runtime limits.
   while (true) {
     const droppedByBudgetTurns = startIndex;
     const header = [...baseHeader];
