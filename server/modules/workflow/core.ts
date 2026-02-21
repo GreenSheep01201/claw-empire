@@ -1158,6 +1158,16 @@ interface MeetingPromptOptions {
 
 type Lang = "ko" | "en" | "ja" | "zh";
 
+function isLang(value: string): value is Lang {
+  return value === "ko" || value === "en" || value === "ja" || value === "zh";
+}
+
+function normalizeMeetingLang(value: string): Lang {
+  if (isLang(value)) return value;
+  const preferred = getPreferredLanguage();
+  return isLang(preferred) ? preferred : "ko";
+}
+
 function sleepMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1458,8 +1468,9 @@ function formatMeetingTranscript(
 }
 
 function buildMeetingPrompt(agent: AgentRow, opts: MeetingPromptOptions): string {
+  const lang = normalizeMeetingLang(opts.lang);
   const deptName = getDeptName(agent.department_id ?? "");
-  const role = getRoleLabel(agent.role, opts.lang as Lang);
+  const role = getRoleLabel(agent.role, lang);
   const deptConstraint = agent.department_id ? getDeptRoleConstraint(agent.department_id, deptName) : "";
   const recentCtx = getRecentConversationContext(agent.id, 8);
   const meetingLabel = opts.meetingType === "planned" ? "Planned Approval" : "Review Consensus";
@@ -1469,9 +1480,9 @@ function buildMeetingPrompt(agent: AgentRow, opts: MeetingPromptOptions): string
     `Task: ${opts.taskTitle}`,
     compactTaskContext ? `Task context: ${compactTaskContext}` : "",
     `Round: ${opts.round}`,
-    `You are ${getAgentDisplayName(agent, opts.lang)} (${deptName} ${role}).`,
+    `You are ${getAgentDisplayName(agent, lang)} (${deptName} ${role}).`,
     deptConstraint,
-    localeInstruction(opts.lang),
+    localeInstruction(lang),
     "Output rules:",
     "- Return one natural chat message only (no JSON, no markdown).",
     "- Keep it concise: 1-3 sentences.",
@@ -1480,7 +1491,7 @@ function buildMeetingPrompt(agent: AgentRow, opts: MeetingPromptOptions): string
     `Current turn objective: ${opts.turnObjective}`,
     "",
     "[Meeting transcript so far]",
-    formatMeetingTranscript(opts.transcript, opts.lang as Lang),
+    formatMeetingTranscript(opts.transcript, lang),
     recentCtx,
   ].filter(Boolean).join("\n");
 }

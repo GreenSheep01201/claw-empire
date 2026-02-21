@@ -26,6 +26,13 @@ describe("meeting prompt utils", () => {
     expect(compacted).toBe("line-1\n  line-2\n\nline-3");
   });
 
+  it("returns cleaned text when whitespace compaction alone meets budget", () => {
+    const source = `${"A".repeat(60)}      ${"B".repeat(60)}`;
+    const compacted = compactMeetingPromptText(source, 121);
+    expect(compacted).toBe(`${"A".repeat(60)} ${"B".repeat(60)}`);
+    expect(compacted.includes(" … ")).toBe(false);
+  });
+
   it("formats empty transcript", () => {
     const rendered = formatMeetingTranscriptForPrompt([], {
       maxTurns: 12,
@@ -34,6 +41,23 @@ describe("meeting prompt utils", () => {
       summarize: (text) => text,
     });
     expect(rendered).toBe("(none)");
+  });
+
+  it("hard-limits summarized lines to maxLineChars", () => {
+    const transcript: MeetingTranscriptLine[] = [
+      { speaker: "A", department: "dev", role: "member", content: "raw" },
+    ];
+
+    const rendered = formatMeetingTranscriptForPrompt(transcript, {
+      maxTurns: 12,
+      maxLineChars: 24,
+      maxTotalChars: 200,
+      summarize: () => "  this      summary is intentionally way longer than allowed line budget  ",
+    });
+
+    const summary = rendered.split(": ")[1] ?? "";
+    expect(summary.length).toBeLessThanOrEqual(24);
+    expect(summary).not.toMatch(/\s{2,}/);
   });
 
   it("drops duplicate turns, keeps original numbering, and avoids redundant summarize calls", () => {

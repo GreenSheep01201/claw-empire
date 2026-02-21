@@ -19,6 +19,14 @@ function buildDuplicateSignature(turn: MeetingTranscriptLine): string {
   return `${turn.speaker}|${turn.department}|${turn.role}|${contentHash}`;
 }
 
+function normalizeSummarizedTurn(text: string, maxChars: number): string {
+  const cleaned = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+  if (cleaned.length <= maxChars) return cleaned;
+  if (maxChars <= 1) return "…".slice(0, maxChars);
+  return `${cleaned.slice(0, maxChars - 1).trimEnd()}…`;
+}
+
 export function compactMeetingPromptText(text: string, maxChars: number): string {
   const trimmed = String(text ?? "").trim();
   if (!trimmed) return "";
@@ -28,6 +36,7 @@ export function compactMeetingPromptText(text: string, maxChars: number): string
 
   // For over-budget context, compact only non-line-break whitespace.
   const cleaned = trimmed.replace(/[^\S\r\n]+/g, " ");
+  if (cleaned.length <= maxChars) return cleaned;
 
   const sep = DEFAULT_SEPARATOR;
   const sepLen = sep.length;
@@ -88,7 +97,7 @@ export function formatMeetingTranscriptForPrompt(
     }
     seen.add(sig);
 
-    const summarized = opts.summarize(turn.content, maxLineChars);
+    const summarized = normalizeSummarizedTurn(opts.summarize(turn.content, maxLineChars), maxLineChars);
     uniqueEntries.push({
       speaker: turn.speaker,
       department: turn.department,
