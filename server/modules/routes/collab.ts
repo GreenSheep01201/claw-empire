@@ -1,6 +1,7 @@
 // @ts-nocheck
 
 import type { RuntimeContext, RouteCollabExports } from "../../types/runtime-context.ts";
+import { isLang, type Lang } from "../../types/lang.ts";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -197,14 +198,6 @@ function sendAgentMessage(
 }
 
 // ---- Language detection & multilingual response system ----
-
-type Lang = "ko" | "en" | "ja" | "zh";
-
-const SUPPORTED_LANGS: readonly Lang[] = ["ko", "en", "ja", "zh"] as const;
-
-function isLang(value: unknown): value is Lang {
-  return typeof value === "string" && SUPPORTED_LANGS.includes(value as Lang);
-}
 
 function readSettingString(key: string): string | undefined {
   const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | undefined;
