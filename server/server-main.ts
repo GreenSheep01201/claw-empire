@@ -1711,6 +1711,17 @@ if (agentCount === 0) {
   if (added > 0) console.log(`[Claw-Empire] Added ${added} new agents`);
 }
 
+function readSettingString(key: string): string | undefined {
+  const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value?: unknown } | undefined;
+  if (!row || typeof row.value !== "string") return undefined;
+  try {
+    const parsed = JSON.parse(row.value);
+    return typeof parsed === "string" ? parsed : row.value;
+  } catch {
+    return row.value;
+  }
+}
+
 const runtimeContext: Record<string, any> & BaseRuntimeContext = {
   app,
   db,
@@ -1721,6 +1732,7 @@ const runtimeContext: Record<string, any> & BaseRuntimeContext = {
   nowMs,
   runInTransaction,
   firstQueryValue,
+  readSettingString,
 
   IN_PROGRESS_ORPHAN_GRACE_MS,
   IN_PROGRESS_ORPHAN_SWEEP_MS,
