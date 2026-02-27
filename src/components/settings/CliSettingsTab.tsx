@@ -6,6 +6,7 @@ export default function CliSettingsTab({
   cliStatus,
   cliModels,
   cliModelsLoading,
+  loadError,
   form,
   setForm,
   persistSettings,
@@ -24,6 +25,13 @@ export default function CliSettingsTab({
           🔄 {t({ ko: "새로고침", en: "Refresh", ja: "更新", zh: "刷新" })}
         </button>
       </div>
+
+      {loadError && (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          <div className="font-semibold">{loadError.message}</div>
+          <div className="mt-1 opacity-90">{loadError.actionHint}</div>
+        </div>
+      )}
 
       {cliStatus ? (
         <div className="space-y-2">

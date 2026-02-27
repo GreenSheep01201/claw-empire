@@ -3,7 +3,7 @@ import OAuthConnectCards from "./OAuthConnectCards";
 import OAuthConnectedProvidersSection from "./OAuthConnectedProvidersSection";
 import { OAUTH_INFO } from "./constants";
 import type { DeviceCodeStart } from "../../api";
-import type { OAuthCallbackResultLike, OAuthCommonProps, TFunction } from "./types";
+import type { OAuthCallbackResultLike, OAuthCommonProps, SettingsSectionError, TFunction } from "./types";
 
 type OAuthSettingsTabProps = Omit<OAuthCommonProps, "oauthStatus"> & {
   t: TFunction;
@@ -15,6 +15,7 @@ type OAuthSettingsTabProps = Omit<OAuthCommonProps, "oauthStatus"> & {
   deviceCode: DeviceCodeStart | null;
   deviceStatus: string | null;
   deviceError: string | null;
+  statusError?: SettingsSectionError | null;
   onStartDeviceCodeFlow: () => Promise<void>;
 };
 
@@ -46,6 +47,7 @@ export default function OAuthSettingsTab({
   deviceCode,
   deviceStatus,
   deviceError,
+  statusError,
   onStartDeviceCodeFlow,
 }: OAuthSettingsTabProps) {
   return (
@@ -75,6 +77,13 @@ export default function OAuthSettingsTab({
           <button onClick={() => onOauthResultClear?.()} className="text-xs opacity-60 hover:opacity-100 ml-2">
             ✕
           </button>
+        </div>
+      )}
+
+      {statusError && (
+        <div className="rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+          <div className="font-semibold">{statusError.message}</div>
+          <div className="mt-1 opacity-90">{statusError.actionHint}</div>
         </div>
       )}
 

@@ -29,6 +29,13 @@ export type AccountDraftMap = Record<string, AccountDraft>;
 
 export type AccountDraftPatch = Partial<AccountDraft>;
 
+export interface SettingsSectionError {
+  errorCode: string | null;
+  message: string;
+  actionHint: string;
+  recoverable: boolean;
+}
+
 export interface OAuthCallbackResultLike {
   provider?: string | null;
   error?: string | null;
@@ -53,6 +60,7 @@ export interface CliSettingsTabProps {
   cliStatus: CliStatusMap | null;
   cliModels: Record<string, CliModelInfo[]> | null;
   cliModelsLoading: boolean;
+  loadError?: SettingsSectionError | null;
   form: LocalSettings;
   setForm: SetLocalSettings;
   persistSettings: (next: LocalSettings) => void;

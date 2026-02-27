@@ -10,7 +10,14 @@ import GatewaySettingsTab from "./settings/GatewaySettingsTab";
 import GeneralSettingsTab from "./settings/GeneralSettingsTab";
 import OAuthSettingsTab from "./settings/OAuthSettingsTab";
 import SettingsTabNav from "./settings/SettingsTabNav";
-import type { AccountDraftMap, AccountDraftPatch, LocalSettings, SettingsTab } from "./settings/types";
+import type {
+  AccountDraftMap,
+  AccountDraftPatch,
+  LocalSettings,
+  SettingsSectionError,
+  SettingsTab,
+} from "./settings/types";
+import { toSettingsSectionError } from "./settings/error-utils";
 import { useApiProvidersState } from "./settings/useApiProvidersState";
 
 interface SettingsPanelProps {
@@ -47,6 +54,8 @@ export default function SettingsPanel({
 
   const [cliModels, setCliModels] = useState<Record<string, CliModelInfo[]> | null>(null);
   const [cliModelsLoading, setCliModelsLoading] = useState(false);
+  const [cliError, setCliError] = useState<SettingsSectionError | null>(null);
+  const [oauthError, setOauthError] = useState<SettingsSectionError | null>(null);
 
   const [deviceCode, setDeviceCode] = useState<DeviceCodeStart | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<string | null>(null);
@@ -67,6 +76,7 @@ export default function SettingsPanel({
     try {
       const next = await api.getOAuthStatus();
       setOauthStatus(next);
+      setOauthError(null);
       setAccountDrafts((prev) => {
         const merged = { ...prev };
         for (const info of Object.values(next.providers)) {
@@ -82,6 +92,9 @@ export default function SettingsPanel({
         }
         return merged;
       });
+    } catch (err) {
+      setOauthStatus(null);
+      setOauthError(toSettingsSectionError("oauth", err));
     } finally {
       setOauthLoading(false);
     }
@@ -90,22 +103,30 @@ export default function SettingsPanel({
   const refreshOAuthTab = useCallback(() => {
     setOauthStatus(null);
     setOauthLoading(true);
-    void loadOAuthStatus().catch(console.error);
+    setOauthError(null);
+    void loadOAuthStatus();
     setModelsLoading(true);
     api
       .getOAuthModels(true)
       .then(setModels)
-      .catch(console.error)
+      .catch((err) => {
+        setOauthError(toSettingsSectionError("oauth", err));
+      })
       .finally(() => setModelsLoading(false));
   }, [loadOAuthStatus]);
 
   const refreshCliTab = useCallback(() => {
-    onRefreshCli();
+    setCliError(null);
+    Promise.resolve(onRefreshCli()).catch((err) => {
+      setCliError(toSettingsSectionError("cli", err));
+    });
     setCliModelsLoading(true);
     api
       .getCliModels(true)
       .then(setCliModels)
-      .catch(console.error)
+      .catch((err) => {
+        setCliError(toSettingsSectionError("cli", err));
+      })
       .finally(() => setCliModelsLoading(false));
   }, [onRefreshCli]);
 
@@ -128,19 +149,34 @@ export default function SettingsPanel({
 
   useEffect(() => {
     if (tab === "oauth" && !oauthStatus) {
-      void loadOAuthStatus().catch(console.error);
+      void loadOAuthStatus();
     }
   }, [tab, oauthStatus, loadOAuthStatus]);
 
   useEffect(() => {
     if (tab !== "cli" || cliModels) return;
+    setCliError(null);
     setCliModelsLoading(true);
     api
       .getCliModels()
       .then(setCliModels)
-      .catch(console.error)
+      .catch((err) => {
+        setCliError(toSettingsSectionError("cli", err));
+      })
       .finally(() => setCliModelsLoading(false));
   }, [tab, cliModels]);
+
+  useEffect(() => {
+    if (tab === "cli" && !cliStatus && !cliError) {
+      refreshCliTab();
+    }
+  }, [tab, cliStatus, cliError, refreshCliTab]);
+
+  useEffect(() => {
+    if (cliStatus) {
+      setCliError(null);
+    }
+  }, [cliStatus]);
 
   useEffect(() => {
     if (tab !== "oauth" || !oauthStatus || models) return;
@@ -150,7 +186,9 @@ export default function SettingsPanel({
     api
       .getOAuthModels()
       .then(setModels)
-      .catch(console.error)
+      .catch((err) => {
+        setOauthError(toSettingsSectionError("oauth", err));
+      })
       .finally(() => setModelsLoading(false));
   }, [tab, oauthStatus, models]);
 
@@ -263,6 +301,7 @@ export default function SettingsPanel({
     } catch (error) {
       setDeviceError(error instanceof Error ? error.message : String(error));
       setDeviceStatus("error");
+      setOauthError(toSettingsSectionError("oauth", error));
     }
   }, [loadOAuthStatus, t]);
 
@@ -278,7 +317,7 @@ export default function SettingsPanel({
           if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
         }
       } catch (error) {
-        console.error("Disconnect failed:", error);
+        setOauthError(toSettingsSectionError("oauth", error));
       } finally {
         setDisconnecting(null);
       }
@@ -293,7 +332,7 @@ export default function SettingsPanel({
         await api.refreshOAuthToken(provider);
         await loadOAuthStatus();
       } catch (error) {
-        console.error("Manual refresh failed:", error);
+        setOauthError(toSettingsSectionError("oauth", error));
       } finally {
         setRefreshing(null);
       }
@@ -320,7 +359,7 @@ export default function SettingsPanel({
         await api.activateOAuthAccount(provider, accountId, currentlyActive ? "remove" : "add");
         await loadOAuthStatus();
       } catch (error) {
-        console.error("Activate account failed:", error);
+        setOauthError(toSettingsSectionError("oauth", error));
       } finally {
         setSavingAccountId(null);
       }
@@ -341,7 +380,7 @@ export default function SettingsPanel({
         });
         await loadOAuthStatus();
       } catch (error) {
-        console.error("Save account failed:", error);
+        setOauthError(toSettingsSectionError("oauth", error));
       } finally {
         setSavingAccountId(null);
       }
@@ -356,7 +395,7 @@ export default function SettingsPanel({
         await api.updateOAuthAccount(accountId, { status: nextStatus });
         await loadOAuthStatus();
       } catch (error) {
-        console.error("Toggle account failed:", error);
+        setOauthError(toSettingsSectionError("oauth", error));
       } finally {
         setSavingAccountId(null);
       }
@@ -384,7 +423,7 @@ export default function SettingsPanel({
         await api.deleteOAuthAccount(provider, accountId);
         await loadOAuthStatus();
       } catch (error) {
-        console.error("Delete account failed:", error);
+        setOauthError(toSettingsSectionError("oauth", error));
       } finally {
         setSavingAccountId(null);
       }
@@ -410,6 +449,7 @@ export default function SettingsPanel({
           cliStatus={cliStatus}
           cliModels={cliModels}
           cliModelsLoading={cliModelsLoading}
+          loadError={cliError}
           form={form}
           setForm={setForm}
           persistSettings={persistSettings}
@@ -426,6 +466,7 @@ export default function SettingsPanel({
           persistSettings={persistSettings}
           oauthLoading={oauthLoading}
           oauthStatus={oauthStatus}
+          statusError={oauthError}
           oauthResult={oauthResult}
           onOauthResultClear={onOauthResultClear}
           onRefresh={refreshOAuthTab}
