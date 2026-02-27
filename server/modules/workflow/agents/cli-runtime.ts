@@ -289,17 +289,27 @@ export function createCliRuntimeTools(deps: CliRuntimeDeps) {
         kind === "idle"
           ? `no output for ${Math.round(timeoutMs / 1000)}s`
           : `exceeded max runtime ${Math.round(timeoutMs / 1000)}s`;
-      const msg = `[Claw-Empire] RUN TIMEOUT (${reason})`;
+      const pid = child.pid && child.pid > 0 ? child.pid : null;
+      const msg = pid
+        ? `[Claw-Empire] RUN TIMEOUT (${reason}); stopping process tree pid=${pid}`
+        : `[Claw-Empire] RUN TIMEOUT (${reason}); stopping child process (pid unavailable)`;
       safeWrite(`\n${msg}\n`);
       appendTaskLog(taskId, "error", msg);
       try {
-        if (child.pid && child.pid > 0) {
-          killPidTree(child.pid);
+        if (pid) {
+          killPidTree(pid);
         } else {
           child.kill("SIGTERM");
         }
-      } catch {
-        // ignore kill race
+      } catch (err) {
+        const errMsg = `[Claw-Empire] timeout termination failed: ${err instanceof Error ? err.message : String(err)}`;
+        safeWrite(`\n${errMsg}\n`);
+        appendTaskLog(taskId, "error", errMsg);
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          // ignore kill race
+        }
       }
     };
     const touchIdleTimer = () => {

@@ -445,6 +445,28 @@ describe("registerTaskExecutionControlRoutes", () => {
     expect(harness.spies.endTaskExecutionSession).toHaveBeenCalledWith("task-1", "stop_cancelled");
   });
 
+  it("cancel 요청 시 음수 pid는 child.kill fallback을 사용한다", () => {
+    const harness = createDeps({ activePid: -9 });
+    registerTaskExecutionControlRoutes(harness.deps);
+
+    const handler = harness.routes.get("/api/tasks/:id/stop");
+    const req = {
+      params: { id: "task-1" },
+      body: { mode: "cancel" },
+      query: {},
+      method: "POST",
+      header: (name: string) => (name.toLowerCase() === "x-csrf-token" ? getCsrfToken() : undefined),
+    };
+    const res = createFakeRes();
+    handler?.(req, res);
+
+    expect(res.statusCode).toBe(200);
+    const child = harness.maps.activeProcesses.get("task-1");
+    expect(child?.kill).toHaveBeenCalledTimes(1);
+    expect(harness.spies.killPidTree).not.toHaveBeenCalled();
+    expect(harness.spies.interruptPidTree).not.toHaveBeenCalled();
+  });
+
   it("pending 상태 재개 시 auto resume을 예약하고 기존 session_id를 반환한다", () => {
     vi.useFakeTimers();
     const harness = createDeps({
