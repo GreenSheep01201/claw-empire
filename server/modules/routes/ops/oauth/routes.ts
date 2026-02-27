@@ -13,6 +13,7 @@ import {
 import type { DecryptedOAuthToken } from "../../shared/types.ts";
 import { createOAuthRouteHelpers } from "./helpers.ts";
 import { createOAuthStatusBuilder } from "./status.ts";
+import { buildDegradedOAuthStatus } from "./status-response.ts";
 
 export function registerOAuthRoutes(ctx: RuntimeContext): void {
   const {
@@ -46,8 +47,7 @@ export function registerOAuthRoutes(ctx: RuntimeContext): void {
       const providers = await buildOAuthStatus();
       res.json({ storageReady: Boolean(OAUTH_ENCRYPTION_SECRET), providers });
     } catch (err) {
-      console.error("[oauth] Failed to build OAuth status:", err);
-      res.status(500).json({ error: "Failed to build OAuth status" });
+      res.status(200).json(buildDegradedOAuthStatus(_req, err));
     }
   });
 

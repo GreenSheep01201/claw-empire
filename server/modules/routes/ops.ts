@@ -13,6 +13,7 @@ import { registerModelRoutes } from "./ops/models-routes.ts";
 import { registerOAuthRoutes } from "./ops/oauth/routes.ts";
 import { registerSkillRoutes } from "./ops/skills/routes.ts";
 import { registerApiDocsRoutes } from "./ops/api-docs.ts";
+import { registerCliStatusRoute } from "./ops/cli-status-route.ts";
 
 export function registerRoutesPartC(ctx: RuntimeContext): RouteOpsExports {
   const __ctx: RuntimeContext = ctx;
@@ -176,24 +177,15 @@ export function registerRoutesPartC(ctx: RuntimeContext): RouteOpsExports {
 
   Object.assign(__ctx, registerOpsMessageRoutes(__ctx));
 
-  // ---------------------------------------------------------------------------
-  // CLI Status
-  // ---------------------------------------------------------------------------
-  app.get("/api/cli-status", async (_req, res) => {
-    const refresh = _req.query.refresh === "1";
-    const now = Date.now();
-
-    if (!refresh && cachedCliStatus && now - cachedCliStatus.loadedAt < CLI_STATUS_TTL) {
-      return res.json({ providers: cachedCliStatus.data });
-    }
-
-    try {
-      const data = await detectAllCli();
-      cachedCliStatus = { data, loadedAt: Date.now() };
-      res.json({ providers: data });
-    } catch (err) {
-      res.status(500).json({ error: "cli_detection_failed", message: String(err) });
-    }
+  registerCliStatusRoute({
+    app,
+    cliStatusTtlMs: CLI_STATUS_TTL,
+    cliTools: CLI_TOOLS,
+    detectAllCli,
+    getCachedCliStatus: () => cachedCliStatus,
+    setCachedCliStatus: (next) => {
+      cachedCliStatus = next;
+    },
   });
 
   // ---------------------------------------------------------------------------

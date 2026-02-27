@@ -230,27 +230,40 @@ export function createUsageCliTools(deps: CreateUsageCliToolsDeps) {
   }
 
   async function detectCliTool(tool: CliToolDef): Promise<CliToolStatus> {
-    const whichCmd = process.platform === "win32" ? "where" : "which";
     try {
-      await execWithTimeout(whichCmd, [tool.name], 3000);
+      const whichCmd = process.platform === "win32" ? "where" : "which";
+      try {
+        await execWithTimeout(whichCmd, [tool.name], 3000);
+      } catch {
+        return { installed: false, version: null, authenticated: false, authHint: tool.authHint };
+      }
+
+      let version: string | null = null;
+      if (tool.getVersion) {
+        try {
+          version = tool.getVersion();
+        } catch {
+          version = null;
+        }
+      } else {
+        try {
+          version = await execWithTimeout(tool.name, tool.versionArgs ?? ["--version"], 3000);
+          if (version.includes("\n")) version = version.split("\n")[0].trim();
+        } catch {
+          /* binary found but --version failed */
+        }
+      }
+
+      let authenticated = false;
+      try {
+        authenticated = Boolean(tool.checkAuth());
+      } catch {
+        authenticated = false;
+      }
+      return { installed: true, version, authenticated, authHint: tool.authHint };
     } catch {
       return { installed: false, version: null, authenticated: false, authHint: tool.authHint };
     }
-
-    let version: string | null = null;
-    if (tool.getVersion) {
-      version = tool.getVersion();
-    } else {
-      try {
-        version = await execWithTimeout(tool.name, tool.versionArgs ?? ["--version"], 3000);
-        if (version.includes("\n")) version = version.split("\n")[0].trim();
-      } catch {
-        /* binary found but --version failed */
-      }
-    }
-
-    const authenticated = tool.checkAuth();
-    return { installed: true, version, authenticated, authHint: tool.authHint };
   }
 
   async function detectAllCli(): Promise<CliStatusResult> {

@@ -1,33 +1,70 @@
 import type { RuntimeContext } from "../../../types/runtime-context.ts";
+import { sendRouteError } from "../shared/route-error.ts";
+
+const SETTINGS_READ_HINT =
+  "Failed to read settings from SQLite. Check DB path/permissions and ensure only one writer is locking the runtime DB.";
+const SETTINGS_WRITE_HINT =
+  "Failed to persist settings to SQLite. Check DB write permissions, DB lock state, and runtime DB health.";
 
 export function registerOpsSettingsStatsRoutes(ctx: RuntimeContext): void {
   const { app, db } = ctx;
 
-  app.get("/api/settings", (_req, res) => {
-    const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
-    const settings: Record<string, unknown> = {};
-    for (const row of rows) {
-      try {
-        settings[row.key] = JSON.parse(row.value);
-      } catch {
-        settings[row.key] = row.value;
+  app.get("/api/settings", (req, res) => {
+    try {
+      const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
+      const settings: Record<string, unknown> = {};
+      for (const row of rows) {
+        try {
+          settings[row.key] = JSON.parse(row.value);
+        } catch {
+          settings[row.key] = row.value;
+        }
       }
+      res.json({ settings });
+      return;
+    } catch (err) {
+      sendRouteError(req, res, {
+        status: 500,
+        route: "/api/settings",
+        errorCode: "settings_read_failed",
+        hint: SETTINGS_READ_HINT,
+        err,
+      });
+      return;
     }
-    res.json({ settings });
   });
 
-  app.put("/api/settings", (req, res) => {
+  app.put("/api/settings", (req, res): void => {
     const body = req.body ?? {};
-
-    const upsert = db.prepare(
-      "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-    );
-
-    for (const [key, value] of Object.entries(body)) {
-      upsert.run(key, typeof value === "string" ? value : JSON.stringify(value));
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      res.status(400).json({
+        error: "settings_invalid_payload",
+        hint: "Request body must be a JSON object.",
+      });
+      return;
     }
 
-    res.json({ ok: true });
+    try {
+      const upsert = db.prepare(
+        "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      );
+
+      for (const [key, value] of Object.entries(body)) {
+        upsert.run(key, typeof value === "string" ? value : JSON.stringify(value));
+      }
+
+      res.json({ ok: true });
+      return;
+    } catch (err) {
+      sendRouteError(req, res, {
+        status: 500,
+        route: "/api/settings",
+        errorCode: "settings_write_failed",
+        hint: SETTINGS_WRITE_HINT,
+        err,
+      });
+      return;
+    }
   });
 
   app.get("/api/stats", (_req, res) => {

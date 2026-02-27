@@ -54,6 +54,8 @@ export interface CliToolStatus {
   version: string | null;
   authenticated: boolean;
   authHint: string;
+  errorCode?: string;
+  errorHint?: string;
 }
 
 export type CliStatusResult = Record<string, CliToolStatus>;
