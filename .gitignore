@@ -65,3 +65,5 @@ Thumbs.db
 
 # Playwright artifacts
 test-results/
+
+.diag_pid

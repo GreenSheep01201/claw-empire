@@ -16,6 +16,12 @@
 
 This applies to ALL responses: confirmations, questions, error messages, status updates.
 
+## E2E Testing Policy
+
+- Legacy browser-automation MCP is prohibited in this repository.
+- Use `webapp-testing` for Playwright/browser automation tasks.
+- Before marking work complete, run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify_before_completion.ps1` and require a pass result.
+
 ---
 
 ## Default Skill Bootstrap
@@ -480,5 +486,3 @@ When processing `$` or `#` commands, the response to the user must be **minimal 
 ---
 
 <!-- END claw-empire orchestration rules -->
-
-

@@ -13,7 +13,7 @@ export default defineConfig({
   webServer: {
     command: "pnpm dev:e2e",
     url: "http://127.0.0.1:8810",
-    reuseExistingServer: false,
+    reuseExistingServer: true,
     timeout: 120_000,
   },
   reporter: process.env.CI ? [["github"]] : [["list"]],
