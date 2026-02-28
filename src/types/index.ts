@@ -21,7 +21,7 @@ export interface Department {
 // Agent roles
 export type AgentRole = "team_leader" | "senior" | "junior" | "intern";
 export type AgentStatus = "idle" | "working" | "break" | "offline";
-export type CliProvider = "claude" | "codex" | "gemini" | "opencode" | "copilot" | "antigravity" | "api";
+export type CliProvider = "claude" | "codex" | "gemini" | "opencode" | "copilot" | "antigravity" | "cursor" | "api";
 export type MeetingReviewDecision = "reviewing" | "approved" | "hold";
 
 export interface Agent {
@@ -192,6 +192,7 @@ export interface CliToolStatus {
   version: string | null;
   authenticated: boolean;
   authHint: string;
+  accountEmail?: string | null;
 }
 
 export type CliStatusMap = Record<CliProvider, CliToolStatus>;

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CliUsageEntry, CliUsageWindow } from "../../api";
 import type { UiLanguage } from "../../i18n";
 import type { CliStatusMap } from "../../types";
+import { CursorLogo } from "../settings/Logos";
 import { formatReset } from "./drawing-furniture-b";
 import { LOCALE_TEXT } from "./themes-locale";
 
@@ -84,6 +85,13 @@ const CLI_DISPLAY: Array<{ key: string; name: string; icon: ReactNode; color: st
     icon: "🌌",
     color: "text-pink-300",
     bgColor: "bg-pink-500/15 border-pink-400/30",
+  },
+  {
+    key: "cursor",
+    name: "Cursor",
+    icon: <CursorLogo />,
+    color: "text-cyan-300",
+    bgColor: "bg-cyan-500/15 border-cyan-400/30",
   },
 ];
 

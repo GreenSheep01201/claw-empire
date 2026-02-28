@@ -3,6 +3,8 @@ export function prettyStreamJson(raw: string, opts: { includeReasoning?: boolean
   let sawJson = false;
   let sawClaudeTextDelta = false;
   const includeReasoning = opts.includeReasoning === true;
+  let cursorResultText: string | null = null;
+
   const pushReasoningChunk = (text: string): void => {
     if (!text) return;
     pushMessageChunk(`[reasoning] ${text}`);
@@ -18,7 +20,27 @@ export function prettyStreamJson(raw: string, opts: { includeReasoning?: boolean
     }
   };
 
-  for (const line of raw.split(/\r?\n/)) {
+  const lines = raw.split(/\r?\n/);
+
+  // First pass: check if there's a Cursor-style "result" line with final text.
+  // If so, use it as the authoritative output to avoid duplication from
+  // streaming assistant deltas + final assistant message + result.
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t || !t.startsWith("{")) continue;
+    try {
+      const j: any = JSON.parse(t);
+      if (j.type === "result" && j.subtype === "success" && typeof j.result === "string" && j.result) {
+        cursorResultText = j.result;
+      }
+    } catch { /* skip */ }
+  }
+
+  if (cursorResultText) {
+    return cursorResultText.trim();
+  }
+
+  for (const line of lines) {
     const t = line.trim();
     if (!t) continue;
     if (!t.startsWith("{")) continue;

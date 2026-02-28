@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS agents (
   name_zh TEXT NOT NULL DEFAULT '',
   department_id TEXT REFERENCES departments(id),
   role TEXT NOT NULL CHECK(role IN ('team_leader','senior','junior','intern')),
-  cli_provider TEXT CHECK(cli_provider IN ('claude','codex','gemini','opencode','copilot','antigravity','api')),
+  cli_provider TEXT CHECK(cli_provider IN ('claude','codex','gemini','opencode','copilot','antigravity','cursor','api')),
   oauth_account_id TEXT,
   api_provider_id TEXT,
   api_model TEXT,
@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS review_round_decision_states (
 CREATE TABLE IF NOT EXISTS skill_learning_history (
   id TEXT PRIMARY KEY,
   job_id TEXT NOT NULL,
-  provider TEXT NOT NULL CHECK(provider IN ('claude','codex','gemini','opencode','copilot','antigravity','api')),
+  provider TEXT NOT NULL CHECK(provider IN ('claude','codex','gemini','opencode','copilot','antigravity','cursor','api')),
   repo TEXT NOT NULL,
   skill_id TEXT NOT NULL,
   skill_label TEXT NOT NULL,
@@ -329,7 +329,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_learning_history_skill_lookup
 CREATE TABLE IF NOT EXISTS api_providers (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'openai' CHECK(type IN ('openai','anthropic','google','ollama','openrouter','together','groq','cerebras','custom')),
+  type TEXT NOT NULL DEFAULT 'openai' CHECK(type IN ('openai','anthropic','google','ollama','openrouter','together','groq','cerebras','cursor','custom')),
   base_url TEXT NOT NULL,
   api_key_enc TEXT,
   enabled INTEGER NOT NULL DEFAULT 1,

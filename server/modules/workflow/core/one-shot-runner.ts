@@ -18,6 +18,7 @@ type CreateOneShotRunnerDeps = {
   normalizeConversationReply: (raw: string, maxChars?: number, opts?: { maxSentences?: number }) => string;
   buildAgentArgs: (provider: string, model?: string, reasoningLevel?: string, opts?: { noTools?: boolean }) => string[];
   withCliPathFallback: (pathValue: string | undefined) => string;
+  getCursorApiKeyFromDb?: () => string | null;
 };
 
 export function createOneShotRunner(deps: CreateOneShotRunnerDeps) {
@@ -36,6 +37,7 @@ export function createOneShotRunner(deps: CreateOneShotRunnerDeps) {
     normalizeConversationReply,
     buildAgentArgs,
     withCliPathFallback,
+    getCursorApiKeyFromDb,
   } = deps;
   const NO_TOOLS_POLICY_ERROR = "tool_use_blocked_by_no_tools_policy";
   const CLI_TOOL_SIGNAL_REGEX =
@@ -204,6 +206,11 @@ export function createOneShotRunner(deps: CreateOneShotRunnerDeps) {
           const cleanEnv = { ...process.env };
           delete cleanEnv.CLAUDECODE;
           delete cleanEnv.CLAUDE_CODE;
+          if (provider === "cursor") {
+            delete cleanEnv.CURSOR_API_KEY;
+            const dbKey = getCursorApiKeyFromDb?.();
+            if (dbKey) cleanEnv.CURSOR_API_KEY = dbKey;
+          }
           cleanEnv.PATH = withCliPathFallback(String(cleanEnv.PATH ?? process.env.PATH ?? ""));
           cleanEnv.NO_COLOR = "1";
           cleanEnv.FORCE_COLOR = "0";

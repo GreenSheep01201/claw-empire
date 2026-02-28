@@ -173,6 +173,85 @@ export function registerModelRoutes(ctx: RuntimeContext): void {
     }
   }
 
+  async function fetchCursorModelsFromApi(): Promise<CliModelInfoServer[]> {
+    const apiKey = process.env.CURSOR_API_KEY;
+    if (!apiKey) return [];
+    try {
+      const resp = await fetch("https://api.cursor.com/v0/models", {
+        headers: { Authorization: `Bearer ${apiKey}`, Accept: "application/json" },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!resp.ok) return [];
+      const data = (await resp.json()) as { models?: string[] };
+      if (!data.models || !Array.isArray(data.models)) return [];
+      return data.models.filter(Boolean).map((slug) => ({
+        slug,
+        displayName: slug
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase()),
+      }));
+    } catch {
+      return [];
+    }
+  }
+
+  async function fetchCursorModelsFromCli(): Promise<CliModelInfoServer[]> {
+    try {
+      const output = await execWithTimeout("cursor", ["agent", "--list-models"], 10_000);
+      const models: CliModelInfoServer[] = [];
+      for (const line of output.split(/\r?\n/)) {
+        // eslint-disable-next-line no-control-regex
+        const stripped = line.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").trim();
+        if (!stripped) continue;
+        if (/no model|unavailable|available|loading/i.test(stripped)) continue;
+        models.push({ slug: stripped, displayName: stripped });
+      }
+      return models;
+    } catch {
+      return [];
+    }
+  }
+
+  async function fetchCursorModels(): Promise<CliModelInfoServer[]> {
+    const catalog: CliModelInfoServer[] = [
+      { slug: "claude-4.6-opus", displayName: "Claude 4.6 Opus" },
+      { slug: "claude-4.6-sonnet", displayName: "Claude 4.6 Sonnet" },
+      { slug: "claude-4.5-opus", displayName: "Claude 4.5 Opus" },
+      { slug: "claude-4.5-sonnet", displayName: "Claude 4.5 Sonnet" },
+      { slug: "claude-4-sonnet-thinking", displayName: "Claude 4 Sonnet (Thinking)" },
+      { slug: "claude-4-opus-thinking", displayName: "Claude 4 Opus (Thinking)" },
+      { slug: "claude-4.5-haiku", displayName: "Claude 4.5 Haiku" },
+      { slug: "gpt-5.3-codex", displayName: "GPT-5.3 Codex" },
+      { slug: "gpt-5.2", displayName: "GPT-5.2" },
+      { slug: "gpt-5.2-codex", displayName: "GPT-5.2 Codex" },
+      { slug: "gpt-5", displayName: "GPT-5" },
+      { slug: "gpt-5-mini", displayName: "GPT-5 Mini" },
+      { slug: "o3", displayName: "OpenAI o3" },
+      { slug: "gemini-3.1-pro", displayName: "Gemini 3.1 Pro" },
+      { slug: "gemini-3-flash", displayName: "Gemini 3 Flash" },
+      { slug: "gemini-3-pro", displayName: "Gemini 3 Pro" },
+      { slug: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash" },
+      { slug: "composer-1.5", displayName: "Composer 1.5" },
+      { slug: "grok-code", displayName: "Grok Code" },
+    ];
+
+    const seen = new Set(catalog.map((m) => m.slug));
+
+    const [apiModels, cliModels] = await Promise.all([
+      fetchCursorModelsFromApi(),
+      fetchCursorModelsFromCli(),
+    ]);
+
+    for (const m of [...apiModels, ...cliModels]) {
+      if (!seen.has(m.slug)) {
+        catalog.push(m);
+        seen.add(m.slug);
+      }
+    }
+
+    return catalog;
+  }
+
   function toModelInfo(slug: string): CliModelInfoServer {
     return { slug, displayName: slug };
   }
@@ -223,6 +302,7 @@ export function registerModelRoutes(ctx: RuntimeContext): void {
       ].map(toModelInfo),
       gemini: fetchGeminiModels(),
       opencode: [],
+      cursor: await fetchCursorModels(),
     };
 
     const codexModels = readCodexModelsCache();

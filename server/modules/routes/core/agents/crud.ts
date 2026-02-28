@@ -209,7 +209,7 @@ export function registerAgentCrudRoutes(ctx: RuntimeContext): void {
     const nextProvider = nextProviderRaw ?? "claude";
     const nextOAuthProvider =
       nextProvider === "copilot" ? "github" : nextProvider === "antigravity" ? "google_antigravity" : null;
-    const supportsCliModelOverride = ["claude", "codex", "gemini", "opencode"].includes(nextProvider);
+    const supportsCliModelOverride = ["claude", "codex", "gemini", "opencode", "cursor"].includes(nextProvider);
     const supportsCliReasoningOverride = nextProvider === "codex";
     const providerChanged = "cli_provider" in body && nextProvider !== String(existing.cli_provider ?? "claude");
 

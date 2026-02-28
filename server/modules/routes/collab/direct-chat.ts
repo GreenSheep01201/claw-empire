@@ -206,7 +206,7 @@ export function isAgentEscalationPrompt(text: string): boolean {
 function isCancelReply(text: string): boolean {
   const normalized = text.trim().toLowerCase().replace(/\s+/g, " ");
   if (!normalized) return false;
-  return /^(취소|중지|멈춰|그만|나중에|cancel|stop|abort|later|not now|いいえ|中止|不要|先不要)/i.test(normalized);
+  return /^(취소|중지|멈춰|그만|나중에|cancel|stop|abort|later|not now|いいえ|中止|取消|不要|先不要|算了)/i.test(normalized);
 }
 
 export function isNoPathReply(text: string): boolean {

@@ -1,5 +1,5 @@
 import type { ApiProviderType, OAuthConnectProvider } from "../../api";
-import { AntigravityLogo, CliChatGPTLogo, CliClaudeLogo, CliGeminiLogo, GitHubCopilotLogo } from "./Logos";
+import { AntigravityLogo, CliChatGPTLogo, CliClaudeLogo, CliGeminiLogo, CursorLogo, GitHubCopilotLogo } from "./Logos";
 
 export const CLI_INFO: Record<string, { label: string; icon: React.ReactNode }> = {
   claude: { label: "Claude Code", icon: <CliClaudeLogo /> },
@@ -8,6 +8,7 @@ export const CLI_INFO: Record<string, { label: string; icon: React.ReactNode }> 
   opencode: { label: "OpenCode", icon: "⚪" },
   copilot: { label: "GitHub Copilot", icon: "🚀" },
   antigravity: { label: "Antigravity", icon: "🌌" },
+  cursor: { label: "Cursor Agent", icon: <CursorLogo /> },
 };
 
 export const OAUTH_INFO: Record<string, { label: string }> = {
@@ -34,5 +35,6 @@ export const API_TYPE_PRESETS: Record<ApiProviderType, { label: string; base_url
   together: { label: "Together", base_url: "https://api.together.xyz/v1" },
   groq: { label: "Groq", base_url: "https://api.groq.com/openai/v1" },
   cerebras: { label: "Cerebras", base_url: "https://api.cerebras.ai/v1" },
+  cursor: { label: "Cursor", base_url: "https://api.cursor.com" },
   custom: { label: "Custom", base_url: "" },
 };

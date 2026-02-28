@@ -469,6 +469,15 @@ export function startLifecycle(ctx: RuntimeContext): void {
       }),
     );
 
+    ws.on("message", (raw: Buffer | string) => {
+      try {
+        const msg = JSON.parse(typeof raw === "string" ? raw : raw.toString("utf8"));
+        if (msg.type === "ping") {
+          ws.send(JSON.stringify({ type: "pong", ts: nowMs() }));
+        }
+      } catch { /* ignore non-JSON */ }
+    });
+
     ws.on("close", () => {
       wsClients.delete(ws);
       console.log(`[Claw-Empire] WebSocket client disconnected (total: ${wsClients.size})`);

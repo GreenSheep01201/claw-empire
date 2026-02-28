@@ -54,6 +54,7 @@ export interface CliToolStatus {
   version: string | null;
   authenticated: boolean;
   authHint: string;
+  accountEmail?: string | null;
 }
 
 export type CliStatusResult = Record<string, CliToolStatus>;
@@ -64,4 +65,5 @@ export interface CliToolDef {
   checkAuth: () => boolean;
   versionArgs?: string[];
   getVersion?: () => string | null;
+  getAccountEmail?: () => string | null;
 }

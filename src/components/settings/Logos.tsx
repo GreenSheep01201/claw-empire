@@ -45,6 +45,22 @@ export function GitHubCopilotLogo({ className }: { className?: string }) {
   );
 }
 
+export function CursorLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <rect width="18" height="18" rx="4" fill="#1a1a2e" />
+      <path
+        d="M4.5 13.5L9 4.5l4.5 9H4.5z"
+        fill="none"
+        stroke="#00d4ff"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="9" cy="9.5" r="1.2" fill="#00d4ff" />
+    </svg>
+  );
+}
+
 export function AntigravityLogo({ className }: { className?: string }) {
   return (
     <svg className={className || "w-5 h-5"} viewBox="0 0 24 24" fill="#1a73e8">

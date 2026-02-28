@@ -150,7 +150,7 @@ export function registerWorktreeAndUsageRoutes(ctx: RuntimeContext): {
   }
 
   async function refreshCliUsageData(): Promise<Record<string, CliUsageEntry>> {
-    const providers = ["claude", "codex", "gemini", "copilot", "antigravity"];
+    const providers = ["claude", "codex", "gemini", "copilot", "antigravity", "cursor"];
     const usage: Record<string, CliUsageEntry> = {};
 
     const fetchMap: Record<string, () => Promise<CliUsageEntry>> = {

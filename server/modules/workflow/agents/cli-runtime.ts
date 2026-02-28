@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
+import { decryptSecret } from "../../../oauth/helpers.ts";
 
 type CliRuntimeDeps = {
   db: any;
@@ -236,10 +237,20 @@ export function createCliRuntimeTools(deps: CliRuntimeDeps) {
     const { safeWrite, safeEnd } = createSafeLogStreamOps(logStream);
     safeWrite(`\n===== task run start ${new Date().toISOString()} | provider=${provider} =====\n`);
 
-    // Remove CLAUDECODE env var to prevent "nested session" detection
     const cleanEnv = { ...process.env };
     delete cleanEnv.CLAUDECODE;
     delete cleanEnv.CLAUDE_CODE;
+    if (provider === "cursor") {
+      delete cleanEnv.CURSOR_API_KEY;
+      try {
+        const row = db.prepare(
+          "SELECT api_key_enc FROM api_providers WHERE type = 'cursor' AND enabled = 1 AND api_key_enc IS NOT NULL LIMIT 1",
+        ).get() as { api_key_enc: string } | undefined;
+        if (row?.api_key_enc) {
+          cleanEnv.CURSOR_API_KEY = decryptSecret(row.api_key_enc);
+        }
+      } catch { /* fall back to login auth */ }
+    }
     cleanEnv.PATH = withCliPathFallback(String(cleanEnv.PATH ?? process.env.PATH ?? ""));
     cleanEnv.NO_COLOR = "1";
     cleanEnv.FORCE_COLOR = "0";

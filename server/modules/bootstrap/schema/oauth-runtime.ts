@@ -124,7 +124,7 @@ export function initializeOAuthRuntime(deps: OAuthRuntimeDeps): OAuthRuntimeHelp
         name_zh TEXT NOT NULL DEFAULT '',
         department_id TEXT REFERENCES departments(id),
         role TEXT NOT NULL CHECK(role IN ('team_leader','senior','junior','intern')),
-        cli_provider TEXT CHECK(cli_provider IN ('claude','codex','gemini','opencode','copilot','antigravity','api')),
+        cli_provider TEXT CHECK(cli_provider IN ('claude','codex','gemini','opencode','copilot','antigravity','cursor','api')),
         oauth_account_id TEXT,
         api_provider_id TEXT,
         api_model TEXT,
@@ -147,6 +147,75 @@ export function initializeOAuthRuntime(deps: OAuthRuntimeDeps): OAuthRuntimeHelp
   } catch {
     /* migration already done or not needed */
   }
+  // Extend agents cli_provider CHECK constraint: add 'cursor'
+  try {
+    const hasCursorCheck = (
+      db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='agents'").get() as any
+    )?.sql?.includes("'cursor'");
+    if (!hasCursorCheck) {
+      db.exec(`
+      CREATE TABLE IF NOT EXISTS agents_cursor_mig (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        name_ko TEXT NOT NULL DEFAULT '',
+        name_ja TEXT NOT NULL DEFAULT '',
+        name_zh TEXT NOT NULL DEFAULT '',
+        department_id TEXT REFERENCES departments(id),
+        role TEXT NOT NULL CHECK(role IN ('team_leader','senior','junior','intern')),
+        cli_provider TEXT CHECK(cli_provider IN ('claude','codex','gemini','opencode','copilot','antigravity','cursor','api')),
+        oauth_account_id TEXT,
+        api_provider_id TEXT,
+        api_model TEXT,
+        cli_model TEXT,
+        cli_reasoning_level TEXT,
+        avatar_emoji TEXT NOT NULL DEFAULT '🤖',
+        sprite_number INTEGER,
+        personality TEXT,
+        status TEXT NOT NULL DEFAULT 'idle' CHECK(status IN ('idle','working','break','offline')),
+        current_task_id TEXT,
+        stats_tasks_done INTEGER DEFAULT 0,
+        stats_xp INTEGER DEFAULT 0,
+        created_at INTEGER DEFAULT (unixepoch()*1000)
+      );
+      INSERT INTO agents_cursor_mig SELECT * FROM agents;
+      DROP TABLE agents;
+      ALTER TABLE agents_cursor_mig RENAME TO agents;
+    `);
+    }
+  } catch {
+    /* migration already done or not needed */
+  }
+  // Extend skill_learning_history provider CHECK constraint: add 'cursor'
+  try {
+    const skillSql = (
+      db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='skill_learning_history'").get() as any
+    )?.sql ?? "";
+    if (skillSql && !skillSql.includes("'cursor'")) {
+      db.exec(`
+      CREATE TABLE IF NOT EXISTS skill_learning_history_cursor_mig (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        provider TEXT NOT NULL CHECK(provider IN ('claude','codex','gemini','opencode','copilot','antigravity','cursor','api')),
+        repo TEXT NOT NULL,
+        skill_id TEXT NOT NULL,
+        skill_label TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed')),
+        command TEXT NOT NULL,
+        error TEXT,
+        run_started_at INTEGER,
+        run_completed_at INTEGER,
+        created_at INTEGER DEFAULT (unixepoch()*1000),
+        updated_at INTEGER DEFAULT (unixepoch()*1000),
+        UNIQUE(job_id, provider)
+      );
+      INSERT INTO skill_learning_history_cursor_mig SELECT * FROM skill_learning_history;
+      DROP TABLE skill_learning_history;
+      ALTER TABLE skill_learning_history_cursor_mig RENAME TO skill_learning_history;
+    `);
+    }
+  } catch {
+    /* migration already done or not needed */
+  }
   // api_providers CHECK 제약 확장: cerebras 추가
   try {
     const apiProvSql =
@@ -157,6 +226,31 @@ export function initializeOAuthRuntime(deps: OAuthRuntimeDeps): OAuthRuntimeHelp
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         type TEXT NOT NULL DEFAULT 'openai' CHECK(type IN ('openai','anthropic','google','ollama','openrouter','together','groq','cerebras','custom')),
+        base_url TEXT NOT NULL,
+        api_key_enc TEXT,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        models_cache TEXT,
+        models_cached_at INTEGER,
+        created_at INTEGER DEFAULT (unixepoch()*1000),
+        updated_at INTEGER DEFAULT (unixepoch()*1000)
+      );
+      INSERT INTO api_providers_new SELECT * FROM api_providers;
+      DROP TABLE api_providers;
+      ALTER TABLE api_providers_new RENAME TO api_providers;
+    `);
+    }
+  } catch {
+    /* migration already done or not needed */
+  }
+  try {
+    const apiProvSql2 =
+      (db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='api_providers'").get() as any)?.sql ?? "";
+    if (apiProvSql2 && !apiProvSql2.includes("'cursor'")) {
+      db.exec(`
+      CREATE TABLE IF NOT EXISTS api_providers_new (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'openai' CHECK(type IN ('openai','anthropic','google','ollama','openrouter','together','groq','cerebras','cursor','custom')),
         base_url TEXT NOT NULL,
         api_key_enc TEXT,
         enabled INTEGER NOT NULL DEFAULT 1,

@@ -84,6 +84,79 @@ export default function CliSettingsTab({
                     </div>
                   </div>
 
+                  {status.installed && status.accountEmail && (
+                    <div className="pl-0 sm:pl-8 text-xs text-slate-400">
+                      {t({ ko: "계정:", en: "Account:", ja: "アカウント:", zh: "账号:" })}{" "}
+                      <span className="text-blue-400">{status.accountEmail}</span>
+                    </div>
+                  )}
+
+                  {!status.installed && provider === "cursor" && (
+                    <div className="pl-0 sm:pl-8 rounded-md bg-slate-600/20 border border-slate-500/20 px-3 py-2 space-y-1.5">
+                      <p className="text-xs text-slate-300 font-medium">
+                        {t({
+                          ko: "Cursor CLI 설치 가이드",
+                          en: "Cursor CLI Setup Guide",
+                          ja: "Cursor CLI セットアップガイド",
+                          zh: "Cursor CLI 安装指南",
+                        })}
+                      </p>
+                      <ol className="text-xs text-slate-400 space-y-1 list-decimal list-inside">
+                        <li>
+                          {t({
+                            ko: "Cursor 에디터를 설치합니다",
+                            en: "Install Cursor editor from cursor.com",
+                            ja: "Cursor エディタをインストール",
+                            zh: "从 cursor.com 安装 Cursor 编辑器",
+                          })}
+                        </li>
+                        <li>
+                          {t({
+                            ko: "Cursor에서 Command Palette → 'Install cursor command'",
+                            en: "In Cursor: Command Palette → 'Install cursor command'",
+                            ja: "Cursor で Command Palette → 'Install cursor command'",
+                            zh: "在 Cursor 中打开命令面板 → 'Install cursor command'",
+                          })}
+                        </li>
+                        <li>
+                          {t({
+                            ko: "터미널에서 로그인:",
+                            en: "Login in terminal:",
+                            ja: "ターミナルでログイン:",
+                            zh: "在终端中登录:",
+                          })}
+                          <code className="ml-1 bg-slate-800 text-green-400 rounded px-1.5 py-0.5 font-mono select-all">
+                            cursor agent login
+                          </code>
+                        </li>
+                      </ol>
+                    </div>
+                  )}
+
+                  {status.installed && !status.authenticated && (
+                    <div className="pl-0 sm:pl-8 rounded-md bg-yellow-500/10 border border-yellow-500/20 px-3 py-2 space-y-1">
+                      <p className="text-xs text-yellow-300 font-medium">
+                        {t({
+                          ko: "인증이 필요합니다",
+                          en: "Authentication required",
+                          ja: "認証が必要です",
+                          zh: "需要登录认证",
+                        })}
+                      </p>
+                      <p className="text-xs text-yellow-200/70">
+                        {t({
+                          ko: `터미널에서 실행: ${status.authHint.replace("Run: ", "")}`,
+                          en: `Open a terminal and run: ${status.authHint.replace("Run: ", "")}`,
+                          ja: `ターミナルで実行: ${status.authHint.replace("Run: ", "")}`,
+                          zh: `请在终端中执行: ${status.authHint.replace("Run: ", "")}`,
+                        })}
+                      </p>
+                      <code className="block text-xs bg-slate-800 text-green-400 rounded px-2 py-1 font-mono select-all">
+                        {status.authHint.replace("Run: ", "")}
+                      </code>
+                    </div>
+                  )}
+
                   {isReady && (
                     <div className="space-y-1.5 pl-0 sm:pl-8">
                       <div className="flex min-w-0 flex-col items-stretch gap-1.5 sm:flex-row sm:items-center sm:gap-2">

@@ -12,7 +12,7 @@ import {
   REVIEW_MAX_REVISION_SIGNALS_PER_ROUND,
   REVIEW_MAX_ROUNDS,
 } from "../../db/runtime.ts";
-import { BUILTIN_GOOGLE_CLIENT_ID, BUILTIN_GOOGLE_CLIENT_SECRET, encryptSecret } from "../../oauth/helpers.ts";
+import { BUILTIN_GOOGLE_CLIENT_ID, BUILTIN_GOOGLE_CLIENT_SECRET, decryptSecret, encryptSecret } from "../../oauth/helpers.ts";
 import { notifyTaskStatus } from "../../gateway/client.ts";
 import { createWsHub } from "../../ws/hub.ts";
 import { createProjectContextTools } from "./core/project-context-tools.ts";
@@ -312,6 +312,14 @@ export function initializeWorkflowPartA(ctx: RuntimeContext): WorkflowCoreExport
     normalizeConversationReply,
     buildAgentArgs,
     withCliPathFallback,
+    getCursorApiKeyFromDb: () => {
+      try {
+        const row = db.prepare(
+          "SELECT api_key_enc FROM api_providers WHERE type = 'cursor' AND enabled = 1 AND api_key_enc IS NOT NULL LIMIT 1",
+        ).get() as { api_key_enc: string } | undefined;
+        return row?.api_key_enc ? decryptSecret(row.api_key_enc) : null;
+      } catch { return null; }
+    },
   });
 
   return {

@@ -18,6 +18,7 @@ type ApiProviderType =
   | "together"
   | "groq"
   | "cerebras"
+  | "cursor"
   | "custom";
 
 type ApiProviderRow = {
@@ -60,6 +61,7 @@ const API_PROVIDER_PRESETS: Record<ApiProviderType, ApiProviderPreset> = {
   together: { base_url: "https://api.together.xyz/v1", models_path: "/models", auth_header: "Bearer" },
   groq: { base_url: "https://api.groq.com/openai/v1", models_path: "/models", auth_header: "Bearer" },
   cerebras: { base_url: "https://api.cerebras.ai/v1", models_path: "/models", auth_header: "Bearer" },
+  cursor: { base_url: "https://api.cursor.com", models_path: "/v0/models", auth_header: "Bearer" },
   custom: { base_url: "", models_path: "/models", auth_header: "Bearer" },
 };
 
@@ -109,12 +111,20 @@ function extractModelIds(type: ApiProviderType, data: unknown): string[] {
   const models: string[] = [];
   const payload = data as {
     data?: Array<{ id?: string }>;
-    models?: Array<{ id?: string; name?: string; model?: string }>;
+    models?: Array<string | { id?: string; name?: string; model?: string }>;
   };
 
-  if (type === "google") {
+  if (type === "cursor") {
     if (Array.isArray(payload.models)) {
       for (const m of payload.models) {
+        const id = typeof m === "string" ? m : (m.id || m.name || m.model || "");
+        if (id) models.push(id);
+      }
+    }
+  } else if (type === "google") {
+    if (Array.isArray(payload.models)) {
+      for (const m of payload.models) {
+        if (typeof m === "string") { models.push(m); continue; }
         const name = m.name || m.model || "";
         if (name) models.push(name.replace(/^models\//, ""));
       }
@@ -132,6 +142,7 @@ function extractModelIds(type: ApiProviderType, data: unknown): string[] {
       }
     } else if (Array.isArray(payload.models)) {
       for (const m of payload.models) {
+        if (typeof m === "string") { models.push(m); continue; }
         const id = m.id || m.name || m.model || "";
         if (id) models.push(id);
       }
@@ -179,7 +190,7 @@ export function registerApiProviderRoutes({ app, db, nowMs }: RegisterApiProvide
     const type: ApiProviderType = isApiProviderType(body.type) ? body.type : "openai";
     const apiKey = typeof body.api_key === "string" ? body.api_key : "";
 
-    if (!name || !baseUrl) {
+    if (!name || (!baseUrl && type !== "cursor")) {
       return res.status(400).json({ error: "name and base_url are required" });
     }
 

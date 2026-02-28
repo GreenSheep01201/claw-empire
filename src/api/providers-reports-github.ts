@@ -10,6 +10,7 @@ export type ApiProviderType =
   | "together"
   | "groq"
   | "cerebras"
+  | "cursor"
   | "custom";
 
 export interface ApiProvider {
@@ -237,7 +238,7 @@ export async function getActiveAgents(): Promise<ActiveAgentInfo[]> {
 export interface CliProcessInfo {
   pid: number;
   ppid: number | null;
-  provider: "claude" | "codex" | "gemini" | "opencode" | "node" | "python";
+  provider: "claude" | "codex" | "gemini" | "opencode" | "cursor" | "node" | "python";
   executable: string;
   command: string;
   is_tracked: boolean;

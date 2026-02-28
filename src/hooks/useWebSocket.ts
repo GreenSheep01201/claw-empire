@@ -4,6 +4,9 @@ import type { WSEvent, WSEventType } from "../types";
 
 type Listener = (payload: unknown) => void;
 
+const HEARTBEAT_INTERVAL = 25_000;
+const HEARTBEAT_TIMEOUT = 10_000;
+
 export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const listenersRef = useRef<Map<WSEventType, Set<Listener>>>(new Map());
@@ -15,6 +18,28 @@ export function useWebSocket() {
     let alive = true;
     let ws: WebSocket;
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    let heartbeatInterval: ReturnType<typeof setInterval>;
+    let heartbeatTimeout: ReturnType<typeof setTimeout>;
+    let lastPong = Date.now();
+
+    function clearHeartbeat() {
+      clearInterval(heartbeatInterval);
+      clearTimeout(heartbeatTimeout);
+    }
+
+    function startHeartbeat() {
+      clearHeartbeat();
+      lastPong = Date.now();
+      heartbeatInterval = setInterval(() => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({ type: "ping" }));
+        heartbeatTimeout = setTimeout(() => {
+          if (Date.now() - lastPong > HEARTBEAT_INTERVAL + HEARTBEAT_TIMEOUT) {
+            ws?.close();
+          }
+        }, HEARTBEAT_TIMEOUT);
+      }, HEARTBEAT_INTERVAL);
+    }
 
     async function connect() {
       if (!alive) return;
@@ -27,7 +52,6 @@ export function useWebSocket() {
           return;
         }
       } catch {
-        // ignore bootstrap errors; ws connect result will drive retry
         reconnectTimer = setTimeout(() => {
           void connect();
         }, 2000);
@@ -37,10 +61,14 @@ export function useWebSocket() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        if (alive) setConnected(true);
+        if (alive) {
+          setConnected(true);
+          startHeartbeat();
+        }
       };
       ws.onclose = () => {
         if (!alive) return;
+        clearHeartbeat();
         setConnected(false);
         reconnectTimer = setTimeout(() => {
           void connect();
@@ -49,8 +77,11 @@ export function useWebSocket() {
       ws.onerror = () => ws.close();
       ws.onmessage = (e) => {
         if (!alive) return;
+        lastPong = Date.now();
+        clearTimeout(heartbeatTimeout);
         try {
           const evt: WSEvent = JSON.parse(e.data);
+          if ((evt as any).type === "pong") return;
           const listeners = listenersRef.current.get(evt.type);
           if (listeners) {
             for (const fn of listeners) fn(evt.payload);
@@ -62,6 +93,7 @@ export function useWebSocket() {
     void connect();
     return () => {
       alive = false;
+      clearHeartbeat();
       clearTimeout(reconnectTimer);
       ws?.close();
     };

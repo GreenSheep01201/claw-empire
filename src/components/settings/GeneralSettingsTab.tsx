@@ -146,6 +146,7 @@ export default function GeneralSettingsTab({ t, form, setForm, saved, onSave }: 
             <option value="codex">Codex CLI</option>
             <option value="gemini">Gemini CLI</option>
             <option value="opencode">OpenCode</option>
+            <option value="cursor">Cursor Agent</option>
           </select>
         </div>
 

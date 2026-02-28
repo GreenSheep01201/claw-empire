@@ -131,16 +131,18 @@ export default function ApiSettingsTab({ t, localeTag, apiState }: ApiSettingsTa
               />
             </div>
 
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Base URL</label>
-              <input
-                type="text"
-                value={apiForm.base_url}
-                onChange={(e) => setApiForm((prev) => ({ ...prev, base_url: e.target.value }))}
-                placeholder="https://api.openai.com/v1"
-                className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-blue-500"
-              />
-            </div>
+            {apiForm.type !== "cursor" && (
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Base URL</label>
+                <input
+                  type="text"
+                  value={apiForm.base_url}
+                  onChange={(e) => setApiForm((prev) => ({ ...prev, base_url: e.target.value }))}
+                  placeholder="https://api.openai.com/v1"
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            )}
 
             <div>
               <label className="block text-xs text-slate-400 mb-1">
@@ -179,7 +181,7 @@ export default function ApiSettingsTab({ t, localeTag, apiState }: ApiSettingsTa
             <div className="flex items-center gap-2">
               <button
                 onClick={() => void handleApiProviderSave()}
-                disabled={apiSaving || !apiForm.name.trim() || !apiForm.base_url.trim()}
+                disabled={apiSaving || !apiForm.name.trim() || (apiForm.type !== "cursor" && !apiForm.base_url.trim())}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {apiSaving

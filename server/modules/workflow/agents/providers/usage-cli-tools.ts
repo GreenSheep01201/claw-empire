@@ -212,6 +212,38 @@ export function createUsageCliTools(deps: CreateUsageCliToolsDeps) {
         return false;
       },
     },
+    (() => {
+      let _cached: { value: string | null; ts: number } | undefined;
+      function getCursorStatus(): string | null {
+        if (_cached && Date.now() - _cached.ts < 10_000) return _cached.value;
+        try {
+          const value = execFileSync("cursor", ["agent", "status"], {
+            encoding: "utf8",
+            timeout: 15_000,
+          });
+          _cached = { value, ts: Date.now() };
+        } catch {
+          _cached = { value: null, ts: Date.now() };
+        }
+        return _cached.value;
+      }
+      return {
+        name: "cursor" as const,
+        versionArgs: ["agent", "--version"],
+        authHint: "Run: cursor agent login",
+        checkAuth: () => {
+          if (process.env.CURSOR_API_KEY) return true;
+          const out = getCursorStatus();
+          return out ? /logged in/i.test(out) : false;
+        },
+        getAccountEmail: () => {
+          const out = getCursorStatus();
+          if (!out) return null;
+          const match = out.match(/Logged in as\s+(\S+)/i);
+          return match?.[1] ?? null;
+        },
+      };
+    })(),
   ];
 
   const cachedCliStatus: { data: CliStatusResult; loadedAt: number } | null = null;
@@ -250,7 +282,8 @@ export function createUsageCliTools(deps: CreateUsageCliToolsDeps) {
     }
 
     const authenticated = tool.checkAuth();
-    return { installed: true, version, authenticated, authHint: tool.authHint };
+    const accountEmail = tool.getAccountEmail?.() ?? null;
+    return { installed: true, version, authenticated, authHint: tool.authHint, accountEmail };
   }
 
   async function detectAllCli(): Promise<CliStatusResult> {

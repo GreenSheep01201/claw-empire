@@ -49,6 +49,7 @@ export const CLI_LABELS: Record<string, string> = {
   opencode: "OpenCode",
   copilot: "GitHub Copilot",
   antigravity: "Antigravity",
+  cursor: "Cursor Agent",
   api: "API Provider",
 };
 
