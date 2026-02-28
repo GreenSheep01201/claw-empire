@@ -95,6 +95,7 @@ export function useOfficePixiRuntime({
       appRef.current = app;
       const canvas = app.canvas as HTMLCanvasElement;
       canvas.style.imageRendering = "pixelated";
+      canvas.style.touchAction = "pan-y";
       element.innerHTML = "";
       element.appendChild(canvas);
 

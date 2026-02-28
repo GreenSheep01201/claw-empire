@@ -132,7 +132,7 @@ export default function ChatComposer({
                         )
             }
             rows={1}
-            className="min-h-[44px] max-h-32 flex-1 resize-none overflow-y-auto bg-transparent px-4 py-3 text-sm leading-relaxed text-gray-100 placeholder-gray-500 focus:outline-none"
+            className="min-h-[44px] max-h-32 flex-1 resize-none overflow-y-auto bg-transparent px-4 py-3 text-base leading-relaxed text-gray-100 placeholder-gray-500 focus:outline-none"
             style={{ scrollbarWidth: "none" }}
             onInput={(e) => {
               const el = e.currentTarget;

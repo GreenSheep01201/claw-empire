@@ -105,7 +105,7 @@ export default function ChatPanelHeader({
                   onClearMessages(selectedAgent?.id);
                 }
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-700 hover:text-red-400"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-700 hover:text-red-400"
               aria-label={tr("대화 내역 삭제", "Clear message history", "会話履歴を削除", "清除消息记录")}
               title={tr("대화 내역 삭제", "Clear message history", "会話履歴を削除", "清除消息记录")}
             >
@@ -127,7 +127,7 @@ export default function ChatPanelHeader({
 
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-700 hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-lg text-gray-400 transition-colors hover:bg-gray-700 hover:text-white"
             aria-label={tr("닫기", "Close", "閉じる", "关闭")}
           >
             ✕

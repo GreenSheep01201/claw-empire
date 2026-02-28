@@ -20,6 +20,27 @@ import {
 } from "./chat-panel/model";
 import ProjectFlowDialog from "./chat-panel/ProjectFlowDialog";
 
+const SWIPE_CLOSE_THRESHOLD = 120;
+
+function useVisualViewportHeight() {
+  const [bottomInset, setBottomInset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = window.innerHeight - vv.height - vv.offsetTop;
+      setBottomInset(Math.max(0, inset));
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return bottomInset;
+}
+
 interface ChatPanelProps {
   selectedAgent: Agent | null;
   messages: Message[];
@@ -91,15 +112,6 @@ export function ChatPanel({
       : selectedAgent.department.name || selectedAgent.department.name_ko
     : selectedAgent?.department_id;
   const selectedTaskId = selectedAgent?.current_task_id;
-
-  // Close on Escape key
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
 
   // 스트리밍 중인 메시지가 현재 에이전트 것인지 판별
   const isStreamingForAgent = streamingMessage && selectedAgent && streamingMessage.agent_id === selectedAgent.id;
@@ -411,8 +423,107 @@ export function ChatPanel({
     textareaRef,
   });
 
+  // --- Entrance animation ---
+  const [entered, setEntered] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setEntered(false);
+    setTimeout(onClose, 280);
+  }, [onClose]);
+
+  // Override the Escape handler to use animated close
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") handleClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleClose]);
+
+  // --- Swipe-to-close gesture (mobile only) ---
+  const dragRef = useRef<{ startY: number; currentY: number; dragging: boolean }>({
+    startY: 0,
+    currentY: 0,
+    dragging: false,
+  });
+  const [dragOffset, setDragOffset] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const onDragStart = useCallback((e: React.PointerEvent) => {
+    dragRef.current = { startY: e.clientY, currentY: e.clientY, dragging: true };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, []);
+
+  const onDragMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current.dragging) return;
+    dragRef.current.currentY = e.clientY;
+    const dy = Math.max(0, e.clientY - dragRef.current.startY);
+    setDragOffset(dy);
+  }, []);
+
+  const onDragEnd = useCallback(() => {
+    if (!dragRef.current.dragging) return;
+    dragRef.current.dragging = false;
+    if (dragOffset > SWIPE_CLOSE_THRESHOLD) {
+      handleClose();
+    }
+    setDragOffset(0);
+  }, [dragOffset, handleClose]);
+
+  // --- Virtual keyboard height adaptation ---
+  const bottomInset = useVisualViewportHeight();
+
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+
+  const panelStyle: React.CSSProperties = isMobile
+    ? {
+        transform: entered
+          ? dragOffset > 0
+            ? `translateY(${dragOffset}px)`
+            : "translateY(0)"
+          : "translateY(100%)",
+        paddingBottom: bottomInset > 0 ? bottomInset : undefined,
+      }
+    : {
+        transform: entered ? "translateX(0)" : "translateX(100%)",
+      };
+
   return (
-    <div className="fixed inset-0 z-50 flex h-full w-full flex-col bg-gray-900 shadow-2xl lg:relative lg:inset-auto lg:z-auto lg:w-96 lg:border-l lg:border-gray-700">
+    <>
+      {/* Backdrop (mobile only) */}
+      {isMobile && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity duration-300"
+          style={{ opacity: entered && dragOffset === 0 ? 1 : 0, pointerEvents: entered ? "auto" : "none" }}
+          onClick={handleClose}
+        />
+      )}
+
+      <div
+        ref={panelRef}
+        className={`fixed inset-0 z-50 flex h-full w-full flex-col bg-gray-900 shadow-2xl lg:relative lg:inset-auto lg:z-auto lg:w-96 lg:border-l lg:border-gray-700 ${
+          dragOffset > 0 ? "" : "transition-transform duration-300 ease-out"
+        }`}
+        style={panelStyle}
+      >
+        {/* Drag handle (mobile only) */}
+        {isMobile && (
+          <div
+            className="flex flex-shrink-0 cursor-grab items-center justify-center py-2 active:cursor-grabbing"
+            onPointerDown={onDragStart}
+            onPointerMove={onDragMove}
+            onPointerUp={onDragEnd}
+            onPointerCancel={onDragEnd}
+            style={{ touchAction: "none" }}
+          >
+            <div className="h-1 w-10 rounded-full bg-gray-600" />
+          </div>
+        )}
+
       <ChatPanelHeader
         selectedAgent={selectedAgent}
         selectedDeptName={selectedDeptName}
@@ -425,7 +536,7 @@ export function ChatPanel({
         showAnnouncementBanner={isAnnouncementMode}
         visibleMessagesLength={visibleMessages.length}
         onClearMessages={onClearMessages}
-        onClose={onClose}
+        onClose={handleClose}
       />
 
       <ChatMessageList
@@ -490,6 +601,7 @@ export function ChatPanel({
         onSend={handleSend}
         onKeyDown={handleKeyDown}
       />
-    </div>
+      </div>
+    </>
   );
 }
