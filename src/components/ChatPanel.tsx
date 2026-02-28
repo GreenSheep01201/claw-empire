@@ -467,12 +467,13 @@ export function ChatPanel({
 
   const onDragEnd = useCallback(() => {
     if (!dragRef.current.dragging) return;
+    const finalOffset = dragRef.current.currentY - dragRef.current.startY;
     dragRef.current.dragging = false;
-    if (dragOffset > SWIPE_CLOSE_THRESHOLD) {
+    if (finalOffset > SWIPE_CLOSE_THRESHOLD) {
       handleClose();
     }
     setDragOffset(0);
-  }, [dragOffset, handleClose]);
+  }, [handleClose]);
 
   // --- Virtual keyboard height adaptation ---
   const bottomInset = useVisualViewportHeight();
