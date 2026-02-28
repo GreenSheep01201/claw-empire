@@ -4,11 +4,11 @@ import type { DeptForm, FormData } from "./types";
 export const ROLES: AgentRole[] = ["team_leader", "senior", "junior", "intern"];
 export const CLI_PROVIDERS: CliProvider[] = ["claude", "codex", "gemini", "opencode", "copilot", "antigravity", "cursor", "api"];
 
-export const ROLE_LABEL: Record<string, { ko: string; en: string }> = {
-  team_leader: { ko: "팀장", en: "Leader" },
-  senior: { ko: "시니어", en: "Senior" },
-  junior: { ko: "주니어", en: "Junior" },
-  intern: { ko: "인턴", en: "Intern" },
+export const ROLE_LABEL: Record<string, { ko: string; en: string; ja: string; zh: string }> = {
+  team_leader: { ko: "팀장", en: "Leader", ja: "リーダー", zh: "组长" },
+  senior: { ko: "시니어", en: "Senior", ja: "シニア", zh: "高级" },
+  junior: { ko: "주니어", en: "Junior", ja: "ジュニア", zh: "初级" },
+  intern: { ko: "인턴", en: "Intern", ja: "インターン", zh: "实习" },
 };
 
 export const ROLE_BADGE: Record<string, string> = {
@@ -27,25 +27,33 @@ export const STATUS_DOT: Record<string, string> = {
 
 export const ICON_SPRITE_POOL = Array.from({ length: 13 }, (_, i) => i + 1);
 
-export const EMOJI_GROUPS: { label: string; labelEn: string; emojis: string[] }[] = [
+export const EMOJI_GROUPS: { label: string; labelEn: string; labelJa: string; labelZh: string; emojis: string[] }[] = [
   {
     label: "부서/업무",
     labelEn: "Work",
+    labelJa: "業務",
+    labelZh: "工作",
     emojis: ["📊", "💻", "🎨", "🔍", "🛡️", "⚙️", "📁", "🏢", "📋", "📈", "💼", "🗂️", "📌", "🎯", "🔧", "🧪"],
   },
   {
     label: "사람/표정",
     labelEn: "People",
+    labelJa: "人物",
+    labelZh: "人物",
     emojis: ["🤖", "👤", "👥", "😊", "😎", "🤓", "🧑‍💻", "👨‍🔬", "👩‍🎨", "🧑‍🏫", "🦸", "🦊", "🐱", "🐶", "🐻", "🐼"],
   },
   {
     label: "사물/기호",
     labelEn: "Objects",
+    labelJa: "物品",
+    labelZh: "物品",
     emojis: ["💡", "🚀", "⚡", "🔥", "💎", "🏆", "🎵", "🎮", "📱", "💾", "🖥️", "📡", "🔑", "🛠️", "📦", "🧩"],
   },
   {
     label: "자연/색상",
     labelEn: "Nature",
+    labelJa: "自然",
+    labelZh: "自然",
     emojis: ["🌟", "⭐", "🌈", "🌊", "🌸", "🍀", "🌙", "☀️", "❄️", "🔵", "🟢", "🟡", "🔴", "🟣", "🟠", "⚪"],
   },
 ];

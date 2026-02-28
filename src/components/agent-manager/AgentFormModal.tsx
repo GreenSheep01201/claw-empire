@@ -29,7 +29,7 @@ export default function AgentFormModal({
 }: {
   isKo: boolean;
   locale: string;
-  tr: (ko: string, en: string) => string;
+  tr: (ko: string, en: string, ja?: string, zh?: string) => string;
   form: FormData;
   setForm: (f: FormData) => void;
   departments: Department[];
@@ -84,7 +84,7 @@ export default function AgentFormModal({
         {/* Modal header */}
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-base font-bold" style={{ color: "var(--th-text-heading)" }}>
-            {isEdit ? tr("직원 정보 수정", "Edit Agent") : tr("신규 직원 채용", "Hire New Agent")}
+            {isEdit ? tr("직원 정보 수정", "Edit Agent", "社員情報編集", "编辑员工") : tr("신규 직원 채용", "Hire New Agent", "新規採用", "招聘新员工")}
           </h3>
           <button
             onClick={onClose}
@@ -103,7 +103,7 @@ export default function AgentFormModal({
               className="text-[10px] font-semibold uppercase tracking-widest"
               style={{ color: "var(--th-text-muted)" }}
             >
-              {tr("기본 정보", "Basic Info")}
+              {tr("기본 정보", "Basic Info", "基本情報", "基本信息")}
             </div>
             {/* ── 스프라이트 얼굴 미리보기 + 위/아래 변경 ── */}
             <div className="flex items-center gap-3">
@@ -157,7 +157,7 @@ export default function AgentFormModal({
                 </span>
                 <div className="mt-2">
                   <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                    {tr("영문 이름", "Name")} <span className="text-red-400">*</span>
+                    {tr("영문 이름", "Name", "英語名", "英文名")} <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -174,7 +174,7 @@ export default function AgentFormModal({
             {locale.startsWith("ko") && (
               <div>
                 <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                  {tr("한글 이름", "Korean Name")}
+                  {tr("한글 이름", "Korean Name", "韓国語名", "韩语名")}
                 </label>
                 <input
                   type="text"
@@ -219,7 +219,7 @@ export default function AgentFormModal({
             <div className="grid grid-cols-[72px_1fr] gap-2">
               <div>
                 <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                  {tr("이모지", "Emoji")}
+                  {tr("이모지", "Emoji", "絵文字", "表情")}
                 </label>
                 <EmojiPicker
                   value={form.avatar_emoji}
@@ -228,7 +228,7 @@ export default function AgentFormModal({
               </div>
               <div>
                 <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                  {tr("소속 부서", "Department")}
+                  {tr("소속 부서", "Department", "所属部署", "所属部门")}
                 </label>
                 <select
                   value={form.department_id}
@@ -236,7 +236,7 @@ export default function AgentFormModal({
                   className={`${inputCls} cursor-pointer`}
                   style={inputStyle}
                 >
-                  <option value="">{tr("— 미배정 —", "— Unassigned —")}</option>
+                  <option value="">{tr("— 미배정 —", "— Unassigned —", "— 未配属 —", "— 未分配 —")}</option>
                   {departments.map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.icon} {localeName(locale, d)}
@@ -253,12 +253,12 @@ export default function AgentFormModal({
               className="text-[10px] font-semibold uppercase tracking-widest"
               style={{ color: "var(--th-text-muted)" }}
             >
-              {tr("역할 설정", "Role Config")}
+              {tr("역할 설정", "Role Config", "役割設定", "角色配置")}
             </div>
             {/* 직급 */}
             <div>
               <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {tr("직급", "Role")}
+                {tr("직급", "Role", "職級", "职级")}
               </label>
               <div className="grid grid-cols-4 gap-1.5">
                 {ROLES.map((r) => {
@@ -274,7 +274,7 @@ export default function AgentFormModal({
                         !active ? { borderColor: "var(--th-input-border)", color: "var(--th-text-muted)" } : undefined
                       }
                     >
-                      {isKo ? ROLE_LABEL[r].ko : ROLE_LABEL[r].en}
+                      {ROLE_LABEL[r][locale.startsWith("ko") ? "ko" : locale.startsWith("ja") ? "ja" : locale.startsWith("zh") ? "zh" : "en"]}
                     </button>
                   );
                 })}
@@ -283,7 +283,7 @@ export default function AgentFormModal({
             {/* CLI Provider */}
             <div>
               <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {tr("CLI 도구", "CLI Provider")}
+                {tr("CLI 도구", "CLI Provider", "CLIツール", "CLI 工具")}
               </label>
               <div className="flex flex-wrap gap-1.5">
                 {CLI_PROVIDERS.map((p) => {
@@ -308,13 +308,13 @@ export default function AgentFormModal({
             {/* 성격/프롬프트 */}
             <div>
               <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {tr("성격 / 역할 프롬프트", "Personality / Prompt")}
+                {tr("성격 / 역할 프롬프트", "Personality / Prompt", "性格 / プロンプト", "性格 / 提示词")}
               </label>
               <textarea
                 value={form.personality}
                 onChange={(e) => setForm({ ...form, personality: e.target.value })}
                 rows={3}
-                placeholder={tr("전문 분야나 성격 설명...", "Expertise or personality...")}
+                placeholder={tr("전문 분야나 성격 설명...", "Expertise or personality...", "専門分野や性格の説明...", "专业领域或性格描述...")}
                 className={`${inputCls} resize-none`}
                 style={inputStyle}
               />
@@ -328,7 +328,7 @@ export default function AgentFormModal({
             className="text-[10px] font-semibold uppercase tracking-widest mb-3"
             style={{ color: "var(--th-text-muted)" }}
           >
-            {tr("캐릭터 스프라이트", "Character Sprite")}
+            {tr("캐릭터 스프라이트", "Character Sprite", "キャラクタースプライト", "角色精灵图")}
           </div>
 
           {!previews && !processing && (
@@ -338,9 +338,9 @@ export default function AgentFormModal({
             >
               <span className="text-2xl">🖼️</span>
               <span className="text-xs">
-                {tr("4방향 스프라이트 시트 업로드 (2x2 그리드)", "Upload 4-direction sprite sheet (2x2 grid)")}
+                {tr("4방향 스프라이트 시트 업로드 (2x2 그리드)", "Upload 4-direction sprite sheet (2x2 grid)", "4方向スプライトシートをアップロード (2x2)", "上传4方向精灵图 (2x2网格)")}
               </span>
-              <span className="text-xs">{tr("앞 / 왼 / 뒤 / 오른 순서", "Front / Left / Back / Right order")}</span>
+              <span className="text-xs">{tr("앞 / 왼 / 뒤 / 오른 순서", "Front / Left / Back / Right order", "前 / 左 / 後 / 右の順", "前 / 左 / 后 / 右 顺序")}</span>
               <span className="text-xs">
                 {t({
                   ko: "(흰색배경)",
@@ -379,7 +379,7 @@ export default function AgentFormModal({
             <div className="flex items-center justify-center gap-2 py-8" style={{ color: "var(--th-text-muted)" }}>
               <span className="animate-spin text-lg">⏳</span>
               <span className="text-sm">
-                {tr("배경 제거 및 분할 처리 중...", "Removing background & splitting...")}
+                {tr("배경 제거 및 분할 처리 중...", "Removing background & splitting...", "背景除去・分割処理中...", "正在去除背景并分割...")}
               </span>
             </div>
           )}
@@ -391,7 +391,7 @@ export default function AgentFormModal({
                 {(["D", "L", "R"] as const).map((dir) => (
                   <div key={dir} className="text-center">
                     <div className="text-[10px] font-medium mb-1" style={{ color: "var(--th-text-muted)" }}>
-                      {dir === "D" ? tr("정면", "Front") : dir === "L" ? tr("좌측", "Left") : tr("우측", "Right")}
+                      {dir === "D" ? tr("정면", "Front", "正面", "正面") : dir === "L" ? tr("좌측", "Left", "左側", "左侧") : tr("우측", "Right", "右側", "右侧")}
                     </div>
                     <div
                       className="rounded-lg p-2 flex items-center justify-center h-24"
@@ -418,7 +418,7 @@ export default function AgentFormModal({
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                    {tr("스프라이트 번호", "Sprite #")}
+                    {tr("스프라이트 번호", "Sprite #", "スプライト番号", "精灵编号")}
                   </label>
                   <input
                     type="number"
@@ -455,10 +455,10 @@ export default function AgentFormModal({
                   } disabled:opacity-50`}
                 >
                   {registering
-                    ? tr("등록 중...", "Registering...")
+                    ? tr("등록 중...", "Registering...", "登録中...", "注册中...")
                     : registered
-                      ? tr("등록 완료!", "Registered!")
-                      : tr("스프라이트 등록", "Register Sprite")}
+                      ? tr("등록 완료!", "Registered!", "登録完了!", "已注册!")
+                      : tr("스프라이트 등록", "Register Sprite", "スプライト登録", "注册精灵图")}
                 </button>
                 {previews && (
                   <button
@@ -470,7 +470,7 @@ export default function AgentFormModal({
                     className="text-xs px-2 py-1 rounded-lg hover:bg-[var(--th-bg-surface-hover)] transition-colors"
                     style={{ color: "var(--th-text-muted)" }}
                   >
-                    {tr("다시 업로드", "Re-upload")}
+                    {tr("다시 업로드", "Re-upload", "再アップロード", "重新上传")}
                   </button>
                 )}
               </div>
@@ -486,17 +486,17 @@ export default function AgentFormModal({
             className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white disabled:opacity-40 shadow-sm shadow-blue-600/20"
           >
             {saving
-              ? tr("처리 중...", "Saving...")
+              ? tr("처리 중...", "Saving...", "処理中...", "保存中...")
               : isEdit
-                ? tr("변경사항 저장", "Save Changes")
-                : tr("채용 확정", "Confirm Hire")}
+                ? tr("변경사항 저장", "Save Changes", "変更を保存", "保存更改")
+                : tr("채용 확정", "Confirm Hire", "採用確定", "确认招聘")}
           </button>
           <button
             onClick={onClose}
             className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[var(--th-bg-surface-hover)]"
             style={{ border: "1px solid var(--th-input-border)", color: "var(--th-text-secondary)" }}
           >
-            {tr("취소", "Cancel")}
+            {tr("취소", "Cancel", "キャンセル", "取消")}
           </button>
         </div>
       </div>

@@ -1,3 +1,5 @@
+import { useI18n } from "../i18n";
+
 interface AppHeaderBarProps {
   connected: boolean;
   viewTitle: string;
@@ -47,6 +49,7 @@ export default function AppHeaderBar({
   onToggleMobileHeaderMenu,
   onCloseMobileHeaderMenu,
 }: AppHeaderBarProps) {
+  const { t } = useI18n();
   return (
     <header
       className="sticky top-0 z-30 flex items-center justify-between px-3 py-2 backdrop-blur-sm sm:px-4 sm:py-3 lg:px-6"
@@ -61,7 +64,7 @@ export default function AppHeaderBar({
             background: "var(--th-bg-surface)",
             color: "var(--th-text-secondary)",
           }}
-          aria-label="Open navigation"
+          aria-label={t({ ko: "메뉴 열기", en: "Open navigation", ja: "メニューを開く", zh: "打开导航" })}
         >
           ☰
         </button>
@@ -108,8 +111,12 @@ export default function AppHeaderBar({
         <button
           onClick={onToggleTheme}
           className="theme-toggle-btn"
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          title={theme === "dark" ? "라이트 모드" : "다크 모드"}
+          aria-label={theme === "dark"
+            ? t({ ko: "라이트 모드로 전환", en: "Switch to light mode", ja: "ライトモードに切替", zh: "切换到浅色模式" })
+            : t({ ko: "다크 모드로 전환", en: "Switch to dark mode", ja: "ダークモードに切替", zh: "切换到深色模式" })}
+          title={theme === "dark"
+            ? t({ ko: "라이트 모드", en: "Light mode", ja: "ライトモード", zh: "浅色模式" })
+            : t({ ko: "다크 모드", en: "Dark mode", ja: "ダークモード", zh: "深色模式" })}
         >
           <span className="theme-toggle-icon">
             {theme === "dark" ? (
@@ -158,7 +165,7 @@ export default function AppHeaderBar({
               background: "var(--th-bg-surface)",
               color: "var(--th-text-secondary)",
             }}
-            aria-label="더보기 메뉴"
+            aria-label={t({ ko: "더보기 메뉴", en: "More menu", ja: "その他メニュー", zh: "更多菜单" })}
           >
             <svg
               width="18"
@@ -177,7 +184,7 @@ export default function AppHeaderBar({
           </button>
           {mobileHeaderMenuOpen && (
             <>
-              <button className="fixed inset-0 z-40" onClick={onCloseMobileHeaderMenu} aria-label="Close menu" />
+              <button className="fixed inset-0 z-40" onClick={onCloseMobileHeaderMenu} aria-label={t({ ko: "메뉴 닫기", en: "Close menu", ja: "メニューを閉じる", zh: "关闭菜单" })} />
               <div
                 className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg py-1 shadow-lg"
                 style={{ border: "1px solid var(--th-border)", background: "var(--th-bg-surface)" }}
@@ -218,7 +225,9 @@ export default function AppHeaderBar({
         </div>
         <div className="flex items-center gap-2 text-xs" style={{ color: "var(--th-text-muted)" }}>
           <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`} />
-          <span className="hidden sm:inline">{connected ? "Live" : "Offline"}</span>
+          <span className="hidden sm:inline">{connected
+            ? t({ ko: "연결됨", en: "Live", ja: "接続中", zh: "已连接" })
+            : t({ ko: "오프라인", en: "Offline", ja: "オフライン", zh: "离线" })}</span>
         </div>
       </div>
     </header>

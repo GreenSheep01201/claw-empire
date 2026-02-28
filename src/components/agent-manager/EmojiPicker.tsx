@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "../../i18n";
 import { EMOJI_GROUPS } from "./constants";
 
 export function StackedSpriteIcon({ sprites }: { sprites: [number, number] }) {
@@ -29,6 +30,7 @@ export default function EmojiPicker({
   onChange: (emoji: string) => void;
   size?: "sm" | "md";
 }) {
+  const { locale } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -68,7 +70,7 @@ export default function EmojiPicker({
                 className="text-[10px] font-semibold uppercase tracking-widest mb-1"
                 style={{ color: "var(--th-text-muted)" }}
               >
-                {group.label}
+                {locale.startsWith("ko") ? group.label : locale.startsWith("ja") ? group.labelJa : locale.startsWith("zh") ? group.labelZh : group.labelEn}
               </div>
               <div className="grid grid-cols-8 gap-0.5">
                 {group.emojis.map((emoji) => (

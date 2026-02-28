@@ -1,6 +1,6 @@
 import type { Agent, Department } from "../../types";
 
-export type Translator = (ko: string, en: string) => string;
+export type Translator = (ko: string, en: string, ja?: string, zh?: string) => string;
 
 export interface AgentManagerProps {
   agents: Agent[];

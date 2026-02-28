@@ -15,7 +15,7 @@ import { pickRandomSpritePair } from "./agent-manager/utils";
 export default function AgentManager({ agents, departments, onAgentsChange }: AgentManagerProps) {
   const { t, locale } = useI18n();
   const isKo = locale.startsWith("ko");
-  const tr = (ko: string, en: string) => t({ ko, en, ja: en, zh: en });
+  const tr = (ko: string, en: string, ja?: string, zh?: string) => t({ ko, en, ja: ja ?? en, zh: zh ?? en });
 
   const [subTab, setSubTab] = useState<"agents" | "departments">("agents");
   const [search, setSearch] = useState("");
@@ -291,7 +291,7 @@ export default function AgentManager({ agents, departments, onAgentsChange }: Ag
               style={{ imageRendering: "pixelated", zIndex: 1 }}
             />
           </span>
-          {tr("직원 관리", "Agent Manager")}
+          {tr("직원 관리", "Agent Manager", "社員管理", "员工管理")}
         </h2>
         <div className="flex items-center gap-2">
           {subTab === "agents" && (
@@ -301,13 +301,13 @@ export default function AgentManager({ agents, departments, onAgentsChange }: Ag
                 className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 active:opacity-80 shadow-sm"
                 style={{ background: "#7c3aed", color: "#ffffff", boxShadow: "0 1px 3px rgba(124,58,237,0.3)" }}
               >
-                + {tr("부서 추가", "Add Dept")}
+                + {tr("부서 추가", "Add Dept", "部署追加", "添加部门")}
               </button>
               <button
                 onClick={openCreate}
                 className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
               >
-                + {tr("신규 채용", "Hire Agent")}
+                + {tr("신규 채용", "Hire Agent", "新規採用", "招聘员工")}
               </button>
             </>
           )}
@@ -317,7 +317,7 @@ export default function AgentManager({ agents, departments, onAgentsChange }: Ag
               className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 active:opacity-80 shadow-sm"
               style={{ background: "#7c3aed", color: "#ffffff", boxShadow: "0 1px 3px rgba(124,58,237,0.3)" }}
             >
-              + {tr("부서 추가", "Add Dept")}
+              + {tr("부서 추가", "Add Dept", "部署追加", "添加部门")}
             </button>
           )}
         </div>
@@ -330,10 +330,10 @@ export default function AgentManager({ agents, departments, onAgentsChange }: Ag
         {[
           {
             key: "agents" as const,
-            label: tr("직원관리", "Agents"),
+            label: tr("직원관리", "Agents", "社員管理", "员工管理"),
             icon: <StackedSpriteIcon sprites={randomIconSprites.tab} />,
           },
-          { key: "departments" as const, label: tr("부서관리", "Departments"), icon: "🏢" },
+          { key: "departments" as const, label: tr("부서관리", "Departments", "部署管理", "部门管理"), icon: "🏢" },
         ].map((tab) => (
           <button
             key={tab.key}
