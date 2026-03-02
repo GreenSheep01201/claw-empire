@@ -33,8 +33,9 @@ interface CronJobsResponse {
 
 function makeJobId(source: string, label: string | null, schedule: string, command: string): string {
   const raw = `${source}:${label ?? ""}:${schedule}:${command}`;
-  // btoa-safe base64 id
-  return btoa(raw).replace(/[+/=]/g, (c) => (c === "+" ? "-" : c === "/" ? "_" : ""));
+  return Buffer.from(raw, "utf-8")
+    .toString("base64")
+    .replace(/[+/=]/g, (c) => (c === "+" ? "-" : c === "/" ? "_" : ""));
 }
 
 function cronToHuman(expr: string): string {
@@ -206,6 +207,11 @@ function parseCrontab(): CronJob[] {
 
     const schedule = match[1]!;
     const command = match[2]!;
+
+    // Validate that each field looks like a cron field (digits, *, /, -, comma)
+    const cronFields = schedule.split(/\s+/);
+    const isCronLike = cronFields.every((f) => /^[0-9*\/,\-]+$/.test(f));
+    if (!isCronLike) continue;
 
     jobs.push({
       id: makeJobId("crontab", null, schedule, command),
