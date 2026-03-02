@@ -6,6 +6,7 @@ import TaskBoard from "../components/TaskBoard";
 import AgentManager from "../components/AgentManager";
 import SkillsLibrary from "../components/SkillsLibrary";
 import SettingsPanel from "../components/SettingsPanel";
+import CronMonitor from "../components/CronMonitor";
 import { I18nProvider } from "../i18n";
 import type {
   Agent,
@@ -540,6 +541,8 @@ export default function AppMainLayout({
             )}
 
             {view === "skills" && <SkillsLibrary agents={agents} />}
+
+            {view === "schedules" && <CronMonitor />}
 
             {view === "settings" && (
               <SettingsPanel
