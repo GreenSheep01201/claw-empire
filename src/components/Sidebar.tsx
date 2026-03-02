@@ -19,7 +19,7 @@ const NAV_ITEMS: { view: View; icon: string; sprite?: string }[] = [
   { view: "skills", icon: "📚" },
   { view: "dashboard", icon: "📊" },
   { view: "tasks", icon: "📋" },
-  { view: "schedules", icon: "🕐" },
+  { view: "schedules", icon: "🛡️" },
   { view: "settings", icon: "⚙️" },
 ];
 
@@ -37,7 +37,7 @@ export default function Sidebar({ currentView, onChangeView, departments, agents
     skills: tr("문서고", "Library", "ライブラリ", "文档库"),
     dashboard: tr("대시보드", "Dashboard", "ダッシュボード", "仪表盘"),
     tasks: tr("업무 관리", "Tasks", "タスク管理", "任务管理"),
-    schedules: tr("스케줄", "Schedules", "スケジュール", "计划任务"),
+    schedules: tr("자동순찰", "Patrols", "自動巡回", "自动巡逻"),
     settings: tr("설정", "Settings", "設定", "设置"),
   };
 

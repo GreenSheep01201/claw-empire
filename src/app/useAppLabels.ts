@@ -76,11 +76,11 @@ export function useAppLabels({
           zh: "技能库",
         })}`;
       case "schedules":
-        return `🕐 ${pickLang(uiLanguage, {
-          ko: "스케줄",
-          en: "Schedules",
-          ja: "スケジュール",
-          zh: "计划任务",
+        return `🛡️ ${pickLang(uiLanguage, {
+          ko: "자동순찰",
+          en: "Patrols",
+          ja: "自動巡回",
+          zh: "自动巡逻",
         })}`;
       case "settings":
         return `⚙️ ${pickLang(uiLanguage, {
