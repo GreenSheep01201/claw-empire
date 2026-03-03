@@ -1,9 +1,27 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useI18n } from "../i18n";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useI18n, localeName } from "../i18n";
 import type { CronJob, CronJobsResponse } from "../api/cron-monitor";
-import { getCronJobs } from "../api/cron-monitor";
+import { getCronJobs, savePatrolAssignments, saveJobDescriptions } from "../api/cron-monitor";
+import type { Agent } from "../types";
+import AgentAvatar, { useSpriteMap } from "./AgentAvatar";
+import { STATUS_DOT } from "./agent-manager/constants";
 
 type SourceFilter = "all" | "crontab" | "launchd";
+
+const ROLE_I18N: Record<string, { ko: string; en: string; ja: string; zh: string }> = {
+  team_leader: { ko: "팀장", en: "Leader", ja: "リーダー", zh: "组长" },
+  senior: { ko: "시니어", en: "Senior", ja: "シニア", zh: "高级" },
+  junior: { ko: "주니어", en: "Junior", ja: "ジュニア", zh: "初级" },
+  intern: { ko: "인턴", en: "Intern", ja: "インターン", zh: "实习" },
+};
+
+interface CronMonitorProps {
+  agents: Agent[];
+  assignments: Record<string, string>;
+  onAssignmentsChange: (next: Record<string, string>) => void;
+  descriptions: Record<string, string>;
+  onDescriptionsChange: (next: Record<string, string>) => void;
+}
 
 /* ── HUD stat card ── */
 function HudCard({
@@ -68,19 +86,262 @@ function SourceBadge({ source }: { source: "crontab" | "launchd" }) {
   );
 }
 
+/* ── Agent assign dropdown ── */
+function AgentAssignDropdown({
+  agents,
+  currentAgentId,
+  spriteMap,
+  locale,
+  onAssign,
+  t,
+}: {
+  agents: Agent[];
+  currentAgentId: string | null;
+  spriteMap: Map<string, number>;
+  locale: string;
+  onAssign: (agentId: string | null) => void;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  const currentAgent = currentAgentId ? agents.find((a) => a.id === currentAgentId) : null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((prev) => !prev);
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={
+          currentAgent
+            ? t({ ko: "담당자 변경", en: "Change agent", ja: "担当者を変更", zh: "更改负责人" })
+            : t({ ko: "담당자 지정", en: "Assign agent", ja: "担当者を割り当て", zh: "分配负责人" })
+        }
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all ${
+          currentAgent
+            ? "border-cyan-500/30 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
+        }`}
+        style={!currentAgent ? { color: "var(--th-text-muted)" } : undefined}
+      >
+        {currentAgent ? (
+          <>
+            <AgentAvatar agent={currentAgent} spriteMap={spriteMap} size={18} rounded="full" />
+            <span>{localeName(locale, currentAgent)}</span>
+            <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[currentAgent.status] ?? STATUS_DOT.idle}`} />
+          </>
+        ) : (
+          <>🛡️ {t({ ko: "담당자 지정", en: "Assign agent", ja: "担当者を割り当て", zh: "分配负责人" })}</>
+        )}
+      </button>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label={t({ ko: "에이전트 선택", en: "Select agent", ja: "エージェント選択", zh: "选择代理" })}
+          className="absolute left-0 top-full mt-1 z-50 w-56 max-h-64 overflow-y-auto rounded-xl border border-white/[0.08] p-1 shadow-xl"
+          style={{ background: "var(--th-bg-surface)" }}
+        >
+          {currentAgent && (
+            <button
+              role="option"
+              aria-selected={false}
+              onClick={() => {
+                onAssign(null);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] hover:bg-white/[0.06] transition-colors"
+              style={{ color: "var(--th-text-muted)" }}
+            >
+              ✕ {t({ ko: "할당 해제", en: "Unassign", ja: "割り当て解除", zh: "取消分配" })}
+            </button>
+          )}
+          {agents.map((agent) => {
+            const isSelected = agent.id === currentAgentId;
+            return (
+              <button
+                key={agent.id}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => {
+                  onAssign(agent.id);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] transition-colors ${
+                  isSelected ? "bg-cyan-500/15 text-cyan-300" : "hover:bg-white/[0.06]"
+                }`}
+                style={!isSelected ? { color: "var(--th-text-primary)" } : undefined}
+              >
+                <AgentAvatar agent={agent} spriteMap={spriteMap} size={20} rounded="full" />
+                <span className="truncate font-medium">{localeName(locale, agent)}</span>
+                <span className="text-[9px] opacity-60">
+                  {(() => {
+                    const r = ROLE_I18N[agent.role];
+                    if (!r) return agent.role;
+                    return (r as Record<string, string>)[locale] ?? r.en;
+                  })()}
+                </span>
+                <span className={`ml-auto h-1.5 w-1.5 rounded-full ${STATUS_DOT[agent.status] ?? STATUS_DOT.idle}`} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Inline description editor ── */
+function DescriptionEditor({
+  value,
+  onChange,
+  t,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(value);
+      requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }, [editing, value]);
+
+  const commit = () => {
+    const trimmed = draft.trim();
+    if (trimmed !== value) onChange(trimmed);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="text-[10px]" style={{ color: "var(--th-text-muted)" }}>
+          📝
+        </span>
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          className="flex-1 rounded-md border border-cyan-400/30 bg-cyan-500/5 px-2 py-0.5 text-[11px] outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20"
+          style={{ color: "var(--th-text-primary)" }}
+          placeholder={t({
+            ko: "이 작업의 설명을 입력...",
+            en: "What does this job do?",
+            ja: "このジョブの説明を入力...",
+            zh: "描述这个任务的用途...",
+          })}
+        />
+      </div>
+    );
+  }
+
+  if (value) {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setEditing(true);
+        }}
+        className="group/desc flex items-center gap-1.5 text-[11px] transition-colors hover:opacity-80"
+        style={{ color: "var(--th-text-secondary)" }}
+        title={t({ ko: "클릭하여 편집", en: "Click to edit", ja: "クリックして編集", zh: "点击编辑" })}
+      >
+        <span aria-hidden="true">📝</span>
+        <span>{value}</span>
+        <span className="opacity-0 group-hover/desc:opacity-40 text-[9px]">✎</span>
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditing(true);
+      }}
+      className="inline-flex items-center gap-1 text-[10px] transition-colors hover:opacity-80"
+      style={{ color: "var(--th-text-muted)" }}
+    >
+      <span aria-hidden="true">📝</span>
+      {t({
+        ko: "설명 미등록",
+        en: "No description",
+        ja: "説明未登録",
+        zh: "未添加说明",
+      })}
+    </button>
+  );
+}
+
 /* ── Single job card ── */
-function JobCard({ job, t }: { job: CronJob; t: ReturnType<typeof useI18n>["t"] }) {
+function JobCard({
+  job,
+  agents,
+  assignedAgentId,
+  description,
+  spriteMap,
+  locale,
+  onAssign,
+  onDescriptionChange,
+  t,
+}: {
+  job: CronJob;
+  agents: Agent[];
+  assignedAgentId: string | null;
+  description: string;
+  spriteMap: Map<string, number>;
+  locale: string;
+  onAssign: (jobId: string, agentId: string | null) => void;
+  onDescriptionChange: (jobId: string, desc: string) => void;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
   const borderColor = job.enabled
     ? job.source === "crontab"
       ? "border-l-emerald-400"
       : "border-l-purple-400"
     : "border-l-slate-600";
 
+  const assignedAgent = assignedAgentId ? agents.find((a) => a.id === assignedAgentId) : null;
+
   return (
-    <article
+    <div
       className={`group grid grid-cols-[1fr_auto] items-start gap-3 rounded-xl border border-white/[0.06] border-l-[3px] ${borderColor} bg-white/[0.02] p-3.5 transition-all duration-200 hover:bg-white/[0.04] hover:translate-x-1`}
     >
       <div className="min-w-0 space-y-1.5">
+        {/* Description row */}
+        <DescriptionEditor value={description} onChange={(desc) => onDescriptionChange(job.id, desc)} t={t} />
+
         {/* Top row: source + schedule */}
         <div className="flex flex-wrap items-center gap-2">
           <SourceBadge source={job.source} />
@@ -116,6 +377,40 @@ function JobCard({ job, t }: { job: CronJob; t: ReturnType<typeof useI18n>["t"] 
             )}
           </div>
         )}
+
+        {/* Agent assignment row */}
+        <div className="flex items-center gap-2 pt-1">
+          <AgentAssignDropdown
+            agents={agents}
+            currentAgentId={assignedAgentId}
+            spriteMap={spriteMap}
+            locale={locale}
+            onAssign={(agentId) => onAssign(job.id, agentId)}
+            t={t}
+          />
+          {assignedAgent && (
+            <span className="text-[10px] font-medium" style={{ color: "var(--th-text-muted)" }}>
+              {t({
+                ko:
+                  assignedAgent.status === "working"
+                    ? "근무 중"
+                    : assignedAgent.status === "break"
+                      ? "휴식 중"
+                      : "대기 중",
+                en:
+                  assignedAgent.status === "working" ? "Working" : assignedAgent.status === "break" ? "Break" : "Idle",
+                ja:
+                  assignedAgent.status === "working"
+                    ? "稼働中"
+                    : assignedAgent.status === "break"
+                      ? "休憩中"
+                      : "待機中",
+                zh:
+                  assignedAgent.status === "working" ? "工作中" : assignedAgent.status === "break" ? "休息中" : "空闲",
+              })}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Right side: status + next run */}
@@ -150,19 +445,26 @@ function JobCard({ job, t }: { job: CronJob; t: ReturnType<typeof useI18n>["t"] 
           </span>
         )}
       </div>
-    </article>
+    </div>
   );
 }
 
 /* ── Main component ── */
-export default function CronMonitor() {
-  const { t } = useI18n();
+export default function CronMonitor({
+  agents,
+  assignments,
+  onAssignmentsChange,
+  descriptions,
+  onDescriptionsChange,
+}: CronMonitorProps) {
+  const { t, language } = useI18n();
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [platform, setPlatform] = useState<CronJobsResponse["platform"]>("unknown");
   const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const spriteMap = useSpriteMap(agents);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -184,6 +486,44 @@ export default function CronMonitor() {
     return () => clearInterval(interval);
   }, [fetchJobs]);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleAssign = useCallback(
+    (jobId: string, agentId: string | null) => {
+      const next = { ...assignments };
+      if (agentId) {
+        next[jobId] = agentId;
+      } else {
+        delete next[jobId];
+      }
+      onAssignmentsChange(next);
+      savePatrolAssignments(next).catch((err) => {
+        console.error("[patrol] Failed to save assignments:", err);
+        setSaveError(String(err));
+        onAssignmentsChange(assignments); // rollback
+      });
+    },
+    [assignments, onAssignmentsChange],
+  );
+
+  const handleDescriptionChange = useCallback(
+    (jobId: string, desc: string) => {
+      const next = { ...descriptions };
+      if (desc) {
+        next[jobId] = desc;
+      } else {
+        delete next[jobId];
+      }
+      onDescriptionsChange(next);
+      saveJobDescriptions(next).catch((err) => {
+        console.error("[patrol] Failed to save descriptions:", err);
+        setSaveError(String(err));
+        onDescriptionsChange(descriptions); // rollback
+      });
+    },
+    [descriptions, onDescriptionsChange],
+  );
+
   const filteredJobs = useMemo(() => {
     if (sourceFilter === "all") return jobs;
     return jobs.filter((j) => j.source === sourceFilter);
@@ -192,6 +532,7 @@ export default function CronMonitor() {
   const crontabCount = useMemo(() => jobs.filter((j) => j.source === "crontab").length, [jobs]);
   const launchdCount = useMemo(() => jobs.filter((j) => j.source === "launchd").length, [jobs]);
   const enabledCount = useMemo(() => jobs.filter((j) => j.enabled).length, [jobs]);
+  const assignedCount = useMemo(() => Object.keys(assignments).length, [assignments]);
 
   // ── Loading ──
   if (loading) {
@@ -247,7 +588,7 @@ export default function CronMonitor() {
     <section className="relative isolate space-y-4" style={{ color: "var(--th-text-primary)" }}>
       {/* Ambient background blurs */}
       <div className="pointer-events-none absolute -top-20 left-1/4 h-60 w-60 rounded-full bg-cyan-500/10 blur-[100px] animate-drift-slow" />
-      <div className="pointer-events-none absolute top-40 right-1/6 h-48 w-48 rounded-full bg-purple-500/8 blur-[100px] animate-drift-slow-rev" />
+      <div className="pointer-events-none absolute top-40 right-1/6 h-48 w-48 rounded-full bg-purple-500/10 blur-[100px] animate-drift-slow-rev" />
 
       {/* ── Hero header ── */}
       <div className="game-panel relative overflow-hidden p-5">
@@ -313,8 +654,22 @@ export default function CronMonitor() {
         </div>
       </div>
 
+      {/* ── Save error banner ── */}
+      {saveError && (
+        <div className="game-panel flex items-center gap-3 border-red-500/30 bg-red-500/10 p-3">
+          <span className="text-sm">⚠️</span>
+          <span className="flex-1 text-xs text-red-400">{saveError}</span>
+          <button
+            onClick={() => setSaveError(null)}
+            className="text-xs text-red-300 hover:text-red-200 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* ── HUD stats ── */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <HudCard
           label={t({ ko: "총 임무", en: "TOTAL MISSIONS", ja: "登録数", zh: "总任务" })}
           value={jobs.length}
@@ -342,6 +697,13 @@ export default function CronMonitor() {
           icon="🍎"
           color="#8b5cf6"
           sub={t({ ko: "macOS 에이전트", en: "macOS agents", ja: "macOS エージェント", zh: "macOS 代理" })}
+        />
+        <HudCard
+          label={t({ ko: "담당 배치", en: "ASSIGNED", ja: "担当割当", zh: "已分配" })}
+          value={assignedCount}
+          icon="🛡️"
+          color="#f59e0b"
+          sub={t({ ko: "에이전트 배치됨", en: "agents assigned", ja: "エージェント配置済み", zh: "已分配代理" })}
         />
       </div>
 
@@ -432,7 +794,20 @@ export default function CronMonitor() {
               })}
             </div>
           ) : (
-            filteredJobs.map((job) => <JobCard key={job.id} job={job} t={t} />)
+            filteredJobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={job}
+                agents={agents}
+                assignedAgentId={assignments[job.id] ?? null}
+                description={descriptions[job.id] ?? ""}
+                spriteMap={spriteMap}
+                locale={language}
+                onAssign={handleAssign}
+                onDescriptionChange={handleDescriptionChange}
+                t={t}
+              />
+            ))
           )}
         </div>
       </div>

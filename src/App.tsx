@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import type { DecisionInboxItem } from "./components/chat/decision-inbox";
 import { useWebSocket } from "./hooks/useWebSocket";
 import type {
@@ -20,6 +20,7 @@ import type {
 } from "./types";
 import type { TaskReportDetail } from "./api";
 import * as api from "./api";
+import { getPatrolAssignments, getJobDescriptions } from "./api/cron-monitor";
 import { detectBrowserLanguage, normalizeLanguage } from "./i18n";
 import { useTheme } from "./ThemeContext";
 import { ROOM_THEMES_STORAGE_KEY, UPDATE_BANNER_DISMISS_STORAGE_KEY } from "./app/constants";
@@ -107,6 +108,8 @@ export default function App() {
     agent_avatar: string;
     content: string;
   } | null>(null);
+  const [patrolAssignments, setPatrolAssignments] = useState<Record<string, string>>({});
+  const [jobDescriptions, setJobDescriptions] = useState<Record<string, string>>({});
 
   const viewRef = useRef<View>("office");
   viewRef.current = view;
@@ -350,6 +353,33 @@ export default function App() {
 
   const activeMeetingTaskId = useActiveMeetingTaskId(meetingPresence);
 
+  useEffect(() => {
+    getPatrolAssignments()
+      .then((data) => setPatrolAssignments(data.assignments))
+      .catch((e) => console.error("[patrol] Failed to load assignments:", e));
+    getJobDescriptions()
+      .then((data) => setJobDescriptions(data.descriptions))
+      .catch((e) => console.error("[patrol] Failed to load descriptions:", e));
+  }, []);
+
+  const patrolAgentIds = useMemo(() => new Set(Object.values(patrolAssignments)), [patrolAssignments]);
+
+  const patrolCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const agentId of Object.values(patrolAssignments)) {
+      map[agentId] = (map[agentId] ?? 0) + 1;
+    }
+    return map;
+  }, [patrolAssignments]);
+
+  const handlePatrolAssignmentsChange = useCallback((next: Record<string, string>) => {
+    setPatrolAssignments(next);
+  }, []);
+
+  const handleJobDescriptionsChange = useCallback((next: Record<string, string>) => {
+    setJobDescriptions(next);
+  }, []);
+
   const labels = useAppLabels({
     view,
     settings,
@@ -456,6 +486,12 @@ export default function App() {
       onOpenAnnouncement={actions.handleOpenAnnouncement}
       onOpenRoomManager={() => setShowRoomManager(true)}
       onDismissAutoUpdateNotice={actions.handleDismissAutoUpdateNotice}
+      patrolAssignments={patrolAssignments}
+      patrolAgentIds={patrolAgentIds}
+      patrolCountMap={patrolCountMap}
+      onPatrolAssignmentsChange={handlePatrolAssignmentsChange}
+      jobDescriptions={jobDescriptions}
+      onJobDescriptionsChange={handleJobDescriptionsChange}
       onDismissUpdate={() => {
         const latest = labels.effectiveUpdateStatus?.latest_version ?? "";
         setDismissedUpdateVersion(latest);

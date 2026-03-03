@@ -192,6 +192,7 @@ export function buildOfficeScene(context: BuildOfficeSceneContext): void {
     removedSubBurstsByParent,
     addedWorkingSubIds,
     nextSubSnapshot,
+    patrolAgentIds: dataRef.current.patrolAgentIds,
   });
   subCloneSnapshotRef.current = nextSubSnapshot;
 

@@ -235,7 +235,7 @@ export function registerRoutesPartC(ctx: RuntimeContext): RouteOpsExports {
 
   registerTaskReportRoutes(__ctx);
 
-  registerCronMonitorRoutes({ app });
+  registerCronMonitorRoutes(__ctx);
 
   return {
     prettyStreamJson,

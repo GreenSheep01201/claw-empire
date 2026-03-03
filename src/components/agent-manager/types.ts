@@ -9,6 +9,7 @@ export interface AgentManagerProps {
   activeOfficeWorkflowPack: WorkflowPackKey;
   dbBackedOfficePack?: boolean;
   onSaveOfficePackProfile: (packKey: WorkflowPackKey, profile: OfficePackProfile) => Promise<void>;
+  patrolCountMap?: Record<string, number>;
 }
 
 export interface FormData {

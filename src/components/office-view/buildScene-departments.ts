@@ -62,6 +62,7 @@ interface BuildDepartmentRoomsParams {
   removedSubBurstsByParent: Map<string, Array<{ x: number; y: number }>>;
   addedWorkingSubIds: Set<string>;
   nextSubSnapshot: Map<string, { parentAgentId: string; x: number; y: number }>;
+  patrolAgentIds?: Set<string>;
 }
 
 export function buildDepartmentRooms({
@@ -92,6 +93,7 @@ export function buildDepartmentRooms({
   removedSubBurstsByParent,
   addedWorkingSubIds,
   nextSubSnapshot,
+  patrolAgentIds,
 }: BuildDepartmentRoomsParams): void {
   departments.forEach((dept, deptIdx) => {
     const col = deptIdx % gridCols;
@@ -177,7 +179,7 @@ export function buildDepartmentRooms({
 
       agentPosRef.current.set(agent.id, { x: ax, y: deskY });
 
-      renderAgentHeader(room, ax, nameY, agent, theme.accent, unread, activeLocale);
+      renderAgentHeader(room, ax, nameY, agent, theme.accent, unread, activeLocale, patrolAgentIds);
       drawChair(room, ax, charFeetY - TARGET_CHAR_H * 0.18, theme.accent);
 
       const removedBursts = removedSubBurstsByParent.get(agent.id);
@@ -265,6 +267,7 @@ function renderAgentHeader(
   accent: number,
   unread: Set<string> | undefined,
   activeLocale: SupportedLocale,
+  patrolAgentIds?: Set<string>,
 ): void {
   const nameText = new Text({
     text: localeName(activeLocale, agent),
@@ -296,6 +299,21 @@ function renderAgentHeader(
     bangTxt.anchor.set(0.5, 0.5);
     bangTxt.position.set(bangX, nameY + 6);
     room.addChild(bangTxt);
+  }
+
+  if (patrolAgentIds?.has(agent.id) && agent.status !== "working") {
+    const shieldX = ax - nameTagW / 2 - 8;
+    const shieldBg = new Graphics();
+    shieldBg.circle(shieldX, nameY + 6, 6).fill({ color: 0x06b6d4, alpha: 0.25 });
+    shieldBg.circle(shieldX, nameY + 6, 6).stroke({ width: 0.5, color: 0x06b6d4, alpha: 0.5 });
+    room.addChild(shieldBg);
+    const shieldTxt = new Text({
+      text: "\u{1F6E1}\uFE0F",
+      style: new TextStyle({ fontSize: 8, fontFamily: "system-ui, sans-serif" }),
+    });
+    shieldTxt.anchor.set(0.5, 0.5);
+    shieldTxt.position.set(shieldX, nameY + 6);
+    room.addChild(shieldTxt);
   }
 
   const roleText = new Text({

@@ -25,6 +25,7 @@ interface OfficeViewProps {
   onOpenActiveMeetingMinutes?: (taskId: string) => void;
   customDeptThemes?: Record<string, { floor1: number; floor2: number; wall: number; accent: number }>;
   themeHighlightTargetId?: string | null;
+  patrolAgentIds?: Set<string>;
   onSelectAgent: (agent: Agent) => void;
   onSelectDepartment: (dept: Department) => void;
 }

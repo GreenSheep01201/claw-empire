@@ -13,6 +13,7 @@ export interface DataSnapshot {
   unreadAgentIds?: Set<string>;
   meetingPresence?: Array<{ agent_id: string; until: number }>;
   customDeptThemes?: Record<string, { floor1: number; floor2: number; wall: number; accent: number }>;
+  patrolAgentIds?: Set<string>;
 }
 
 export interface CallbackSnapshot {

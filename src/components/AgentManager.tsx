@@ -20,6 +20,7 @@ export default function AgentManager({
   activeOfficeWorkflowPack,
   dbBackedOfficePack = false,
   onSaveOfficePackProfile,
+  patrolCountMap,
 }: AgentManagerProps) {
   const { t, locale } = useI18n();
   const isKo = locale.startsWith("ko");
@@ -546,6 +547,7 @@ export default function AgentManager({
           onDeleteAgent={handleDelete}
           saving={saving}
           randomIconSprites={{ total: randomIconSprites.total }}
+          patrolCountMap={patrolCountMap}
         />
       )}
 

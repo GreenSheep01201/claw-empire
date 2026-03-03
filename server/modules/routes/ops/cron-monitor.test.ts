@@ -1,5 +1,15 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { cronToHuman, computeNextCronRun, makeJobId, matchField } from "./cron-monitor.ts";
+import express from "express";
+import request from "supertest";
+import {
+  cronToHuman,
+  computeNextCronRun,
+  makeJobId,
+  matchField,
+  isStringRecord,
+  registerCronMonitorRoutes,
+} from "./cron-monitor.ts";
+import type { RuntimeContext } from "../../../types/runtime-context.ts";
 
 // ---------------------------------------------------------------------------
 // cronToHuman
@@ -137,5 +147,143 @@ describe("makeJobId", () => {
   it("produces url-safe characters", () => {
     const id = makeJobId("crontab", null, "* * * * *", "echo hello world");
     expect(id).not.toMatch(/[+/=]/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isStringRecord
+// ---------------------------------------------------------------------------
+
+describe("isStringRecord", () => {
+  it("accepts valid string record", () => {
+    expect(isStringRecord({ a: "1", b: "2" })).toBe(true);
+  });
+
+  it("accepts empty object", () => {
+    expect(isStringRecord({})).toBe(true);
+  });
+
+  it("rejects null, undefined, array", () => {
+    expect(isStringRecord(null)).toBe(false);
+    expect(isStringRecord(undefined)).toBe(false);
+    expect(isStringRecord([])).toBe(false);
+    expect(isStringRecord([1, 2])).toBe(false);
+  });
+
+  it("rejects non-string values", () => {
+    expect(isStringRecord({ a: 123 })).toBe(false);
+    expect(isStringRecord({ a: true })).toBe(false);
+    expect(isStringRecord({ a: null })).toBe(false);
+  });
+
+  it("rejects values exceeding max length", () => {
+    const longVal = "x".repeat(2001);
+    expect(isStringRecord({ a: longVal })).toBe(false);
+  });
+
+  it("rejects keys exceeding max length", () => {
+    const longKey = "k".repeat(513);
+    expect(isStringRecord({ [longKey]: "v" })).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Route handlers (integration tests)
+// ---------------------------------------------------------------------------
+
+function createTestApp() {
+  const app = express();
+  app.use(express.json());
+
+  const store: Record<string, string> = {};
+  const db = {
+    prepare(sql: string) {
+      const isSelect = sql.startsWith("SELECT");
+      return {
+        get(key: string) {
+          if (!isSelect) return undefined;
+          return store[key] ? { value: store[key] } : undefined;
+        },
+        run(key: string, value: string) {
+          store[key] = value;
+        },
+      };
+    },
+  } as unknown as RuntimeContext["db"];
+
+  registerCronMonitorRoutes({ app, db } as unknown as RuntimeContext);
+  return { app, store };
+}
+
+describe("GET /api/cron/assignments", () => {
+  it("returns empty assignments initially", async () => {
+    const { app } = createTestApp();
+    const res = await request(app).get("/api/cron/assignments").expect(200);
+    expect(res.body).toEqual({ assignments: {} });
+  });
+});
+
+describe("PUT /api/cron/assignments", () => {
+  it("saves and retrieves assignments", async () => {
+    const { app } = createTestApp();
+    await request(app)
+      .put("/api/cron/assignments")
+      .send({ assignments: { job1: "agent-abc" } })
+      .expect(200, { ok: true });
+
+    const res = await request(app).get("/api/cron/assignments").expect(200);
+    expect(res.body.assignments).toEqual({ job1: "agent-abc" });
+  });
+
+  it("rejects invalid payload (not an object)", async () => {
+    const { app } = createTestApp();
+    await request(app).put("/api/cron/assignments").send("not-json").expect(400);
+  });
+
+  it("rejects invalid assignments (non-string values)", async () => {
+    const { app } = createTestApp();
+    await request(app)
+      .put("/api/cron/assignments")
+      .send({ assignments: { job1: 123 } })
+      .expect(400);
+  });
+
+  it("rejects array payload", async () => {
+    const { app } = createTestApp();
+    await request(app).put("/api/cron/assignments").send([1, 2, 3]).expect(400);
+  });
+});
+
+describe("GET /api/cron/descriptions", () => {
+  it("returns empty descriptions initially", async () => {
+    const { app } = createTestApp();
+    const res = await request(app).get("/api/cron/descriptions").expect(200);
+    expect(res.body).toEqual({ descriptions: {} });
+  });
+});
+
+describe("PUT /api/cron/descriptions", () => {
+  it("saves and retrieves descriptions", async () => {
+    const { app } = createTestApp();
+    await request(app)
+      .put("/api/cron/descriptions")
+      .send({ descriptions: { job1: "SNS auto-posting — daily at 9:00" } })
+      .expect(200, { ok: true });
+
+    const res = await request(app).get("/api/cron/descriptions").expect(200);
+    expect(res.body.descriptions).toEqual({ job1: "SNS auto-posting — daily at 9:00" });
+  });
+
+  it("rejects invalid descriptions (non-string values)", async () => {
+    const { app } = createTestApp();
+    await request(app)
+      .put("/api/cron/descriptions")
+      .send({ descriptions: { job1: false } })
+      .expect(400);
+  });
+
+  it("accepts undefined descriptions (saves empty)", async () => {
+    const { app } = createTestApp();
+    await request(app).put("/api/cron/descriptions").send({}).expect(200, { ok: true });
   });
 });

@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, platform } from "node:os";
-import type { Express } from "express";
+import type { RuntimeContext } from "../../../types/runtime-context.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -18,6 +18,8 @@ interface CronJob {
   enabled: boolean;
   nextRun: string | null;
   plistPath: string | null;
+  assignedAgentId: string | null;
+  description: string | null;
 }
 
 interface CronJobsResponse {
@@ -210,7 +212,7 @@ function parseCrontab(): CronJob[] {
 
     // Validate that each field looks like a cron field (digits, *, /, -, comma)
     const cronFields = schedule.split(/\s+/);
-    const isCronLike = cronFields.every((f) => /^[0-9*\/,\-]+$/.test(f));
+    const isCronLike = cronFields.every((f) => /^[0-9*/,-]+$/.test(f));
     if (!isCronLike) continue;
 
     jobs.push({
@@ -223,6 +225,8 @@ function parseCrontab(): CronJob[] {
       enabled: !disabled,
       nextRun: disabled ? null : computeNextCronRun(schedule),
       plistPath: null,
+      assignedAgentId: null,
+      description: null,
     });
   }
 
@@ -339,6 +343,8 @@ function parseLaunchdAgents(): CronJob[] {
       enabled: !disabled,
       nextRun: null,
       plistPath,
+      assignedAgentId: null,
+      description: null,
     });
   }
 
@@ -346,15 +352,57 @@ function parseLaunchdAgents(): CronJob[] {
 }
 
 // ---------------------------------------------------------------------------
+// Validation helpers
+// ---------------------------------------------------------------------------
+
+const MAX_ENTRIES = 500;
+const MAX_KEY_LENGTH = 512;
+const MAX_VALUE_LENGTH = 2000;
+
+function isStringRecord(val: unknown): val is Record<string, string> {
+  if (!val || typeof val !== "object" || Array.isArray(val)) return false;
+  for (const [k, v] of Object.entries(val)) {
+    if (typeof k !== "string" || typeof v !== "string") return false;
+    if (k.length > MAX_KEY_LENGTH || v.length > MAX_VALUE_LENGTH) return false;
+  }
+  return Object.keys(val).length <= MAX_ENTRIES;
+}
+
+// ---------------------------------------------------------------------------
 // Route registration
 // ---------------------------------------------------------------------------
 
-export function registerCronMonitorRoutes({ app }: { app: Express }): void {
+function readSettingsJson(db: RuntimeContext["db"], key: string): Record<string, string> {
+  const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as { value: string } | undefined;
+  if (!row) return {};
+  try {
+    return JSON.parse(row.value) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function writeSettingsJson(db: RuntimeContext["db"], key: string, value: Record<string, string>): void {
+  db.prepare(
+    "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+  ).run(key, JSON.stringify(value));
+}
+
+export function registerCronMonitorRoutes(ctx: RuntimeContext): void {
+  const { app, db } = ctx;
+
   app.get("/api/cron/jobs", (_req, res) => {
     try {
       const crontabJobs = parseCrontab();
       const launchdJobs = parseLaunchdAgents();
       const jobs = [...crontabJobs, ...launchdJobs];
+
+      const assignments = readSettingsJson(db, "patrol_assignments");
+      const descriptions = readSettingsJson(db, "job_descriptions");
+      for (const job of jobs) {
+        job.assignedAgentId = assignments[job.id] ?? null;
+        job.description = descriptions[job.id] ?? null;
+      }
 
       const p = platform();
       const platformLabel: CronJobsResponse["platform"] =
@@ -373,8 +421,68 @@ export function registerCronMonitorRoutes({ app }: { app: Express }): void {
       res.status(500).json({ ok: false, error: "cron_monitor_failed", message: String(err) });
     }
   });
+
+  app.get("/api/cron/assignments", (_req, res) => {
+    try {
+      const assignments = readSettingsJson(db, "patrol_assignments");
+      res.json({ assignments });
+    } catch (err) {
+      console.error("[cron-monitor]", err);
+      res.status(500).json({ ok: false, error: "read_assignments_failed", message: String(err) });
+    }
+  });
+
+  app.put("/api/cron/assignments", (req, res) => {
+    try {
+      const body = req.body as Record<string, unknown> | undefined;
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return res.status(400).json({ ok: false, error: "invalid_payload" });
+      }
+      const { assignments } = body as { assignments: unknown };
+      if (assignments !== undefined && !isStringRecord(assignments)) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "invalid_assignments", message: "Expected Record<string,string>" });
+      }
+      writeSettingsJson(db, "patrol_assignments", (assignments as Record<string, string>) ?? {});
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[cron-monitor]", err);
+      res.status(500).json({ ok: false, error: "save_assignments_failed", message: String(err) });
+    }
+  });
+
+  app.get("/api/cron/descriptions", (_req, res) => {
+    try {
+      const descriptions = readSettingsJson(db, "job_descriptions");
+      res.json({ descriptions });
+    } catch (err) {
+      console.error("[cron-monitor]", err);
+      res.status(500).json({ ok: false, error: "read_descriptions_failed", message: String(err) });
+    }
+  });
+
+  app.put("/api/cron/descriptions", (req, res) => {
+    try {
+      const body = req.body as Record<string, unknown> | undefined;
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return res.status(400).json({ ok: false, error: "invalid_payload" });
+      }
+      const { descriptions } = body as { descriptions: unknown };
+      if (descriptions !== undefined && !isStringRecord(descriptions)) {
+        return res
+          .status(400)
+          .json({ ok: false, error: "invalid_descriptions", message: "Expected Record<string,string>" });
+      }
+      writeSettingsJson(db, "job_descriptions", (descriptions as Record<string, string>) ?? {});
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[cron-monitor]", err);
+      res.status(500).json({ ok: false, error: "save_descriptions_failed", message: String(err) });
+    }
+  });
 }
 
 // Exported for testing
-export { parseCrontab, parseLaunchdAgents, cronToHuman, computeNextCronRun, makeJobId, matchField };
+export { parseCrontab, parseLaunchdAgents, cronToHuman, computeNextCronRun, makeJobId, matchField, isStringRecord };
 export type { CronJob, CronJobsResponse };

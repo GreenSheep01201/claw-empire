@@ -25,6 +25,7 @@ interface AgentsTabProps {
   randomIconSprites: {
     total: [number, number];
   };
+  patrolCountMap?: Record<string, number>;
 }
 
 export default function AgentsTab({
@@ -46,6 +47,7 @@ export default function AgentsTab({
   onDeleteAgent,
   saving,
   randomIconSprites,
+  patrolCountMap,
 }: AgentsTabProps) {
   const workingCount = agents.filter((agent) => agent.status === "working").length;
   const deptCounts = new Map<string, { total: number; working: number }>();
@@ -154,6 +156,7 @@ export default function AgentsTab({
               onDeleteConfirm={() => onDeleteAgent(agent.id)}
               onDeleteCancel={() => setConfirmDeleteId(null)}
               saving={saving}
+              patrolCount={patrolCountMap?.[agent.id] ?? 0}
             />
           ))}
         </div>

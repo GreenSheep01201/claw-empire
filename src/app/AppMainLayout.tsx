@@ -132,6 +132,12 @@ interface AppMainLayoutProps {
   onDismissAutoUpdateNotice: () => Promise<void>;
   onDismissUpdate: () => void;
   officePackBootstrappingLabel?: string | null;
+  patrolAssignments: Record<string, string>;
+  patrolAgentIds: Set<string>;
+  patrolCountMap: Record<string, number>;
+  onPatrolAssignmentsChange: (next: Record<string, string>) => void;
+  jobDescriptions: Record<string, string>;
+  onJobDescriptionsChange: (next: Record<string, string>) => void;
   children?: ReactNode;
 }
 
@@ -193,6 +199,12 @@ export default function AppMainLayout({
   onDismissAutoUpdateNotice,
   onDismissUpdate,
   officePackBootstrappingLabel,
+  patrolAssignments,
+  patrolAgentIds,
+  patrolCountMap,
+  onPatrolAssignmentsChange,
+  jobDescriptions,
+  onJobDescriptionsChange,
   children,
 }: AppMainLayoutProps) {
   const uiLanguage =
@@ -486,6 +498,7 @@ export default function AppMainLayout({
                 onOpenActiveMeetingMinutes={onOpenActiveMeetingMinutes}
                 customDeptThemes={officePresentation.roomThemes}
                 themeHighlightTargetId={activeRoomThemeTargetId}
+                patrolAgentIds={patrolAgentIds}
                 onSelectAgent={onSelectAgent}
                 onSelectDepartment={onSelectDepartment}
               />
@@ -537,12 +550,21 @@ export default function AppMainLayout({
                     },
                   });
                 }}
+                patrolCountMap={patrolCountMap}
               />
             )}
 
             {view === "skills" && <SkillsLibrary agents={agents} />}
 
-            {view === "schedules" && <CronMonitor />}
+            {view === "schedules" && (
+              <CronMonitor
+                agents={agents}
+                assignments={patrolAssignments}
+                onAssignmentsChange={onPatrolAssignmentsChange}
+                descriptions={jobDescriptions}
+                onDescriptionsChange={onJobDescriptionsChange}
+              />
+            )}
 
             {view === "settings" && (
               <SettingsPanel

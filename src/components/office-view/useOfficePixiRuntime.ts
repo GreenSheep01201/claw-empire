@@ -31,6 +31,7 @@ interface UseOfficePixiRuntimeParams {
   activeMeetingTaskId?: string | null;
   customDeptThemes?: Record<string, { floor1: number; floor2: number; wall: number; accent: number }>;
   currentTheme: string;
+  patrolAgentIds?: Set<string>;
 }
 
 export function useOfficePixiRuntime({
@@ -59,6 +60,7 @@ export function useOfficePixiRuntime({
   activeMeetingTaskId,
   customDeptThemes,
   currentTheme,
+  patrolAgentIds,
 }: UseOfficePixiRuntimeParams): void {
   useEffect(() => {
     const element = containerRef.current;
@@ -251,6 +253,7 @@ export function useOfficePixiRuntime({
     activeMeetingTaskId,
     customDeptThemes,
     currentTheme,
+    patrolAgentIds,
     buildScene,
     initDoneRef,
     appRef,

@@ -17,6 +17,7 @@ interface AgentCardProps {
   onDeleteConfirm: () => void;
   onDeleteCancel: () => void;
   saving: boolean;
+  patrolCount?: number;
 }
 
 export default function AgentCard({
@@ -32,6 +33,7 @@ export default function AgentCard({
   onDeleteConfirm,
   onDeleteCancel,
   saving,
+  patrolCount,
 }: AgentCardProps) {
   const isDeleting = confirmDeleteId === agent.id;
   const dept = departments.find((d) => d.id === agent.department_id);
@@ -73,6 +75,11 @@ export default function AgentCard({
                 style={{ background: "var(--th-bg-surface)", color: "var(--th-text-muted)" }}
               >
                 {dept.icon} {localeName(locale, dept)}
+              </span>
+            )}
+            {patrolCount != null && patrolCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md bg-cyan-500/15 text-cyan-400 border border-cyan-500/25">
+                🛡️ {tr("순찰", "Patrol")} ×{patrolCount}
               </span>
             )}
           </div>
