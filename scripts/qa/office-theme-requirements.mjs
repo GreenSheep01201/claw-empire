@@ -6,6 +6,7 @@ import { appendFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const baseUrl = process.env.QA_BASE_URL ?? "http://127.0.0.1:8810";
+const runHeadless = !/^(0|false|no)$/i.test(String(process.env.QA_HEADLESS ?? "1"));
 const runLabel = new Date().toISOString().replace(/[:.]/g, "-");
 const outDir = process.env.QA_OUT_DIR ?? path.join("docs", "reports", "qa", "office-theme-requirements", runLabel);
 
@@ -1001,7 +1002,7 @@ async function run() {
     findings_markdown: path.join(outDir, "findings.md"),
   };
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: runHeadless });
   const context = await browser.newContext({ viewport: { width: 1728, height: 1080 } });
   const page = await context.newPage();
 
