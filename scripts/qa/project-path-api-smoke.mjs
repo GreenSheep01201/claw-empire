@@ -5,11 +5,14 @@ import path from "node:path";
 
 const baseUrl = String(process.env.QA_API_BASE_URL ?? "http://127.0.0.1:8790").replace(/\/+$/, "");
 const qaApiAuthToken = String(process.env.QA_API_AUTH_TOKEN ?? process.env.API_AUTH_TOKEN ?? "").trim();
+let sessionCookie = "";
+let csrfToken = "";
 const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const summary = {
   base_url: baseUrl,
   run_id: runId,
   using_auth_token: Boolean(qaApiAuthToken),
+  using_session_cookie: false,
   checks: {},
   created_project_id: null,
   candidate_path: null,
@@ -20,10 +23,34 @@ function endpoint(p) {
   return `${baseUrl}${p.startsWith("/") ? p : `/${p}`}`;
 }
 
+function extractCookiePair(setCookieHeader) {
+  if (typeof setCookieHeader !== "string" || !setCookieHeader.trim()) return "";
+  const first = setCookieHeader.split(";")[0]?.trim();
+  return first || "";
+}
+
+async function bootstrapSession() {
+  const headers = {};
+  if (qaApiAuthToken) headers.authorization = `Bearer ${qaApiAuthToken}`;
+  const res = await fetch(endpoint("/api/auth/session"), { method: "GET", headers });
+  const json = await res.json().catch(() => null);
+  const nextCookie = extractCookiePair(res.headers.get("set-cookie"));
+  if (nextCookie) {
+    sessionCookie = nextCookie;
+    summary.using_session_cookie = true;
+  }
+  if (json && typeof json.csrf_token === "string" && json.csrf_token.trim()) {
+    csrfToken = json.csrf_token.trim();
+  }
+  return { status: res.status, ok: res.ok, json };
+}
+
 async function requestJson(method, p, body) {
   const headers = {};
   if (body) headers["content-type"] = "application/json";
   if (qaApiAuthToken) headers.authorization = `Bearer ${qaApiAuthToken}`;
+  if (sessionCookie) headers.cookie = sessionCookie;
+  if (!qaApiAuthToken && body && csrfToken) headers["x-csrf-token"] = csrfToken;
   const res = await fetch(endpoint(p), {
     method,
     headers,
@@ -83,6 +110,15 @@ async function findCreatablePath(seedPath) {
 }
 
 async function run() {
+  const auth = await bootstrapSession();
+  assertOrThrow(auth.ok && sessionCookie, `auth-session bootstrap failed (${auth.status})`);
+  summary.checks.auth_session = {
+    ok: true,
+    status: auth.status,
+    using_bearer: Boolean(qaApiAuthToken),
+    csrf_ready: Boolean(csrfToken),
+  };
+
   const health = await requestJson("GET", "/api/health");
   assertOrThrow(health.ok, `health check failed (${health.status})`);
   summary.checks.health = "ok";

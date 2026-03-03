@@ -14,6 +14,8 @@ const baseUrl = process.env.QA_BASE_URL ?? DEFAULT_BASE_URL;
 const durationMs = Number.parseInt(process.env.QA_DURATION_MS ?? `${DEFAULT_DURATION_MS}`, 10);
 const minAvgFps = Number.parseFloat(process.env.QA_MIN_AVG_FPS ?? `${DEFAULT_MIN_AVG_FPS}`);
 const maxAvgJsHeapMiB = Number.parseFloat(process.env.QA_MAX_AVG_JS_HEAP_MIB ?? `${DEFAULT_MAX_AVG_JS_HEAP_MIB}`);
+const enableTrace = /^(1|true|yes)$/i.test(String(process.env.QA_ENABLE_TRACE ?? "0"));
+const runHeadless = !/^(0|false|no)$/i.test(String(process.env.QA_HEADLESS ?? "1"));
 const runLabel = new Date().toISOString().replace(/[:.]/g, "-");
 const outDir = process.env.QA_OUT_DIR ?? path.join("docs", "reports", "qa", "office-performance-baseline", runLabel);
 
@@ -78,6 +80,7 @@ function buildSummary({
   endedAt,
   sampling,
   gpuBytes,
+  traceEnabled,
   baseUrl: runBaseUrl,
   durationMs: runDurationMs,
   outDir: runOutDir,
@@ -106,6 +109,7 @@ function buildSummary({
       started_at: startedAt,
       ended_at: endedAt,
       base_url: runBaseUrl,
+      headless: runHeadless,
       duration_ms_requested: runDurationMs,
       duration_ms_actual: sampling.duration_ms,
       output_dir: runOutDir,
@@ -123,7 +127,9 @@ function buildSummary({
     },
     notes: {
       memory_api_available: sampling.memory_api_available,
-      gpu_metric_source: "CDP trace event `GPUTask.args.data.used_bytes` sampled from devtools timeline",
+      gpu_metric_source: traceEnabled
+        ? "CDP trace event `GPUTask.args.data.used_bytes` sampled from devtools timeline"
+        : "disabled (set QA_ENABLE_TRACE=1 to collect GPU memory trace samples)",
     },
     gates: {
       pass: gates.pass,
@@ -166,20 +172,27 @@ async function run() {
   await mkdir(outDir, { recursive: true });
 
   const browser = await chromium.launch({
-    headless: true,
-    args: ["--enable-precise-memory-info"],
+    headless: runHeadless,
+    args: [
+      "--enable-precise-memory-info",
+      "--disable-background-timer-throttling",
+      "--disable-renderer-backgrounding",
+      "--disable-backgrounding-occluded-windows",
+    ],
   });
   const context = await browser.newContext({
     viewport: { width: 1728, height: 1080 },
   });
   const page = await context.newPage();
-  const cdp = await context.newCDPSession(page);
-
-  await cdp.send("Performance.enable");
-  await cdp.send("Tracing.start", {
-    transferMode: "ReturnAsStream",
-    categories: traceCategories,
-  });
+  let cdp = null;
+  if (enableTrace) {
+    cdp = await context.newCDPSession(page);
+    await cdp.send("Performance.enable");
+    await cdp.send("Tracing.start", {
+      transferMode: "ReturnAsStream",
+      categories: traceCategories,
+    });
+  }
 
   const startedAt = new Date().toISOString();
 
@@ -254,19 +267,22 @@ async function run() {
     { runDurationMs: durationMs },
   );
 
-  const tracingComplete = new Promise((resolve) => {
-    cdp.once("Tracing.tracingComplete", resolve);
-  });
-  await cdp.send("Tracing.end");
-  const { stream } = await tracingComplete;
-  const trace = await readCdpStream(cdp, stream);
-  const traceJson = JSON.parse(trace);
-  const traceEvents = Array.isArray(traceJson.traceEvents) ? traceJson.traceEvents : [];
+  let gpuBytes = [];
+  if (enableTrace && cdp) {
+    const tracingComplete = new Promise((resolve) => {
+      cdp.once("Tracing.tracingComplete", resolve);
+    });
+    await cdp.send("Tracing.end");
+    const { stream } = await tracingComplete;
+    const trace = await readCdpStream(cdp, stream);
+    const traceJson = JSON.parse(trace);
+    const traceEvents = Array.isArray(traceJson.traceEvents) ? traceJson.traceEvents : [];
 
-  const gpuBytes = traceEvents
-    .filter((event) => event?.name === "GPUTask")
-    .map((event) => event?.args?.data?.used_bytes)
-    .filter((value) => Number.isFinite(value));
+    gpuBytes = traceEvents
+      .filter((event) => event?.name === "GPUTask")
+      .map((event) => event?.args?.data?.used_bytes)
+      .filter((value) => Number.isFinite(value));
+  }
 
   const endedAt = new Date().toISOString();
   const summary = buildSummary({
@@ -274,6 +290,7 @@ async function run() {
     endedAt,
     sampling,
     gpuBytes,
+    traceEnabled: enableTrace,
     baseUrl,
     durationMs,
     outDir,

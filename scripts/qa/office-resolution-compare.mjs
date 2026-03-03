@@ -11,6 +11,7 @@ const outDir = process.env.QA_OUT_DIR ?? path.join("docs", "reports", "qa", "off
 const knownConsoleNoisePatterns = [
   /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/i,
   /No available adapters\./i,
+  /GL Driver Message \(OpenGL, Performance, GL_CLOSE_PATH_NV, High\): GPU stall due to ReadPixels/i,
 ];
 
 const viewportMatrix = [
