@@ -73,4 +73,3 @@ export function buildDegradedOAuthStatus(req: Pick<Request, "header">, err: unkn
     },
   };
 }
-

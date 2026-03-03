@@ -37,4 +37,3 @@ describe("toSettingsSectionError", () => {
     expect(mapped.actionHint).toContain("Refresh");
   });
 });
-

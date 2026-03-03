@@ -93,4 +93,3 @@ describe("registerOpsSettingsStatsRoutes", () => {
     expect(res.body.error).toBe("settings_invalid_payload");
   });
 });
-

@@ -80,4 +80,3 @@ export function toSettingsSectionError(section: SettingsErrorSection, err: unkno
     actionHint: defaults.actionHint,
   });
 }
-

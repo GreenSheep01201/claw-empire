@@ -81,11 +81,7 @@ describe("cli-runtime timeout handling", () => {
     vi.advanceTimersByTime(1000);
 
     expect(killPidTree).toHaveBeenCalledWith(5555);
-    expect(appendTaskLog).toHaveBeenCalledWith(
-      "task-1",
-      "error",
-      expect.stringContaining("RUN TIMEOUT"),
-    );
+    expect(appendTaskLog).toHaveBeenCalledWith("task-1", "error", expect.stringContaining("RUN TIMEOUT"));
     expect(appendTaskLog).toHaveBeenCalledWith(
       "task-1",
       "error",

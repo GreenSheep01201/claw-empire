@@ -23,4 +23,3 @@ describe("buildDegradedOAuthStatus", () => {
     expect(Array.isArray(copilot.accounts)).toBe(true);
   });
 });
-
