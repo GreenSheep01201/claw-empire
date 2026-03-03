@@ -166,8 +166,7 @@ export default function ChatEditorModal({
                     return {
                       ...prev,
                       targetId: nextTargetId,
-                      name:
-                        matched && !prev.name.trim() ? `${matched.guildName} #${matched.name}` : prev.name,
+                      name: matched && !prev.name.trim() ? `${matched.guildName} #${matched.name}` : prev.name,
                     };
                   });
                 }}
@@ -200,8 +199,7 @@ export default function ChatEditorModal({
                   return {
                     ...prev,
                     targetId: nextTargetId,
-                    name:
-                      matched && !prev.name.trim() ? `${matched.guildName} #${matched.name}` : prev.name,
+                    name: matched && !prev.name.trim() ? `${matched.guildName} #${matched.name}` : prev.name,
                   };
                 });
               }}

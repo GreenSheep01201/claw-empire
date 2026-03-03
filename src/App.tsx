@@ -364,14 +364,21 @@ export default function App() {
   const activePackKey = normalizeOfficeWorkflowPack(settings.officeWorkflowPack ?? "development");
   const activePackProfile =
     activePackKey === "development" ? null : (settings.officePackProfiles?.[activePackKey] ?? null);
+  const isHydratedOfficePack = useMemo(() => {
+    if (activePackKey === "development") return false;
+    const hydrated = settings.officePackHydratedPacks;
+    if (!Array.isArray(hydrated)) return false;
+    return hydrated.map((value) => String(value ?? "").trim()).includes(activePackKey);
+  }, [activePackKey, settings.officePackHydratedPacks]);
   const overlayDepartments = useMemo(
     () =>
       resolvePackDepartmentsForDisplay({
         packKey: activePackKey,
         globalDepartments: departments,
         packDepartments: activePackProfile?.departments ?? null,
+        preferPackProfile: !isHydratedOfficePack,
       }),
-    [activePackKey, activePackProfile?.departments, departments],
+    [activePackKey, activePackProfile?.departments, departments, isHydratedOfficePack],
   );
   const { mergedAgents: overlayAgents } = useMemo(
     () =>

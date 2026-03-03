@@ -137,6 +137,23 @@ describe("office pack display helpers", () => {
     expect(output[0]?.created_at).toBe(77);
   });
 
+  it("after hydration filters out stale pack-only departments that no longer exist in DB", () => {
+    const globalDepartments: Department[] = [makeDepartment({ id: "planning", name: "Planning", name_ko: "기획" })];
+    const packDepartments: Department[] = [
+      makeDepartment({ id: "planning", name: "Planning (Pack)", name_ko: "기획-팩" }),
+      makeDepartment({ id: "ghost", name: "Ghost Dept", name_ko: "유령 부서" }),
+    ];
+
+    const output = resolvePackDepartmentsForDisplay({
+      packKey: "report",
+      globalDepartments,
+      packDepartments,
+      preferPackProfile: false,
+    });
+
+    expect(output.map((department) => department.id)).toEqual(["planning"]);
+  });
+
   it("hides foreign-pack seed agents from merged lists in non-development packs", () => {
     const currentPackAgent = makeAgent({
       id: "novel-seed-1",

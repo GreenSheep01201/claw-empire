@@ -163,7 +163,14 @@ describe("GatewaySettingsTab characterization", () => {
       },
     ]);
 
-    render(<GatewaySettingsTab t={t} form={createFormWithMessengerChannels() as any} setForm={vi.fn()} persistSettings={vi.fn()} />);
+    render(
+      <GatewaySettingsTab
+        t={t}
+        form={createFormWithMessengerChannels() as any}
+        setForm={vi.fn()}
+        persistSettings={vi.fn()}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: /Add Chat/i }));
 

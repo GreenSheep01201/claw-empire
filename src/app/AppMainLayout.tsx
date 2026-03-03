@@ -289,7 +289,7 @@ export default function AppMainLayout({
     [departments, isHydratedOfficePack, officePackKey, packProfileDepartments],
   );
 
-  const { scopedAgents: officeScopedAgents, mergedAgents: displayAgents } = useMemo(
+  const { scopedAgents: officeScopedAgents } = useMemo(
     () =>
       resolvePackAgentViews({
         packKey: officePackKey,
@@ -503,7 +503,7 @@ export default function AppMainLayout({
             {view === "tasks" && (
               <TaskBoard
                 tasks={tasksForActivePack}
-                agents={displayAgents}
+                agents={officeScopedAgents}
                 departments={displayDepartments}
                 subtasks={subtasks}
                 onCreateTask={handleCreateTaskForActivePack}

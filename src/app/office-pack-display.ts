@@ -42,9 +42,9 @@ export function resolvePackDepartmentsForDisplay(params: {
     globalById.set(department.id, department);
   }
 
-  const scopedDepartments = packDepartments.map((packDepartment) =>
-    mergePackDepartment(globalById.get(packDepartment.id), packDepartment, preferPackProfile),
-  );
+  const scopedDepartments = packDepartments
+    .map((packDepartment) => mergePackDepartment(globalById.get(packDepartment.id), packDepartment, preferPackProfile))
+    .filter((department) => preferPackProfile || globalById.has(department.id));
   const scopedDeptIds = new Set(scopedDepartments.map((department) => department.id));
   return [...scopedDepartments, ...globalDepartments.filter((department) => !scopedDeptIds.has(department.id))];
 }

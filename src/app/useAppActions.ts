@@ -441,10 +441,39 @@ export function useAppActions({
   const handleAgentsChange = useCallback(() => {
     const activePack = normalizeOfficeWorkflowPack(settings.officeWorkflowPack ?? "development");
     const includeSeedAgents = activePack !== "development";
-    api.getAgents({ includeSeed: includeSeedAgents }).then(setAgents).catch(console.error);
-    api.getDepartments({ workflowPackKey: activePack }).then(setDepartments).catch(console.error);
-    api.getTasks().then(setTasks).catch(console.error);
-  }, [setAgents, setDepartments, setTasks, settings.officeWorkflowPack]);
+    const hydratedPacks = new Set(
+      (settings.officePackHydratedPacks ?? []).map((value) => String(value ?? "").trim()).filter((value) => value),
+    );
+    const isHydratedOfficePack = activePack !== "development" && hydratedPacks.has(activePack);
+
+    Promise.all([
+      api.getAgents({ includeSeed: includeSeedAgents }),
+      api.getDepartments({ workflowPackKey: activePack }),
+      api.getTasks(),
+    ])
+      .then(([nextAgents, nextDepartments, nextTasks]) => {
+        setAgents(nextAgents);
+        setDepartments(nextDepartments);
+        setTasks(nextTasks);
+        if (!isHydratedOfficePack) return;
+        setSettings((previous) => {
+          const currentProfile = previous.officePackProfiles?.[activePack];
+          if (!currentProfile) return previous;
+          return {
+            ...previous,
+            officePackProfiles: {
+              ...(previous.officePackProfiles ?? {}),
+              [activePack]: {
+                ...currentProfile,
+                departments: nextDepartments,
+                updated_at: Date.now(),
+              },
+            },
+          };
+        });
+      })
+      .catch(console.error);
+  }, [setAgents, setDepartments, setSettings, setTasks, settings.officePackHydratedPacks, settings.officeWorkflowPack]);
 
   const handleRefreshCli = useCallback(async () => {
     const status = await api.getCliStatus(true);
