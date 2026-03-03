@@ -14,11 +14,39 @@ function mergePackAgent(globalAgent: Agent | undefined, packAgent: Agent): Agent
   return packAgent;
 }
 
-function mergePackDepartment(globalDepartment: Department | undefined, packDepartment: Department): Department {
-  // DB row is the source of truth after hydration (same as mergePackAgent).
-  // Pack profile values serve as fallback before hydration settles.
-  if (globalDepartment) return globalDepartment;
-  return packDepartment;
+function mergePackDepartment(
+  globalDepartment: Department | undefined,
+  packDepartment: Department,
+  preferPackProfile: boolean,
+): Department {
+  if (!globalDepartment) return packDepartment;
+  // During first-pack bootstrap before DB hydration settles, prefer pack profile values.
+  if (preferPackProfile) return { ...globalDepartment, ...packDepartment };
+  // After hydration, DB row is the source of truth.
+  return globalDepartment;
+}
+
+export function resolvePackDepartmentsForDisplay(params: {
+  packKey: WorkflowPackKey;
+  globalDepartments: Department[];
+  packDepartments?: Department[] | null;
+  preferPackProfile?: boolean;
+}): Department[] {
+  const { packKey, globalDepartments, packDepartments, preferPackProfile = true } = params;
+  if (packKey === "development" || !packDepartments || packDepartments.length === 0) {
+    return globalDepartments;
+  }
+
+  const globalById = new Map<string, Department>();
+  for (const department of globalDepartments) {
+    globalById.set(department.id, department);
+  }
+
+  const scopedDepartments = packDepartments.map((packDepartment) =>
+    mergePackDepartment(globalById.get(packDepartment.id), packDepartment, preferPackProfile),
+  );
+  const scopedDeptIds = new Set(scopedDepartments.map((department) => department.id));
+  return [...scopedDepartments, ...globalDepartments.filter((department) => !scopedDeptIds.has(department.id))];
 }
 
 export function resolvePackAgentViews(params: {
@@ -49,26 +77,4 @@ export function resolvePackAgentViews(params: {
     }),
   ];
   return { scopedAgents, mergedAgents };
-}
-
-export function resolvePackDepartmentsForDisplay(params: {
-  packKey: WorkflowPackKey;
-  globalDepartments: Department[];
-  packDepartments?: Department[] | null;
-}): Department[] {
-  const { packKey, globalDepartments, packDepartments } = params;
-  if (packKey === "development" || !packDepartments || packDepartments.length === 0) {
-    return globalDepartments;
-  }
-
-  const globalById = new Map<string, Department>();
-  for (const department of globalDepartments) {
-    globalById.set(department.id, department);
-  }
-
-  const scopedDepartments = packDepartments.map((packDepartment) =>
-    mergePackDepartment(globalById.get(packDepartment.id), packDepartment),
-  );
-  const scopedDeptIds = new Set(scopedDepartments.map((department) => department.id));
-  return [...scopedDepartments, ...globalDepartments.filter((department) => !scopedDeptIds.has(department.id))];
 }

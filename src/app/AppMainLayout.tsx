@@ -271,14 +271,22 @@ export default function AppMainLayout({
       : (activePackProfile?.departments ?? generatedOfficePresentation.departments);
   const packProfileAgents = officePackKey === "development" ? null : (activePackProfile?.agents ?? seededPackAgents);
 
+  const isHydratedOfficePack = useMemo(() => {
+    if (officePackKey === "development") return false;
+    const hydrated = settings.officePackHydratedPacks;
+    if (!Array.isArray(hydrated)) return false;
+    return hydrated.map((value) => String(value ?? "").trim()).includes(officePackKey);
+  }, [officePackKey, settings.officePackHydratedPacks]);
+
   const displayDepartments = useMemo(
     () =>
       resolvePackDepartmentsForDisplay({
         packKey: officePackKey,
         globalDepartments: departments,
         packDepartments: packProfileDepartments,
+        preferPackProfile: !isHydratedOfficePack,
       }),
-    [departments, officePackKey, packProfileDepartments],
+    [departments, isHydratedOfficePack, officePackKey, packProfileDepartments],
   );
 
   const { scopedAgents: officeScopedAgents, mergedAgents: displayAgents } = useMemo(
@@ -290,13 +298,6 @@ export default function AppMainLayout({
       }),
     [agents, officePackKey, packProfileAgents],
   );
-
-  const isHydratedOfficePack = useMemo(() => {
-    if (officePackKey === "development") return false;
-    const hydrated = settings.officePackHydratedPacks;
-    if (!Array.isArray(hydrated)) return false;
-    return hydrated.map((value) => String(value ?? "").trim()).includes(officePackKey);
-  }, [officePackKey, settings.officePackHydratedPacks]);
 
   const managerDepartments =
     officePackKey === "development"

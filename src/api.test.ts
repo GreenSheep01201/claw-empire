@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { __resetApiRuntimeForTests } from "./api/core";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -9,7 +10,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe("api client", () => {
   beforeEach(() => {
-    vi.resetModules();
+    __resetApiRuntimeForTests();
     window.sessionStorage.clear();
   });
 

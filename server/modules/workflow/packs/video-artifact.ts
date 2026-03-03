@@ -42,8 +42,9 @@ export function resolveVideoArtifactSpec(input: {
   const fileName = buildVideoArtifactFileName(input.projectName ?? null, input.departmentName ?? null);
   return {
     fileName,
-    relativePath: path.join(VIDEO_OUTPUT_DIR, fileName),
-    legacyRelativePath: path.join(VIDEO_OUTPUT_DIR, LEGACY_VIDEO_FILENAME),
+    // Keep artifact metadata paths stable across OS (use POSIX separators).
+    relativePath: path.posix.join(VIDEO_OUTPUT_DIR, fileName),
+    legacyRelativePath: path.posix.join(VIDEO_OUTPUT_DIR, LEGACY_VIDEO_FILENAME),
   };
 }
 
@@ -109,8 +110,8 @@ export function resolveVideoArtifactRelativeCandidates(spec: VideoArtifactSpec):
     spec.relativePath,
     spec.legacyRelativePath,
     // Remotion default output directory candidates
-    path.join(REMOTION_OUTPUT_DIR, spec.fileName),
-    path.join(REMOTION_OUTPUT_DIR, LEGACY_VIDEO_FILENAME),
+    path.posix.join(REMOTION_OUTPUT_DIR, spec.fileName),
+    path.posix.join(REMOTION_OUTPUT_DIR, LEGACY_VIDEO_FILENAME),
   ]) {
     const normalized = String(candidate || "").trim();
     if (!normalized || seen.has(normalized)) continue;

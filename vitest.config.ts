@@ -1,6 +1,19 @@
 import { defineConfig } from "vitest/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT_DIR = path.dirname(fileURLToPath(new URL(import.meta.url)));
 
 export default defineConfig({
+  resolve: {
+    dedupe: ["react", "react-dom"],
+    alias: {
+      react: path.join(ROOT_DIR, "node_modules", "react"),
+      "react-dom": path.join(ROOT_DIR, "node_modules", "react-dom"),
+      "react/jsx-runtime": path.join(ROOT_DIR, "node_modules", "react", "jsx-runtime.js"),
+      "react/jsx-dev-runtime": path.join(ROOT_DIR, "node_modules", "react", "jsx-dev-runtime.js"),
+    },
+  },
   test: {
     environment: "jsdom",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],

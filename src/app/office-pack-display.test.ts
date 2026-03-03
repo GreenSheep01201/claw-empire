@@ -12,7 +12,7 @@ function makeAgent(input: Partial<Agent> & { id: string; name: string; name_ko: 
     department_id: input.department_id ?? "planning",
     role: input.role ?? "senior",
     cli_provider: input.cli_provider ?? "codex",
-    avatar_emoji: input.avatar_emoji ?? "🤖",
+    avatar_emoji: input.avatar_emoji ?? "A",
     sprite_number: input.sprite_number ?? null,
     personality: input.personality ?? null,
     status: input.status ?? "idle",
@@ -30,7 +30,7 @@ function makeDepartment(input: Partial<Department> & { id: string; name: string;
     name_ko: input.name_ko,
     name_ja: input.name_ja ?? input.name,
     name_zh: input.name_zh ?? input.name,
-    icon: input.icon ?? "🏢",
+    icon: input.icon ?? "D",
     color: input.color ?? "#64748b",
     description: input.description ?? null,
     prompt: input.prompt ?? null,
@@ -40,12 +40,12 @@ function makeDepartment(input: Partial<Department> & { id: string; name: string;
 }
 
 describe("office pack display helpers", () => {
-  it("DB 에이전트를 우선 사용하고 pack 에이전트는 fallback 으로만 사용한다", () => {
+  it("prefers DB agent values and uses pack agent only as fallback", () => {
     const globalAgent = makeAgent({
       id: "report-seed-1",
       name: "Global Name",
-      name_ko: "글로벌",
-      avatar_emoji: "🧠",
+      name_ko: "Global KO",
+      avatar_emoji: "G",
       sprite_number: 3,
       status: "working",
       current_task_id: "task-1",
@@ -56,8 +56,8 @@ describe("office pack display helpers", () => {
     const packAgent = makeAgent({
       id: "report-seed-1",
       name: "Pack Name",
-      name_ko: "팩",
-      avatar_emoji: "📚",
+      name_ko: "Pack KO",
+      avatar_emoji: "P",
       sprite_number: 11,
       status: "idle",
       current_task_id: null,
@@ -73,7 +73,7 @@ describe("office pack display helpers", () => {
     });
 
     expect(scopedAgents[0]?.name).toBe("Global Name");
-    expect(scopedAgents[0]?.avatar_emoji).toBe("🧠");
+    expect(scopedAgents[0]?.avatar_emoji).toBe("G");
     expect(scopedAgents[0]?.sprite_number).toBe(3);
     expect(scopedAgents[0]?.status).toBe("working");
     expect(scopedAgents[0]?.current_task_id).toBe("task-1");
@@ -82,43 +82,76 @@ describe("office pack display helpers", () => {
     expect(mergedAgents).toHaveLength(1);
   });
 
-  it("팩 부서명을 우선 사용하고 DB 메타데이터는 fallback 으로 병합한다", () => {
+  it("before hydration prefers pack department labels/icons over DB metadata", () => {
     const globalDepartments: Department[] = [
-      makeDepartment({ id: "planning", name: "Planning", name_ko: "기획팀", icon: "🧠", created_at: 77 }),
-      makeDepartment({ id: "operations", name: "Operations", name_ko: "운영팀", icon: "📦" }),
+      makeDepartment({ id: "planning", name: "Planning", name_ko: "Planning-DB", icon: "G", created_at: 77 }),
+      makeDepartment({ id: "operations", name: "Operations", name_ko: "Ops", icon: "O" }),
     ];
     const packDepartments: Department[] = [
-      makeDepartment({ id: "planning", name: "Editorial Planning", name_ko: "편집기획실", icon: "📚" }),
+      makeDepartment({ id: "planning", name: "Editorial Planning", name_ko: "Planning-Pack", icon: "P" }),
     ];
 
     const output = resolvePackDepartmentsForDisplay({
       packKey: "report",
       globalDepartments,
       packDepartments,
+      preferPackProfile: true,
     });
 
     expect(output[0]?.id).toBe("planning");
-    expect(output[0]?.name_ko).toBe("편집기획실");
-    expect(output[0]?.icon).toBe("📚");
+    expect(output[0]?.name_ko).toBe("Planning-Pack");
+    expect(output[0]?.icon).toBe("P");
     expect(output[0]?.created_at).toBe(1);
     expect(output.some((dept) => dept.id === "operations")).toBe(true);
   });
 
-  it("비개발 팩에서는 다른 팩 seed 에이전트를 merged 목록에서 숨긴다", () => {
+  it("after hydration prefers DB department labels/icons over pack profile", () => {
+    const globalDepartments: Department[] = [
+      makeDepartment({
+        id: "planning",
+        name: "Planning (DB)",
+        name_ko: "Planning-DB",
+        icon: "DB",
+        created_at: 77,
+      }),
+    ];
+    const packDepartments: Department[] = [
+      makeDepartment({
+        id: "planning",
+        name: "Planning (Pack)",
+        name_ko: "Planning-Pack",
+        icon: "PACK",
+        created_at: 1,
+      }),
+    ];
+
+    const output = resolvePackDepartmentsForDisplay({
+      packKey: "report",
+      globalDepartments,
+      packDepartments,
+      preferPackProfile: false,
+    });
+
+    expect(output[0]?.name_ko).toBe("Planning-DB");
+    expect(output[0]?.icon).toBe("DB");
+    expect(output[0]?.created_at).toBe(77);
+  });
+
+  it("hides foreign-pack seed agents from merged lists in non-development packs", () => {
     const currentPackAgent = makeAgent({
       id: "novel-seed-1",
       name: "Novel Seed",
-      name_ko: "노벨 시드",
+      name_ko: "Novel Seed",
     });
     const foreignPackAgent = makeAgent({
       id: "report-seed-1",
       name: "Report Seed",
-      name_ko: "리포트 시드",
+      name_ko: "Report Seed",
     });
     const nonSeedGlobal = makeAgent({
       id: "dev-leader",
       name: "Dev Leader",
-      name_ko: "개발 리더",
+      name_ko: "Dev Leader",
     });
 
     const { mergedAgents } = resolvePackAgentViews({

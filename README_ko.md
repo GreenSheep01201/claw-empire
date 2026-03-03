@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Releases" />
+  <img src="https://img.shields.io/badge/version-2.0.1-blue" alt="Releases" />
   <a href="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml"><img src="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
@@ -21,7 +21,7 @@
 <p align="center">
   <a href="#빠른-시작">빠른 시작</a> &middot;
   <a href="#ai-installation-guide">AI 설치 가이드</a> &middot;
-  <a href="docs/releases/v2.0.0.md">릴리즈 노트</a> &middot;
+  <a href="docs/releases/v2.0.1.md">릴리즈 노트</a> &middot;
   <a href="#openclaw-integration">OpenClaw 연동</a> &middot;
   <a href="#direct-messenger-without-openclaw">직접 메신저</a> &middot;
   <a href="#dollar-command-logic">$ 명령 로직</a> &middot;
@@ -68,26 +68,24 @@ Claw-Empire는 **CLI**, **OAuth**, **직접 API 키** 방식으로 연결된 AI 
 
 ---
 
-## 최신 릴리즈 (v2.0.0)
+## 최신 릴리즈 (v2.0.1)
 
-- **워크플로우 팩 플랫폼 롤아웃** - `development`, `report`, `web_research_report`, `novel`, `video_preprod`, `roleplay` 팩 기반 오케스트레이션과 런타임 메타데이터 API를 추가했습니다.
-- **오피스 팩 운영 연동 강화** - 오피스 팩 선택기를 상단 헤더로 이동하고, 개발 팩 외에는 팩별 독립 프로필(직원/부서/테마)로 분리 운영하도록 개선했습니다.
-- **팩별 직원/부서 시드 고도화** - 다국어 이름/역할 기반 시드 프리셋과 팩 프로필 동기화 유틸리티를 추가해 실제 운영 데이터 반영을 안정화했습니다.
-- **메신저 멀티 토큰 라우팅 격리** - `channel#tokenKey` 기반 힌트 라우팅으로 같은 채널/타깃 ID라도 토큰이 다르면 정확한 세션으로 회신하도록 고정했습니다.
-- **텔레그램 수신기 멀티 토큰 안정화** - 토큰별 폴링 라우트 및 오프셋을 분리 저장해 여러 봇 토큰을 병렬로 안전하게 운용할 수 있습니다.
-- **메신저 `/new` 세션 초기화** - `/new` 명령으로 직접채팅 세션 바인딩을 초기화하고, 다국어 ACK와 함께 새 대화를 시작합니다.
-- **의사결정 메시지 가독성 v2** - 기획팀장 요약, 선택지 미리보기, 추천 선택지 표기를 더 짧고 명확하게 정리했습니다.
-- **회귀 테스트 확장** - 토큰 인지 라우팅, 텔레그램 수신, 오피스 팩 정규화/동기화 등 핵심 경로 테스트를 보강했습니다.
-- **영상 프리프로덕션 렌더 플로우 안정화** - `video_preprod`의 `VIDEO_FINAL_RENDER` 흐름을 계획 단계 시드 생성, 지연 위임, stale 상태 복구, 중복 트리거 방지까지 포함해 보강했습니다.
-- **오피스팩 첫 로드 hydrate 및 영속화** - 팩별 최초 진입 시 시드 부트스트랩을 수행하고, 이후 hydrated 팩은 DB 기반으로 고정해 사용자 커스텀(프로바이더 변경 포함)을 안정적으로 유지합니다.
-- **보고서 출력 정책 고도화(HTML + PPTX)** - 보고서 오피스 출력 정책을 HTML+PPTX 동시 산출로 정리했고, `python-pptx`는 PPT Team 불가/하드 실패 시에만 fallback으로 제한했습니다.
-- **기존 런타임 안정화 Fix 묶음** - worktree 브랜치 충돌 복구, Claude `--no-tools` 인자 보존, YOLO/WebSocket 재시도 안정화를 반영했습니다.
+- **오피스팩 부서 우선순위 hydration 연동** - `development` 외 팩은 hydration 전에는 pack profile(부서명/아이콘)을 우선 표시하고, hydration 완료 후에는 DB 메타데이터를 우선 사용합니다.
+- **첫 설치자 초기 진입 보호** - 신규 설치 직후 DB hydration 이전에도 pack profile 기본값을 먼저 보여 초기 사용자가 팩 구성을 바로 확인할 수 있습니다.
+- **병합 규칙 회귀 테스트 강화** - hydration 전/후 우선순위 전환과 타 팩 seed 에이전트 숨김 조건을 테스트로 고정했습니다.
+- **Discord 토큰 기반 채널 자동 조회** - Discord Bot 토큰으로 길드/텍스트 채널을 자동 조회하는 API를 추가하고 `Bot <token>`/원문 토큰 입력을 모두 지원합니다.
+- **설정 모달 자동 완성 UX 추가** - Discord 토큰 입력 시 채널 목록을 자동 로드하고, 선택한 채널의 대상 ID/기본 표시명을 자동 반영합니다.
+- **Discord 수신기(양방향) 추가** - Discord 채널 폴링 수신기를 추가해 사용자가 보낸 메시지를 `/api/inbox`로 전달하며, 봇 메시지는 루프 방지를 위해 건너뜁니다.
+- **수신 상태 가시성 강화** - `Discord 수신기` 상태 API/패널을 추가해 활성 여부, 폴링 채널 수, 마지막 오류를 설정 화면에서 바로 확인할 수 있습니다.
+- **Discord 멀티 토큰 수신 격리** - 같은 채널 ID를 여러 토큰이 공유해도 토큰키+채널 기준으로 커서를 분리해 교차 라우팅을 방지합니다.
+- **다국어 안내/오류 문구 보강** - Discord 채널 조회 로딩, 조회 결과, 인증 실패, 레이트리밋, 일반 실패 메시지를 KO/EN/JA/ZH로 제공하도록 정리했습니다.
+- **Discord 경로 회귀 테스트 확장** - 채널 조회/인증 실패, 수신기 포워딩, 봇 메시지 필터링, 멀티 토큰 source 힌트, UI 자동 조회 동작 테스트를 추가했습니다.
 
-- 상세 문서: [`docs/releases/v2.0.0.md`](docs/releases/v2.0.0.md)
+- 상세 문서: [`docs/releases/v2.0.1.md`](docs/releases/v2.0.1.md)
 - API 문서: [`docs/api.md`](docs/api.md), [`docs/openapi.json`](docs/openapi.json)
 - 보안 정책: [`SECURITY.md`](SECURITY.md)
 
-## 오피스팩 프로필 (v2.0.0)
+## 오피스팩 프로필 (v2.0.1)
 
 오피스팩마다 협업 구조, 이름 시드, 워크플로우 성향이 다르게 적용됩니다.
 

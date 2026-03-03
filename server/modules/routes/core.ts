@@ -6,7 +6,12 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { randomUUID, createHash } from "node:crypto";
 import { INBOX_WEBHOOK_SECRET, PKG_VERSION } from "../../config/runtime.ts";
-import { listMessengerSessions, sendMessengerMessage, sendMessengerSessionMessage } from "../../gateway/client.ts";
+import {
+  listDiscordChannelsByToken,
+  listMessengerSessions,
+  sendMessengerMessage,
+  sendMessengerSessionMessage,
+} from "../../gateway/client.ts";
 import { isMessengerChannel, isNativeMessengerChannel } from "../../messenger/channels.ts";
 import { getTelegramReceiverStatus } from "../../messenger/telegram-receiver.ts";
 import {
@@ -32,6 +37,7 @@ import { registerTaskExecutionRoutes } from "./core/tasks/execution.ts";
 import { registerTaskSubtaskRoutes } from "./core/tasks/subtasks.ts";
 import { registerUpdateAutoRoutes } from "./core/update-auto/register.ts";
 import type { AgentRow, MeetingMinuteEntryRow, MeetingMinutesRow, MeetingReviewDecision } from "./shared/types.ts";
+import { getDiscordReceiverStatus } from "../../messenger/discord-receiver.ts";
 
 export function registerRoutesPartA(ctx: RuntimeContext): Record<string, never> {
   const __ctx: RuntimeContext = ctx;
@@ -238,6 +244,36 @@ export function registerRoutesPartA(ctx: RuntimeContext): Record<string, never> 
       res.json({ ok: true, status: getTelegramReceiverStatus() });
     } catch (err: any) {
       res.status(500).json({ ok: false, error: err?.message || String(err) });
+    }
+  });
+
+  app.get("/api/messenger/receiver/discord", (_req, res) => {
+    try {
+      res.json({ ok: true, status: getDiscordReceiverStatus() });
+    } catch (err: any) {
+      res.status(500).json({ ok: false, error: err?.message || String(err) });
+    }
+  });
+
+  app.post("/api/messenger/discord/channels", async (req, res) => {
+    try {
+      const body = (req.body ?? {}) as { token?: string };
+      const token = normalizeTextField(body.token);
+      if (!token) {
+        return res.status(400).json({ ok: false, error: "discord_token_required" });
+      }
+      const channels = await listDiscordChannelsByToken(token);
+      return res.json({ ok: true, channels });
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      const status = /discord api failed \((\d{3})\)/.exec(message)?.[1];
+      if (status === "401" || status === "403") {
+        return res.status(Number(status)).json({ ok: false, error: "discord_auth_failed" });
+      }
+      if (status === "429") {
+        return res.status(429).json({ ok: false, error: "discord_rate_limited" });
+      }
+      return res.status(502).json({ ok: false, error: "discord_channel_lookup_failed" });
     }
   });
 

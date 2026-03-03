@@ -16,6 +16,8 @@ const WAKE_DEBOUNCE_DEFAULT_MS = 12_000;
 const SETTINGS_CACHE_TTL_MS = 3_000;
 const MESSENGER_SETTINGS_KEY = "messengerChannels";
 const SIGNAL_RPC_TIMEOUT_MS = 10_000;
+const DISCORD_CHANNEL_LIST_GUILD_LIMIT = 100;
+const DISCORD_TEXT_CHANNEL_TYPES = new Set<number>([0, 5, 10, 11, 12]);
 
 const execFileAsync = promisify(execFile);
 
@@ -65,8 +67,45 @@ export type MessengerRuntimeSession = {
   displayName: string;
 };
 
+export type DiscordDiscoverableChannel = {
+  id: string;
+  name: string;
+  guildId: string;
+  guildName: string;
+  type: number;
+};
+
 function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeDiscordToken(value: unknown): string {
+  const token = normalizeText(value);
+  if (!token) return "";
+  if (/^bot\s+/i.test(token)) {
+    return token.replace(/^bot\s+/i, "").trim();
+  }
+  return token;
+}
+
+function isDiscordTextChannelType(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && DISCORD_TEXT_CHANNEL_TYPES.has(value);
+}
+
+async function fetchDiscordJson(token: string, apiPath: string): Promise<unknown> {
+  const response = await fetch(`https://discord.com/api/v10${apiPath}`, {
+    headers: {
+      authorization: `Bot ${token}`,
+    },
+  });
+  const bodyText = await response.text().catch(() => "");
+  if (!response.ok) {
+    throw new Error(`discord api failed (${response.status})${bodyText ? `: ${bodyText}` : ""}`);
+  }
+  if (!bodyText.trim()) {
+    return null;
+  }
+  return JSON.parse(bodyText) as unknown;
 }
 
 function normalizeSession(
@@ -662,6 +701,67 @@ function resolveSessionFromKey(
   const session = channelConfig.sessions.find((entry) => normalizeText(entry.id) === sessionId);
   if (!session) return null;
   return { channel, session };
+}
+
+export async function listDiscordChannelsByToken(tokenRaw: string): Promise<DiscordDiscoverableChannel[]> {
+  const token = normalizeDiscordToken(tokenRaw);
+  if (!token) {
+    throw new Error("discord token missing");
+  }
+
+  const guildPayload = await fetchDiscordJson(token, "/users/@me/guilds?limit=200");
+  const guilds = Array.isArray(guildPayload) ? guildPayload : [];
+  const collected: DiscordDiscoverableChannel[] = [];
+
+  for (let index = 0; index < guilds.length && index < DISCORD_CHANNEL_LIST_GUILD_LIMIT; index += 1) {
+    const guild = guilds[index] as { id?: unknown; name?: unknown };
+    const guildId = normalizeText(guild.id);
+    if (!guildId) continue;
+    const guildName = normalizeText(guild.name) || `Guild ${index + 1}`;
+
+    let channelPayload: unknown;
+    try {
+      channelPayload = await fetchDiscordJson(token, `/guilds/${encodeURIComponent(guildId)}/channels`);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(channelPayload)) {
+      continue;
+    }
+
+    for (const entry of channelPayload) {
+      const channel = entry as { id?: unknown; name?: unknown; type?: unknown };
+      const channelType = typeof channel.type === "number" ? channel.type : Number(channel.type);
+      if (!isDiscordTextChannelType(channelType)) {
+        continue;
+      }
+      const channelId = normalizeText(channel.id);
+      if (!channelId) {
+        continue;
+      }
+      const channelName = normalizeText(channel.name) || `channel-${channelId}`;
+      collected.push({
+        id: channelId,
+        name: channelName,
+        guildId,
+        guildName,
+        type: channelType,
+      });
+    }
+  }
+
+  const deduped = new Map<string, DiscordDiscoverableChannel>();
+  for (const row of collected) {
+    if (!deduped.has(row.id)) {
+      deduped.set(row.id, row);
+    }
+  }
+
+  return Array.from(deduped.values()).sort((a, b) => {
+    const guildCompare = a.guildName.localeCompare(b.guildName, undefined, { sensitivity: "base" });
+    if (guildCompare !== 0) return guildCompare;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
 }
 
 export function listMessengerSessions(): MessengerRuntimeSession[] {

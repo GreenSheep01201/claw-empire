@@ -10,6 +10,12 @@ let runtimeApiAuthToken: string | undefined;
 let runtimeCsrfToken: string | undefined;
 let sessionBootstrapPromise: Promise<boolean> | null = null;
 
+export function __resetApiRuntimeForTests(): void {
+  runtimeApiAuthToken = undefined;
+  runtimeCsrfToken = undefined;
+  sessionBootstrapPromise = null;
+}
+
 export class ApiRequestError extends Error {
   status: number;
   code: string | null;

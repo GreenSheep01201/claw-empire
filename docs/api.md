@@ -82,6 +82,8 @@ Runtime behavior highlights:
 | --- | --- | --- |
 | GET | `/api/messenger/sessions` | List runtime messenger sessions resolved from persisted settings |
 | GET | `/api/messenger/receiver/telegram` | Telegram webhook/poll receiver status |
+| GET | `/api/messenger/receiver/discord` | Discord polling receiver status |
+| POST | `/api/messenger/discord/channels` | Discover accessible Discord text channels by Bot token |
 | POST | `/api/messenger/send` | Send message by `sessionKey` or (`channel` + `targetId`) |
 
 `POST /api/messenger/send` request body:

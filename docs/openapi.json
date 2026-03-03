@@ -4987,6 +4987,449 @@
           }
         }
       }
+    },
+    "/api/messenger/receiver/discord": {
+      "get": {
+        "tags": ["runtime"],
+        "summary": "Get discord receiver status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Discord receiver status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "object",
+                      "properties": {
+                        "running": {
+                          "type": "boolean"
+                        },
+                        "configured": {
+                          "type": "boolean"
+                        },
+                        "enabled": {
+                          "type": "boolean"
+                        },
+                        "routeCount": {
+                          "type": "integer"
+                        },
+                        "nextCursorCount": {
+                          "type": "integer"
+                        },
+                        "lastPollAt": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "lastForwardAt": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "lastMessageId": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "lastError": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "running",
+                        "configured",
+                        "enabled",
+                        "routeCount",
+                        "nextCursorCount",
+                        "lastPollAt",
+                        "lastForwardAt",
+                        "lastMessageId",
+                        "lastError"
+                      ],
+                      "additionalProperties": true
+                    }
+                  },
+                  "required": ["ok", "status"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": true,
+                  "status": {
+                    "running": true,
+                    "configured": true,
+                    "enabled": true,
+                    "routeCount": 1,
+                    "nextCursorCount": 1,
+                    "lastPollAt": 1709500000000,
+                    "lastForwardAt": 1709500001234,
+                    "lastMessageId": "1478218983877644405",
+                    "lastError": null
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "error": "unauthorized",
+                  "message": "Authentication is required."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "error": "forbidden",
+                  "message": "You do not have permission to access this resource."
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "error": "too_many_requests",
+                  "message": "Rate limit exceeded."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Discord receiver status error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["ok", "error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": false,
+                  "error": "discord_receiver_status_failed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/messenger/discord/channels": {
+      "post": {
+        "tags": ["runtime"],
+        "summary": "Discover discord channels by bot token",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": ["token"],
+                "additionalProperties": false
+              },
+              "example": {
+                "token": "Bot your-discord-token"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Discord channels discovered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "guildId": {
+                            "type": "string"
+                          },
+                          "guildName": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": ["id", "name", "guildId", "guildName", "type"],
+                        "additionalProperties": true
+                      }
+                    }
+                  },
+                  "required": ["ok", "channels"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": true,
+                  "channels": [
+                    {
+                      "id": "123456789012345678",
+                      "name": "ops-alert",
+                      "guildId": "987654321098765432",
+                      "guildName": "Claw Empire",
+                      "type": 0
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Discord token missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["ok", "error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": false,
+                  "error": "discord_token_required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Discord auth failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["ok", "error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": false,
+                  "error": "discord_auth_failed"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Discord permission failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["ok", "error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": false,
+                  "error": "discord_auth_failed"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "error": "conflict",
+                  "message": "The request conflicts with current server state."
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Discord rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["ok", "error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": false,
+                  "error": "discord_rate_limited"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "error": "internal_error",
+                  "message": "Unexpected server error."
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Discord lookup failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["ok", "error"],
+                  "additionalProperties": true
+                },
+                "example": {
+                  "ok": false,
+                  "error": "discord_channel_lookup_failed"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

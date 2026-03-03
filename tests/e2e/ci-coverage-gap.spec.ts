@@ -134,6 +134,8 @@ async function reorderDepartmentsWithRetry(
   deptB: string,
   maxRetries = 5,
 ): Promise<void> {
+  // Ensure cookie session is established right before mutation calls.
+  await establishApiSession(request);
   for (let attempt = 0; attempt < maxRetries; attempt += 1) {
     const baseOrder = 500_000 + Math.floor(Math.random() * 300_000) + attempt * 1000;
     const response = await request.patch("/api/departments/reorder", {
@@ -149,6 +151,11 @@ async function reorderDepartmentsWithRetry(
       return;
     }
     const text = await response.text();
+    if (response.status() === 401) {
+      await establishApiSession(request);
+      await sleep(250);
+      continue;
+    }
     if (response.status() === 409 || response.status() === 500) {
       await sleep(250);
       continue;

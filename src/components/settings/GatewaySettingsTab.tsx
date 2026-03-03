@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as api from "../../api";
 import AgentAvatar, { useSpriteMap } from "../AgentAvatar";
 import {
@@ -37,6 +37,9 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
   const [telegramReceiverStatus, setTelegramReceiverStatus] = useState<Awaited<
     ReturnType<typeof api.getTelegramReceiverStatus>
   > | null>(null);
+  const [discordReceiverStatus, setDiscordReceiverStatus] = useState<Awaited<
+    ReturnType<typeof api.getDiscordReceiverStatus>
+  > | null>(null);
   const [agentsLoading, setAgentsLoading] = useState(false);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [workflowPacksLoading, setWorkflowPacksLoading] = useState(false);
@@ -45,6 +48,10 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
 
   const [editor, setEditor] = useState(() => createEditorState(channelsConfig));
   const [editorError, setEditorError] = useState<string | null>(null);
+  const [discordChannelsLoading, setDiscordChannelsLoading] = useState(false);
+  const [discordChannelOptions, setDiscordChannelOptions] = useState<api.DiscordDiscoverableChannel[]>([]);
+  const [discordChannelsError, setDiscordChannelsError] = useState<string | null>(null);
+  const discordLookupSeq = useRef(0);
 
   const chatRows = useMemo<ChatRow[]>(() => {
     return MESSENGER_CHANNELS.flatMap((channel) => {
@@ -108,6 +115,50 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
     }
     return map;
   }, [workflowPackOptions]);
+
+  const resolveDiscordLookupErrorMessage = useCallback((error: unknown): string => {
+    if (api.isApiRequestError(error)) {
+      const code = error.code ?? "";
+      if (code === "discord_token_required") {
+        return t({
+          ko: "Discord 토큰을 입력해주세요.",
+          en: "Please enter a Discord token.",
+          ja: "Discordトークンを入力してください。",
+          zh: "请输入 Discord 令牌。",
+        });
+      }
+      if (code === "discord_auth_failed") {
+        return t({
+          ko: "Discord 인증에 실패했습니다. Bot 토큰과 권한을 확인하세요.",
+          en: "Discord authentication failed. Check your bot token and permissions.",
+          ja: "Discord認証に失敗しました。Botトークンと権限を確認してください。",
+          zh: "Discord 认证失败，请检查 Bot 令牌和权限。",
+        });
+      }
+      if (code === "discord_rate_limited") {
+        return t({
+          ko: "Discord API 요청이 많습니다. 잠시 후 다시 시도해주세요.",
+          en: "Discord API is rate-limited. Please try again shortly.",
+          ja: "Discord API のレート制限に達しました。しばらくしてから再試行してください。",
+          zh: "Discord API 已触发限流，请稍后重试。",
+        });
+      }
+      if (code === "discord_channel_lookup_failed") {
+        return t({
+          ko: "Discord 채널 조회에 실패했습니다. 네트워크/권한 상태를 확인해주세요.",
+          en: "Failed to load Discord channels. Check network connectivity and permissions.",
+          ja: "Discordチャネルの取得に失敗しました。ネットワークと権限を確認してください。",
+          zh: "Discord 频道加载失败，请检查网络和权限状态。",
+        });
+      }
+    }
+    return t({
+      ko: "Discord 채널 조회 중 오류가 발생했습니다.",
+      en: "An error occurred while loading Discord channels.",
+      ja: "Discordチャネルの取得中にエラーが発生しました。",
+      zh: "加载 Discord 频道时发生错误。",
+    });
+  }, [t]);
 
   const persistChannelsForm = (nextChannels: ReturnType<typeof resolveChannelsConfig>, successMsg?: string) => {
     const normalized = normalizeChannelsConfig(nextChannels);
@@ -368,13 +419,60 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
     void loadWorkflowPacks();
   }, []);
 
-  const loadTelegramReceiverStatus = async () => {
+  useEffect(() => {
+    if (!editor.open || editor.channel !== "discord") {
+      setDiscordChannelsLoading(false);
+      setDiscordChannelsError(null);
+      setDiscordChannelOptions([]);
+      return;
+    }
+    const token = editor.token.trim();
+    if (!token) {
+      setDiscordChannelsLoading(false);
+      setDiscordChannelsError(null);
+      setDiscordChannelOptions([]);
+      return;
+    }
+
+    const seq = discordLookupSeq.current + 1;
+    discordLookupSeq.current = seq;
+    const timer = setTimeout(() => {
+      setDiscordChannelsLoading(true);
+      setDiscordChannelsError(null);
+      void api
+        .listDiscordChannelsByToken(token)
+        .then((channels) => {
+          if (discordLookupSeq.current !== seq) return;
+          setDiscordChannelOptions(channels);
+        })
+        .catch((error) => {
+          if (discordLookupSeq.current !== seq) return;
+          setDiscordChannelOptions([]);
+          setDiscordChannelsError(resolveDiscordLookupErrorMessage(error));
+        })
+        .finally(() => {
+          if (discordLookupSeq.current !== seq) return;
+          setDiscordChannelsLoading(false);
+        });
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [editor.open, editor.channel, editor.token, resolveDiscordLookupErrorMessage]);
+
+  const loadMessengerReceiverStatus = async () => {
     setReceiverLoading(true);
     try {
-      const status = await api.getTelegramReceiverStatus();
-      setTelegramReceiverStatus(status);
+      const [telegramStatus, discordStatus] = await Promise.all([
+        api.getTelegramReceiverStatus().catch(() => null),
+        api.getDiscordReceiverStatus().catch(() => null),
+      ]);
+      setTelegramReceiverStatus(telegramStatus);
+      setDiscordReceiverStatus(discordStatus);
     } catch {
       setTelegramReceiverStatus(null);
+      setDiscordReceiverStatus(null);
     } finally {
       setReceiverLoading(false);
     }
@@ -521,7 +619,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => void loadTelegramReceiverStatus()}
+              onClick={() => void loadMessengerReceiverStatus()}
               disabled={receiverLoading}
               className="text-xs text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-60"
             >
@@ -552,6 +650,24 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
               {telegramReceiverStatus.allowedChatCount}
             </div>
             {telegramReceiverStatus.lastError && <div className="text-red-400">{telegramReceiverStatus.lastError}</div>}
+          </div>
+        )}
+
+        {discordReceiverStatus && (
+          <div className="rounded-md border border-slate-700/60 bg-slate-800/60 px-3 py-2 text-xs text-slate-300 space-y-1">
+            <div>
+              {t({ ko: "디스코드 수신기", en: "Discord Receiver", ja: "Discord 受信機", zh: "Discord 接收器" })}:{" "}
+              <span className={discordReceiverStatus.enabled ? "text-emerald-400" : "text-amber-300"}>
+                {discordReceiverStatus.enabled
+                  ? t({ ko: "활성", en: "active", ja: "有効", zh: "已启用" })
+                  : t({ ko: "비활성", en: "inactive", ja: "無効", zh: "未启用" })}
+              </span>
+            </div>
+            <div>
+              {t({ ko: "폴링 채널 수", en: "Polled channels", ja: "ポーリングチャネル数", zh: "轮询频道数" })}:{" "}
+              {discordReceiverStatus.routeCount}
+            </div>
+            {discordReceiverStatus.lastError && <div className="text-red-400">{discordReceiverStatus.lastError}</div>}
           </div>
         )}
 
@@ -661,6 +777,9 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           workflowPackOptions={workflowPackOptions}
           workflowPacksLoading={workflowPacksLoading}
           editorError={editorError}
+          discordChannels={discordChannelOptions}
+          discordChannelsLoading={discordChannelsLoading}
+          discordChannelsError={discordChannelsError}
         />
       )}
     </section>

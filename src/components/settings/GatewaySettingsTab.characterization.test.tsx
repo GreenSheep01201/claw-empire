@@ -8,7 +8,9 @@ const apiMocks = vi.hoisted(() => ({
   getWorkflowPacks: vi.fn(),
   getMessengerRuntimeSessions: vi.fn(),
   getTelegramReceiverStatus: vi.fn(),
+  getDiscordReceiverStatus: vi.fn(),
   sendMessengerRuntimeMessage: vi.fn(),
+  listDiscordChannelsByToken: vi.fn(),
 }));
 
 vi.mock("../../api", () => ({
@@ -16,7 +18,9 @@ vi.mock("../../api", () => ({
   getWorkflowPacks: apiMocks.getWorkflowPacks,
   getMessengerRuntimeSessions: apiMocks.getMessengerRuntimeSessions,
   getTelegramReceiverStatus: apiMocks.getTelegramReceiverStatus,
+  getDiscordReceiverStatus: apiMocks.getDiscordReceiverStatus,
   sendMessengerRuntimeMessage: apiMocks.sendMessengerRuntimeMessage,
+  listDiscordChannelsByToken: apiMocks.listDiscordChannelsByToken,
 }));
 
 vi.mock("../AgentAvatar", () => ({
@@ -47,6 +51,7 @@ describe("GatewaySettingsTab characterization", () => {
     apiMocks.getWorkflowPacks.mockReset();
     apiMocks.getMessengerRuntimeSessions.mockReset();
     apiMocks.getTelegramReceiverStatus.mockReset();
+    apiMocks.getDiscordReceiverStatus.mockReset();
     apiMocks.sendMessengerRuntimeMessage.mockReset();
 
     apiMocks.getAgents.mockResolvedValue([]);
@@ -64,7 +69,19 @@ describe("GatewaySettingsTab characterization", () => {
       lastUpdateId: null,
       lastError: null,
     });
+    apiMocks.getDiscordReceiverStatus.mockResolvedValue({
+      running: false,
+      configured: false,
+      enabled: false,
+      routeCount: 0,
+      nextCursorCount: 0,
+      lastPollAt: null,
+      lastForwardAt: null,
+      lastMessageId: null,
+      lastError: null,
+    });
     apiMocks.sendMessengerRuntimeMessage.mockResolvedValue({ ok: true });
+    apiMocks.listDiscordChannelsByToken.mockResolvedValue([]);
   });
 
   it("filters sessions without targetId and keeps only valid chat rows", async () => {
@@ -132,5 +149,37 @@ describe("GatewaySettingsTab characterization", () => {
 
     expect((textarea as HTMLTextAreaElement).value).toBe("");
     expect(screen.getByText("Message sent")).toBeInTheDocument();
+  });
+
+  it("loads Discord channels automatically when token is entered in chat editor", async () => {
+    const user = userEvent.setup();
+    apiMocks.listDiscordChannelsByToken.mockResolvedValue([
+      {
+        id: "1234567890",
+        name: "ops-alert",
+        guildId: "guild-1",
+        guildName: "Design Guild",
+        type: 0,
+      },
+    ]);
+
+    render(<GatewaySettingsTab t={t} form={createFormWithMessengerChannels() as any} setForm={vi.fn()} persistSettings={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Add Chat/i }));
+
+    const [messengerSelect] = screen.getAllByRole("combobox");
+    await user.selectOptions(messengerSelect, "discord");
+
+    const tokenInput = screen.getByPlaceholderText("Enter Discord token");
+    await user.type(tokenInput, "discord-test-token");
+
+    await waitFor(() => {
+      expect(apiMocks.listDiscordChannelsByToken).toHaveBeenCalledWith("discord-test-token");
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Loaded 1 channels automatically.")).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: /Design Guild \/ #ops-alert \(1234567890\)/i })).toBeInTheDocument();
+    });
   });
 });

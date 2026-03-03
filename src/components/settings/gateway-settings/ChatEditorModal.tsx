@@ -24,6 +24,15 @@ type ChatEditorModalProps = {
   workflowPackOptions: WorkflowPackOption[];
   workflowPacksLoading: boolean;
   editorError: string | null;
+  discordChannels: Array<{
+    id: string;
+    name: string;
+    guildId: string;
+    guildName: string;
+    type: number;
+  }>;
+  discordChannelsLoading: boolean;
+  discordChannelsError: string | null;
 };
 
 export default function ChatEditorModal({
@@ -38,7 +47,13 @@ export default function ChatEditorModal({
   workflowPackOptions,
   workflowPacksLoading,
   editorError,
+  discordChannels,
+  discordChannelsLoading,
+  discordChannelsError,
 }: ChatEditorModalProps) {
+  const discordSelectedChannel =
+    editor.channel === "discord" ? discordChannels.find((entry) => entry.id === editor.targetId.trim()) : null;
+
   return (
     <div className="fixed inset-0 z-[2200] flex items-center justify-center px-4">
       <button className="absolute inset-0 bg-slate-950/70" onClick={closeEditorModal} aria-label="close modal" />
@@ -141,12 +156,90 @@ export default function ChatEditorModal({
             <label className="block text-xs text-slate-400 mb-1">
               {t({ ko: "채널/대상 ID", en: "Channel/Target ID", ja: "チャンネル/対象 ID", zh: "频道/目标 ID" })}
             </label>
+            {editor.channel === "discord" && discordChannels.length > 0 && (
+              <select
+                value={discordSelectedChannel ? discordSelectedChannel.id : ""}
+                onChange={(e) => {
+                  const nextTargetId = e.target.value;
+                  setEditor((prev) => {
+                    const matched = discordChannels.find((entry) => entry.id === nextTargetId);
+                    return {
+                      ...prev,
+                      targetId: nextTargetId,
+                      name:
+                        matched && !prev.name.trim() ? `${matched.guildName} #${matched.name}` : prev.name,
+                    };
+                  });
+                }}
+                className="mb-2 w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-xs focus:outline-none focus:border-blue-500"
+              >
+                <option value="">
+                  {t({
+                    ko: "조회된 Discord 채널 선택 (선택 사항)",
+                    en: "Choose detected Discord channel (optional)",
+                    ja: "検出されたDiscordチャネルを選択（任意）",
+                    zh: "选择检测到的 Discord 频道（可选）",
+                  })}
+                </option>
+                {discordChannels.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.guildName} / #{entry.name} ({entry.id})
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               value={editor.targetId}
-              onChange={(e) => setEditor((prev) => ({ ...prev, targetId: e.target.value }))}
+              onChange={(e) => {
+                const nextTargetId = e.target.value;
+                setEditor((prev) => {
+                  const matched =
+                    prev.channel === "discord"
+                      ? discordChannels.find((entry) => entry.id === nextTargetId.trim())
+                      : undefined;
+                  return {
+                    ...prev,
+                    targetId: nextTargetId,
+                    name:
+                      matched && !prev.name.trim() ? `${matched.guildName} #${matched.name}` : prev.name,
+                  };
+                });
+              }}
               placeholder={channelTargetHint(editor.channel)}
               className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded-lg text-white text-sm font-mono focus:outline-none focus:border-blue-500"
             />
+            {editor.channel === "discord" && (
+              <div className="mt-1 space-y-1">
+                {discordChannelsLoading && (
+                  <div className="text-[11px] text-blue-300">
+                    {t({
+                      ko: "Discord 채널 목록 조회 중...",
+                      en: "Loading Discord channels...",
+                      ja: "Discordチャネルを読み込み中...",
+                      zh: "正在加载 Discord 频道...",
+                    })}
+                  </div>
+                )}
+                {!discordChannelsLoading && !discordChannelsError && editor.token.trim() && (
+                  <div className="text-[11px] text-slate-500">
+                    {discordChannels.length > 0
+                      ? t({
+                          ko: `${discordChannels.length}개 채널을 자동으로 불러왔습니다.`,
+                          en: `Loaded ${discordChannels.length} channels automatically.`,
+                          ja: `${discordChannels.length} 件のチャネルを自動取得しました。`,
+                          zh: `已自动加载 ${discordChannels.length} 个频道。`,
+                        })
+                      : t({
+                          ko: "조회된 Discord 채널이 없습니다. Bot 권한/서버 참여 상태를 확인하세요.",
+                          en: "No Discord channels found. Check bot permissions and server membership.",
+                          ja: "取得できるDiscordチャネルがありません。Bot権限とサーバー参加状態を確認してください。",
+                          zh: "未找到可用 Discord 频道。请检查 Bot 权限和服务器加入状态。",
+                        })}
+                  </div>
+                )}
+                {discordChannelsError && <div className="text-[11px] text-red-400">{discordChannelsError}</div>}
+              </div>
+            )}
           </div>
         </div>
 

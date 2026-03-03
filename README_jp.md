@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Releases" />
+  <img src="https://img.shields.io/badge/version-2.0.1-blue" alt="Releases" />
   <a href="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml"><img src="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
@@ -21,7 +21,7 @@
 <p align="center">
   <a href="#クイックスタート">クイックスタート</a> &middot;
   <a href="#ai-installation-guide">AIインストール</a> &middot;
-  <a href="docs/releases/v2.0.0.md">リリースノート</a> &middot;
+  <a href="docs/releases/v2.0.1.md">リリースノート</a> &middot;
   <a href="#openclaw-integration">OpenClaw連携</a> &middot;
   <a href="#direct-messenger-without-openclaw">直接メッセンジャー</a> &middot;
   <a href="#dollar-command-logic">$ コマンド</a> &middot;
@@ -68,26 +68,24 @@ Claw-Empireは **CLI**、**OAuth**、**直接APIキー** で接続されたAIコ
 
 ---
 
-## 最新リリース (v2.0.0)
+## 最新リリース (v2.0.1)
 
-- **ワークフローパック基盤を導入** - `development` / `report` / `web_research_report` / `novel` / `video_preprod` / `roleplay` を標準パックとして追加し、パック対応オーケストレーションを実装しました。
-- **オフィスパック運用を強化** - パック選択をヘッダーに統合し、開発パック以外はパックごとの独立プロファイル（エージェント/部署/テーマ）で管理できるようにしました。
-- **パック別スタッフ/部署シードを拡張** - 多言語名・役割ベースのシードプリセットと同期ユーティリティを追加し、実データ反映の安定性を向上しました。
-- **メッセンジャーのマルチトークン分離** - `channel#tokenKey` ヒントによって同一チャネル/同一 target ID でもトークン別に正しいセッションへ返信を固定します。
-- **Telegram 受信のマルチトークン安定化** - トークン単位でポーリング経路とオフセットを分離し、複数 Bot を並列で安全に運用できます。
-- **`/new` によるセッション初期化** - メッセンジャーで `/new` を送ると direct-chat バインディングをリセットし、多言語 ACK とともに新しい会話を開始します。
-- **意思決定通知の可読性 v2** - 企画リード要約、選択肢プレビュー、推奨選択肢表示をより短く明確に整理しました。
-- **回帰テストを拡張** - トークン認識ルーティング、Telegram 受信、オフィスパック正規化/同期のテストカバレッジを強化しました。
-- **映像プリプロのレンダーフロー安定化** - `video_preprod` の `VIDEO_FINAL_RENDER` を、計画時シード作成・遅延委任・stale 状態復旧・重複トリガー防止まで強化しました。
-- **オフィスパック初回 hydration と永続化** - パック初回利用時にシードを投入し、hydrated 後は DB ベース運用へ固定してユーザーカスタム（プロバイダー変更を含む）を保持します。
-- **レポート出力ポリシー強化 (HTML + PPTX)** - レポートオフィスの出力を HTML+PPTX 同時生成に統一し、`python-pptx` は PPT Team 不可/ハード失敗時のみフォールバック許可にしました。
-- **既存ランタイム安定化 Fix** - worktree ブランチ競合復旧、Claude `--no-tools` 引数保持、YOLO/WebSocket リトライ安定化を反映しました。
+- **オフィスパック部門優先順位を hydration 連動化** - `development` 以外のパックでは、hydration 前は pack profile（名称/アイコン）を優先表示し、hydration 完了後は DB メタデータを優先します。
+- **初回インストール体験を保護** - 新規インストール直後は DB が未 hydration でも pack profile を先に表示し、初期利用時に構成が欠けないようにしました。
+- **マージ規則の回帰テストを強化** - hydration 前後の優先切替と他パック seed エージェント非表示条件をテストで固定しました。
+- **Discord トークンによるチャネル自動検出** - Discord Bot トークンからギルド/テキストチャネルを取得する API を追加し、`Bot <token>` と生トークン入力の両方を受け付けます。
+- **設定モーダルの自動補完 UX** - Discord トークン入力時にチャネル候補を自動読み込みし、選択時に target ID と既定表示名を自動反映します。
+- **Discord 受信機を追加（双方向対応）** - ポーリング受信機を追加し、ユーザー発言を `/api/inbox` へ転送します。Bot 投稿はループ防止のため除外されます。
+- **受信状態の可視化を強化** - Discord 受信機ステータス API/設定パネルを追加し、有効状態・ポーリング数・最終エラーを UI で確認できます。
+- **Discord マルチトークン受信分離** - 同一チャネル ID を複数トークンで使う場合でも、トークンキー+チャネル単位でカーソル/経路を分離して混線を防ぎます。
+- **多言語ガイダンス/エラーメッセージ拡張** - Discord チャネル取得の読込中表示、0件案内、認証失敗、レート制限、一般失敗を KO/EN/JA/ZH で表示します。
+- **Discord 系回帰テストを拡充** - チャネル検出/認証失敗、受信転送、Bot メッセージ除外、マルチトークン source ヒント、UI 自動読み込みをテスト追加しました。
 
-- 詳細: [`docs/releases/v2.0.0.md`](docs/releases/v2.0.0.md)
+- 詳細: [`docs/releases/v2.0.1.md`](docs/releases/v2.0.1.md)
 - APIドキュメント: [`docs/api.md`](docs/api.md), [`docs/openapi.json`](docs/openapi.json)
 - セキュリティポリシー: [`SECURITY.md`](SECURITY.md)
 
-## オフィスパックプロファイル (v2.0.0)
+## オフィスパックプロファイル (v2.0.1)
 
 各オフィスパックは、協業構造・命名シード・ワークフロー特性が異なるプロファイルとして動作します。
 

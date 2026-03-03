@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Releases" />
+  <img src="https://img.shields.io/badge/version-2.0.1-blue" alt="Releases" />
   <a href="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml"><img src="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
@@ -21,7 +21,7 @@
 <p align="center">
   <a href="#quick-start">Quick Start</a> &middot;
   <a href="#ai-installation-guide">AI Install Guide</a> &middot;
-  <a href="docs/releases/v2.0.0.md">Release Notes</a> &middot;
+  <a href="docs/releases/v2.0.1.md">Release Notes</a> &middot;
   <a href="#openclaw-integration">OpenClaw</a> &middot;
   <a href="#direct-messenger-without-openclaw">Direct Messenger</a> &middot;
   <a href="#dollar-command-logic">$ Command</a> &middot;
@@ -68,26 +68,24 @@ Claw-Empire transforms your AI coding assistants — connected via **CLI**, **OA
 
 ---
 
-## Latest Release (v2.0.0)
+## Latest Release (v2.0.1)
 
-- **Workflow Pack platform rollout** - Added pack-aware orchestration with built-in keys (`development`, `report`, `web_research_report`, `novel`, `video_preprod`, `roleplay`) and API surface for runtime pack metadata.
-- **Office Pack operations integrated** - Moved pack selector into the top header and enabled isolated per-pack office profiles (agents/departments/themes) for non-development packs.
-- **Pack-specific staff/department seeding** - Added multilingual pack presets with role-aligned names and office themes, plus synchronization utilities for pack profile updates.
-- **Messenger multi-token isolation** - Route resolution now disambiguates same-channel/same-target sessions by token hint (`channel#tokenKey`), preventing cross-bot reply leakage.
-- **Telegram receiver multi-token hardening** - Added per-token route polling/offset persistence so multiple Telegram bot tokens can safely receive and relay in parallel.
-- **In-messenger `/new` session reset** - Added localized reset ACK flow to clear direct-chat session bindings and start fresh conversation context.
-- **Decision notice readability v2** - Improved planning summary compactness, option preview formatting, and recommendation line clarity for mobile messenger readability.
-- **Regression coverage expansion** - Added targeted tests for token-aware routing, Telegram receiver behavior, office pack normalization/sync, and related routing paths.
-- **Video pre-production render flow hardening** - Stabilized `video_preprod` final-render orchestration (`VIDEO_FINAL_RENDER`) with seed-time creation, deferred delegation, stale-state reconciliation, and duplicate-trigger prevention.
-- **Office pack first-load hydration and persistence** - Added first-entry seed bootstrap per pack, then switched hydrated packs to DB-backed persistence to keep user customizations (including provider edits) stable.
-- **Report output policy upgrade (HTML + PPTX)** - Report office output policy now targets both HTML and PPTX; `python-pptx` fallback is restricted to PPT Team unavailable/hard-fail cases.
-- **Core runtime fix bundle on existing flows** - Hardened branch-collision worktree recovery, preserved Claude `--no-tools` argv semantics, and stabilized YOLO/WebSocket retry behavior.
+- **Hydration-aware office-pack department precedence** - Non-development packs now prefer pack-profile department labels/icons before hydration, then switch to DB metadata after hydration completes.
+- **First-install bootstrap safety** - Fresh installs keep pack-profile defaults visible on first load, so initial users are not blocked by unhydrated DB state.
+- **Regression tests for merge semantics** - Added/updated tests for pre-hydration pack priority, post-hydration DB priority, and foreign-pack seed filtering.
+- **Discord token-based channel auto-discovery** - Added Discord Bot token channel lookup API and normalized token handling (`Bot <token>` or raw token) for immediate session setup.
+- **Auto channel loading in Settings** - Discord token input in chat editor now auto-loads guild/channel options and can auto-fill target ID/name.
+- **Discord inbound receiver added** - Introduced polling-based Discord receiver that forwards inbound user messages into `/api/inbox` (with bot-message filtering and cursor persistence).
+- **Receiver runtime visibility in UI** - Added Discord receiver status API and Settings panel indicators (active state, polled channel count, last error) next to Telegram status.
+- **Multi-token inbound route isolation** - Discord receiver now isolates cursor/source routing by token-key + channel ID to avoid cross-token mixing on shared targets.
+- **Multilingual Discord guidance/error messaging** - Added KO/EN/JA/ZH guidance for loading/no-channel/auth failure/rate-limit/channel lookup errors.
+- **Regression tests for Discord flow** - Added tests for token-based channel discovery, auth-failure handling, inbound forwarding behavior, multi-token source hints, and UI auto-load behavior.
 
-- Full notes: [`docs/releases/v2.0.0.md`](docs/releases/v2.0.0.md)
+- Full notes: [`docs/releases/v2.0.1.md`](docs/releases/v2.0.1.md)
 - API docs: [`docs/api.md`](docs/api.md), [`docs/openapi.json`](docs/openapi.json)
 - Security policy: [`SECURITY.md`](SECURITY.md)
 
-## Office Pack Profiles (v2.0.0)
+## Office Pack Profiles (v2.0.1)
 
 Each office pack applies a different collaboration topology, naming seed, and workflow bias.
 

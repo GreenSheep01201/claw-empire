@@ -225,6 +225,77 @@ describe("gateway client", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe("https://discord.com/api/v10/channels/123456/messages");
   });
 
+  it("listDiscordChannelsByToken은 Bot 토큰으로 길드 채널 목록을 자동 조회한다", async () => {
+    const dbPath = createTestDb();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.includes("/users/@me/guilds")) {
+        return new Response(
+          JSON.stringify([
+            { id: "g2", name: "Beta Team" },
+            { id: "g1", name: "Alpha Team" },
+          ]),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.includes("/guilds/g1/channels")) {
+        return new Response(
+          JSON.stringify([
+            { id: "c2", name: "general", type: 0 },
+            { id: "c3", name: "voice", type: 2 },
+          ]),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.includes("/guilds/g2/channels")) {
+        return new Response(JSON.stringify([{ id: "c1", name: "announcements", type: 5 }]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return new Response("not_found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const gateway = await importGatewayModule({
+      DB_PATH: dbPath,
+      OPENCLAW_CONFIG: undefined,
+    });
+
+    const channels = await gateway.listDiscordChannelsByToken("Bot test-token");
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect((fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)?.authorization).toBe("Bot test-token");
+    expect(channels).toEqual([
+      {
+        id: "c2",
+        name: "general",
+        guildId: "g1",
+        guildName: "Alpha Team",
+        type: 0,
+      },
+      {
+        id: "c1",
+        name: "announcements",
+        guildId: "g2",
+        guildName: "Beta Team",
+        type: 5,
+      },
+    ]);
+  });
+
+  it("listDiscordChannelsByToken은 인증 실패 시 에러를 반환한다", async () => {
+    const dbPath = createTestDb();
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{"message":"401: Unauthorized"}', { status: 401 }));
+    vi.stubGlobal("fetch", fetchMock as unknown as typeof fetch);
+
+    const gateway = await importGatewayModule({
+      DB_PATH: dbPath,
+      OPENCLAW_CONFIG: undefined,
+    });
+
+    await expect(gateway.listDiscordChannelsByToken("invalid-token")).rejects.toThrow("discord api failed (401)");
+  });
+
   it("sendMessengerMessage는 대상 세션의 전용 토큰을 우선 사용한다", async () => {
     const dbPath = createTestDb({
       messengerChannels: {
