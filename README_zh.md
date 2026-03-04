@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.3-blue" alt="Releases" />
+  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Releases" />
   <a href="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml"><img src="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
@@ -21,7 +21,7 @@
 <p align="center">
   <a href="#快速开始">快速开始</a> &middot;
   <a href="#ai-installation-guide">AI 安装指南</a> &middot;
-  <a href="docs/releases/v1.2.3.md">发布说明</a> &middot;
+  <a href="docs/releases/v2.0.0.md">发布说明</a> &middot;
   <a href="#openclaw-integration">OpenClaw 集成</a> &middot;
   <a href="#dollar-command-logic">$ 命令逻辑</a> &middot;
   <a href="#功能特性">功能特性</a> &middot;
@@ -67,7 +67,7 @@ Claw-Empire 将通过 **CLI**、**OAuth** 或 **直接 API Key** 连接的 AI �
 
 ---
 
-## 最新发布 (v1.2.3)
+## 最新发布 (v2.0.0)
 
 - **统一消息渠道 + 原生适配器** - 标准化内置渠道（`telegram`, `whatsapp`, `discord`, `googlechat`, `slack`, `signal`, `imessage`），并统一渠道级发送处理。
 - **聊天会话设置 UX 重构** - 通过统一“新增聊天”弹窗完成新增/编辑/删除，确认即保存，并显示会话级 Agent 头像/名称映射。
@@ -78,7 +78,7 @@ Claw-Empire 将通过 **CLI**、**OAuth** 或 **直接 API Key** 连接的 AI �
 - **项目绑定与安全加固** - 任务升级前强制选择已有/新建项目，并通过 `PROJECT_PATH_ALLOWED_ROOTS` 限制路径创建范围。
 - **直聊稳定性增强** - 强化重复语句归一化与会话/路由解析逻辑。
 
-- 详细说明: [`docs/releases/v1.2.3.md`](docs/releases/v1.2.3.md)
+- 详细说明: [`docs/releases/v2.0.0.md`](docs/releases/v2.0.0.md)
 - API 文档: [`docs/api.md`](docs/api.md), [`docs/openapi.json`](docs/openapi.json)
 - 安全策略: [`SECURITY.md`](SECURITY.md)
 

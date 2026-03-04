@@ -2,7 +2,7 @@
 
 This document defines a contributor-facing API baseline for Claw-Empire.
 It is intentionally compact and focused on frequently used endpoints.
-Current baseline target: `v1.2.3` (local snapshot, 2026-02-27).
+Current baseline target: `v2.0.0` (local snapshot, 2026-03-03).
 
 ## Base
 
@@ -43,7 +43,7 @@ Error payloads can vary by route, but API clients should handle:
 
 The frontend client wraps non-2xx responses with `ApiRequestError` (`status`, `code`, `details`, `url`).
 
-## Messenger Session Contract (v1.2.3)
+## Messenger Session Contract (v2.0.0)
 
 Messenger channel settings are stored in `settings.key = "messengerChannels"` and can include:
 

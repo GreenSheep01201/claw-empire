@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.2.3-blue" alt="Releases" />
+  <img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Releases" />
   <a href="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml"><img src="https://github.com/GreenSheep01201/claw-empire/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node.js 22+" />
   <img src="https://img.shields.io/badge/license-Apache%202.0-orange" alt="License" />
@@ -21,7 +21,7 @@
 <p align="center">
   <a href="#빠른-시작">빠른 시작</a> &middot;
   <a href="#ai-installation-guide">AI 설치 가이드</a> &middot;
-  <a href="docs/releases/v1.2.3.md">릴리즈 노트</a> &middot;
+  <a href="docs/releases/v2.0.0.md">릴리즈 노트</a> &middot;
   <a href="#openclaw-integration">OpenClaw 연동</a> &middot;
   <a href="#dollar-command-logic">$ 명령 로직</a> &middot;
   <a href="#주요-기능">주요 기능</a> &middot;
@@ -67,7 +67,7 @@ Claw-Empire는 **CLI**, **OAuth**, **직접 API 키** 방식으로 연결된 AI 
 
 ---
 
-## 최신 릴리즈 (v1.2.3)
+## 최신 릴리즈 (v2.0.0)
 
 - **통합 메신저 채널 + 네이티브 어댑터** - 내장 채널(`telegram`, `whatsapp`, `discord`, `googlechat`, `slack`, `signal`, `imessage`)을 표준화하고 채널별 전송 처리를 일원화했습니다.
 - **채팅 세션 설정 UX 개편** - 단일 `새 채팅 추가` 모달로 생성/수정/삭제를 처리하고, 확인 즉시 저장되며 세션별 Agent 아바타/이름 매핑이 표시됩니다.
@@ -78,7 +78,7 @@ Claw-Empire는 **CLI**, **OAuth**, **직접 API 키** 방식으로 연결된 AI 
 - **프로젝트 바인딩 + 안전성 강화** - 업무 승격 전 기존/신규 프로젝트 선택을 강제하고, `PROJECT_PATH_ALLOWED_ROOTS` 기반 경로 생성 제한을 적용했습니다.
 - **직접 채팅 안정화 보강** - 중복 문장 정규화 및 세션/라우트 해석 로직을 강화했습니다.
 
-- 상세 문서: [`docs/releases/v1.2.3.md`](docs/releases/v1.2.3.md)
+- 상세 문서: [`docs/releases/v2.0.0.md`](docs/releases/v2.0.0.md)
 - API 문서: [`docs/api.md`](docs/api.md), [`docs/openapi.json`](docs/openapi.json)
 - 보안 정책: [`SECURITY.md`](SECURITY.md)
 
