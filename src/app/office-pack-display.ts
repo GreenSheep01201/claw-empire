@@ -1,5 +1,11 @@
 import type { Agent, Department, WorkflowPackKey } from "../types";
 
+function isArchivedDepartment(department: Department): boolean {
+  const name = String(department.name ?? "").trim();
+  if (!name.startsWith("[ARCHIVE]")) return false;
+  return Number(department.agent_count ?? 0) <= 0;
+}
+
 function parseSeedPackKey(agentId: string): string | null {
   const normalized = String(agentId ?? "").trim();
   if (!normalized) return null;
@@ -60,7 +66,7 @@ export function resolvePackDepartmentsForDisplay(params: {
 }): Department[] {
   const { packKey, globalDepartments, packDepartments } = params;
   if (packKey === "development" || !packDepartments || packDepartments.length === 0) {
-    return globalDepartments;
+    return globalDepartments.filter((department) => !isArchivedDepartment(department));
   }
 
   const globalById = new Map<string, Department>();
@@ -72,5 +78,7 @@ export function resolvePackDepartmentsForDisplay(params: {
     mergePackDepartment(globalById.get(packDepartment.id), packDepartment),
   );
   const scopedDeptIds = new Set(scopedDepartments.map((department) => department.id));
-  return [...scopedDepartments, ...globalDepartments.filter((department) => !scopedDeptIds.has(department.id))];
+  return [...scopedDepartments, ...globalDepartments.filter((department) => !scopedDeptIds.has(department.id))].filter(
+    (department) => !isArchivedDepartment(department),
+  );
 }

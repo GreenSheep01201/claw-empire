@@ -640,9 +640,27 @@ export function listOfficePackOptions(locale: UiLanguageLike): Array<{
 }> {
   return (Object.keys(PACK_PRESETS) as WorkflowPackKey[]).map((key) => ({
     key,
-    label: pickText(locale, PACK_PRESETS[key].label),
-    summary: pickText(locale, PACK_PRESETS[key].summary),
-    slug: PACK_PRESETS[key].slug,
+    label:
+      key === "development"
+        ? locale === "ko"
+          ? "CTA 오피스"
+          : locale === "ja"
+            ? "CTA オフィス"
+            : locale === "zh"
+              ? "CTA 办公室"
+              : "CTA Office"
+        : pickText(locale, PACK_PRESETS[key].label),
+    summary:
+      key === "development"
+        ? locale === "ko"
+          ? "Coin Trading Agent 운영 팩"
+          : locale === "ja"
+            ? "Coin Trading Agent 運用パック"
+            : locale === "zh"
+              ? "Coin Trading Agent 运营包"
+              : "Coin Trading Agent operating pack"
+        : pickText(locale, PACK_PRESETS[key].summary),
+    slug: key === "development" ? "CTA" : PACK_PRESETS[key].slug,
     accent: PACK_PRESETS[key].roomThemes.ceoOffice?.accent ?? 0x5a9fd4,
   }));
 }

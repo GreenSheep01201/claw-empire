@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+﻿import { useState, useRef, useEffect, useMemo } from "react";
 import type { Agent, Department } from "../types";
 import AgentAvatar, { useSpriteMap } from "./AgentAvatar";
 import { useI18n, localeName } from "../i18n";
@@ -18,7 +18,7 @@ const ROLE_LABELS: Record<string, LangText> = {
   team_leader: { ko: "팀장", en: "Team Leader", ja: "チームリーダー", zh: "组长" },
   senior: { ko: "시니어", en: "Senior", ja: "シニア", zh: "高级" },
   junior: { ko: "주니어", en: "Junior", ja: "ジュニア", zh: "初级" },
-  intern: { ko: "인턴", en: "Intern", ja: "インターン", zh: "实习生" },
+  intern: { ko: "인턴", en: "Intern", ja: "インターン", zh: "实习" },
 };
 
 export default function AgentSelect({
@@ -35,6 +35,7 @@ export default function AgentSelect({
   const spriteMap = useSpriteMap(agents);
   const { t, locale } = useI18n();
   const selected = agents.find((a) => a.id === value);
+
   const departmentById = useMemo(() => {
     const map = new Map<string, Department>();
     for (const dept of departments ?? []) {
@@ -43,13 +44,28 @@ export default function AgentSelect({
     return map;
   }, [departments]);
 
+  const getAgentName = (agent: Agent) => localeName(locale, agent);
+
+  const sortedAgents = useMemo(() => {
+    const roleOrder: Record<string, number> = {
+      team_leader: 0,
+      senior: 1,
+      junior: 2,
+      intern: 3,
+    };
+
+    return [...agents].sort((a, b) => {
+      const roleDiff = (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+      if (roleDiff !== 0) return roleDiff;
+      return getAgentName(a).localeCompare(getAgentName(b));
+    });
+  }, [agents, locale]);
+
   const textSize = size === "md" ? "text-sm" : "text-xs";
   const padY = size === "md" ? "py-2" : "py-1";
   const avatarSize = size === "md" ? 22 : 18;
 
   const tr = (ko: string, en: string, ja = en, zh = en) => t({ ko, en, ja, zh });
-
-  const getAgentName = (agent: Agent) => localeName(locale, agent);
 
   const getRoleLabel = (role: string) => {
     const label = ROLE_LABELS[role];
@@ -63,7 +79,7 @@ export default function AgentSelect({
   };
 
   const effectivePlaceholder =
-    placeholder ?? tr("-- 담당자 없음 --", "-- Unassigned --", "-- 担当者なし --", "-- 无负责人 --");
+    placeholder ?? tr("-- 미배정 --", "-- Unassigned --", "-- 未割り当て --", "-- 未分配 --");
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -75,7 +91,6 @@ export default function AgentSelect({
 
   return (
     <div ref={ref} className={`relative ${className}`}>
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
@@ -104,10 +119,8 @@ export default function AgentSelect({
         </svg>
       </button>
 
-      {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
-          {/* None option */}
+        <div className="absolute z-50 mt-1 w-full max-h-72 overflow-y-auto rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
           <button
             type="button"
             onClick={() => {
@@ -119,7 +132,7 @@ export default function AgentSelect({
             {effectivePlaceholder}
           </button>
 
-          {agents.map((a) => (
+          {sortedAgents.map((a) => (
             <button
               key={a.id}
               type="button"
@@ -135,9 +148,7 @@ export default function AgentSelect({
               <span className="truncate">{getAgentName(a)}</span>
               <span className="text-slate-500 text-[10px]">({getRoleLabel(a.role)})</span>
               {getDepartmentLabel(a) && <span className="text-slate-500 text-[10px]">· {getDepartmentLabel(a)}</span>}
-              {a.status === "working" && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
-              )}
+              {a.status === "working" && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />}
             </button>
           ))}
         </div>

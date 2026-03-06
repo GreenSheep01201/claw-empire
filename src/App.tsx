@@ -130,6 +130,13 @@ export default function App() {
   };
 
   const getPackLabelByLanguage = (packKey: WorkflowPackKey, language: string): string => {
+    if (packKey === "development") {
+      const lang = normalizeLanguage(language);
+      if (lang === "ko") return "CTA 오피스";
+      if (lang === "ja") return "CTA オフィス";
+      if (lang === "zh") return "CTA 办公室";
+      return "CTA Office";
+    }
     const label = getOfficePackMeta(packKey).label;
     const lang = normalizeLanguage(language);
     if (lang === "ko") return label.ko || label.en;
