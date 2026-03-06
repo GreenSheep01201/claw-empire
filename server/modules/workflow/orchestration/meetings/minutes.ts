@@ -251,7 +251,7 @@ export function createMeetingMinutesTools(deps: MeetingMinutesDeps) {
           ? `[PROJECT MEMO] ${phaseLabel} ラウンド ${round} 未解決の補完項目 (${stamp})`
           : lang === "zh"
             ? `[PROJECT MEMO] ${phaseLabel} 第 ${round} 轮未解决改进项 (${stamp})`
-            : `[PROJECT MEMO] ${phaseLabel} 라운드 ${round} 미해결 보완 항목 (${stamp})`;
+            : `[PROJECT MEMO] ${phaseLabel} ラウンド${round} 未解決改善項目 (${stamp})`;
     const fallbackLine =
       lang === "en"
         ? "- No explicit issue line captured; follow-up verification is still required."
@@ -259,7 +259,7 @@ export function createMeetingMinutesTools(deps: MeetingMinutesDeps) {
           ? "- 明示的な課題行は抽出されませんでしたが、後続検証は継続が必要です。"
           : lang === "zh"
             ? "- 未捕获到明确问题行，但后续验证仍需继续。"
-            : "- 명시적 이슈 문장을 추출하지 못했지만 후속 검증은 계속 필요합니다.";
+            : "- 明示的な課題文を抽出できませんでしたが、後続検証は引き続き必要です。";
     const body = notes.length > 0 ? notes.map((note) => `- ${note}`).join("\n") : fallbackLine;
 
     const block = `${header}\n${body}`;
@@ -294,7 +294,7 @@ export function createMeetingMinutesTools(deps: MeetingMinutesDeps) {
           ? `[PROJECT MEMO] Review ラウンド ${round} 最終パッケージ (${stamp})`
           : lang === "zh"
             ? `[PROJECT MEMO] Review 第 ${round} 轮最终输出包 (${stamp})`
-            : `[PROJECT MEMO] Review 라운드 ${round} 최종 결과 패키지 (${stamp})`;
+            : `[PROJECT MEMO] Review ラウンド ${round} 最終結果パッケージ (${stamp})`;
     const decisionLine = hasResidualRisk
       ? pickL(
           l(

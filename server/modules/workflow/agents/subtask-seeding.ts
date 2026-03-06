@@ -65,7 +65,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
         l(
           [`${targetDeptName} 협업 대기`],
           [`Waiting for ${targetDeptName} collaboration`],
-          [`${targetDeptName}の協業待ち`],
+          [`${targetDeptName} 協力待ち`],
           [`等待${targetDeptName}协作`],
         ),
         lang,
@@ -148,7 +148,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
           l(
             ["Planned 상세 실행 계획 확정"],
             ["Finalize detailed execution plan from planned meeting"],
-            ["Planned会議の詳細実行計画を確定"],
+            ["Planned 詳細実行計画の確定"],
             ["确定 Planned 会议的详细执行计划"],
           ),
           lang,
@@ -188,7 +188,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
           l(
             [`[보완계획] ${clippedTitle || "추가 보완 항목"}`],
             [`[Plan Item] ${clippedTitle || "Additional improvement item"}`],
-            [`[補完計画] ${clippedTitle || "追加補完項目"}`],
+            [`[改善計画] ${clippedTitle || "追加改善項目"}`],
             [`[计划项] ${clippedTitle || "补充改进事项"}`],
           ),
           lang,
@@ -209,7 +209,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
               l(
                 [`${targetDeptName} 협업 대기`],
                 [`Waiting for ${targetDeptName} collaboration`],
-                [`${targetDeptName}の協業待ち`],
+                [`${targetDeptName} 協力待ち`],
                 [`等待${targetDeptName}协作`],
               ),
               lang,
@@ -228,7 +228,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
           l(
             [`[협업] ${deptName} 결과물 작성`],
             [`[Collaboration] Produce ${deptName} deliverable`],
-            [`[協業] ${deptName}成果物を作成`],
+            [`[協力] ${deptName} 成果物作成`],
             [`[协作] 编写${deptName}交付物`],
           ),
           lang,
@@ -248,7 +248,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
           l(
             [`${deptName} 협업 대기`],
             [`Waiting for ${deptName} collaboration`],
-            [`${deptName}の協業待ち`],
+            [`${deptName} 協力待ち`],
             [`等待${deptName}协作`],
           ),
           lang,
@@ -262,7 +262,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
         l(
           ["부서 산출물 통합 및 최종 정리"],
           ["Consolidate department deliverables and finalize package"],
-          ["部門成果物の統合と最終整理"],
+          ["部署成果物の統合と最終整理"],
           ["整合部门交付物并完成最终整理"],
         ),
         lang,
@@ -309,7 +309,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
           l(
             [`${devDeptName} 협업 대기`],
             [`Waiting for ${devDeptName} collaboration`],
-            [`${devDeptName}の協業待ち`],
+            [`${devDeptName} 協力待ち`],
             [`等待${devDeptName}协作`],
           ),
           lang,
@@ -453,7 +453,7 @@ export function createSubtaskSeedingTools(deps: SubtaskSeedingDeps) {
               l(
                 [`${targetDeptName} 협업 대기`],
                 [`Waiting for ${targetDeptName} collaboration`],
-                [`${targetDeptName}の協業待ち`],
+                [`${targetDeptName} 協力待ち`],
                 [`等待${targetDeptName}协作`],
               ),
               lang,
