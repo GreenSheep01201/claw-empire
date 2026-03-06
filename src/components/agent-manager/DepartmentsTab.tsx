@@ -52,21 +52,21 @@ export default function DepartmentsTab({
           style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)" }}
         >
           <span className="text-sm" style={{ color: "var(--th-text-primary)" }}>
-            {tr("순번이 변경되었습니다.", "Order has been changed.")}
+            {tr("순번이 변경되었습니다.", "Order has been changed.", "順番が変更されました。")}
           </span>
           <button
             onClick={onSaveOrder}
             disabled={reorderSaving}
             className="ml-auto px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 transition-all"
           >
-            {reorderSaving ? tr("저장 중...", "Saving...") : tr("순번 저장", "Save Order")}
+            {reorderSaving ? tr("저장 중...", "Saving...", "保存中...") : tr("순번 저장", "Save Order", "順番を保存")}
           </button>
           <button
             onClick={onCancelOrder}
             className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
             style={{ color: "var(--th-text-muted)" }}
           >
-            {tr("취소", "Cancel")}
+            {tr("취소", "Cancel", "キャンセル")}
           </button>
         </div>
       )}
@@ -134,7 +134,7 @@ export default function DepartmentsTab({
                     className="text-xs px-2 py-0.5 rounded-full"
                     style={{ background: `${dept.color}22`, color: dept.color }}
                   >
-                    {agentCountForDept} {tr("명", "agents")}
+                    {agentCountForDept} {tr("명", "agents", "名")}
                   </span>
                 </div>
                 {dept.description && (
@@ -153,7 +153,7 @@ export default function DepartmentsTab({
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all opacity-0 group-hover:opacity-100 hover:bg-white/10"
                 style={{ color: "var(--th-text-muted)" }}
               >
-                {tr("편집", "Edit")}
+                {tr("편집", "Edit", "編集")}
               </button>
             </div>
           );
@@ -163,7 +163,7 @@ export default function DepartmentsTab({
       {deptOrder.length === 0 && (
         <div className="text-center py-16" style={{ color: "var(--th-text-muted)" }}>
           <div className="text-3xl mb-2">🏢</div>
-          {tr("등록된 부서가 없습니다.", "No departments found.")}
+          {tr("등록된 부서가 없습니다.", "No departments found.", "登録された部署がありません。")}
         </div>
       )}
     </div>

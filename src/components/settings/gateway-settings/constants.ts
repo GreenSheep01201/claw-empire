@@ -11,18 +11,18 @@ export const CHANNEL_META: Record<
   telegram: { label: "Telegram", targetHint: "chat_id", transportReady: true },
   whatsapp: {
     label: "WhatsApp",
-    targetHint: "phone_number_id:recipient (예: 1234567890:+8210...)",
+    targetHint: "phone_number_id:recipient (例: 1234567890:+8210...)",
     transportReady: true,
   },
   discord: { label: "Discord", targetHint: "channel_id", transportReady: true },
   googlechat: {
     label: "Google Chat",
-    targetHint: "spaces/AAA... (token은 webhook URL 또는 key|token)",
+    targetHint: "spaces/AAA... (tokenはwebhook URLまたはkey|token)",
     transportReady: true,
   },
   slack: { label: "Slack", targetHint: "channel_id", transportReady: true },
   signal: { label: "Signal", targetHint: "+8210..., group:<id>, username:<id>", transportReady: true },
-  imessage: { label: "iMessage", targetHint: "전화번호/이메일 (macOS Messages)", transportReady: true },
+  imessage: { label: "iMessage", targetHint: "電話番号/メールアドレス (macOS Messages)", transportReady: true },
 };
 
 const WORKFLOW_PACK_KEY_SET = new Set<string>(WORKFLOW_PACK_KEYS as readonly string[]);

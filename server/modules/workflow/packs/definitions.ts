@@ -53,7 +53,7 @@ export const DEFAULT_WORKFLOW_PACK_SEEDS: WorkflowPackSeed[] = [
     outputTemplate: {
       sections: ["summary", "changes", "verification", "next_steps"],
     },
-    routingKeywords: ["fix", "bug", "refactor", "build", "api", "test", "개발", "버그", "수정", "코드"],
+    routingKeywords: ["fix", "bug", "refactor", "build", "api", "test", "開発", "バグ", "修正", "コード"],
     costProfile: {
       ...COMMON_COST_PROFILE,
       defaultReasoning: "high",
@@ -77,7 +77,7 @@ export const DEFAULT_WORKFLOW_PACK_SEEDS: WorkflowPackSeed[] = [
     outputTemplate: {
       sections: ["synopsis", "chapter_or_scene"],
     },
-    routingKeywords: ["novel", "story", "chapter", "scene", "소설", "스토리", "시나리오"],
+    routingKeywords: ["novel", "story", "chapter", "scene", "小説", "ストーリー", "シナリオ"],
     costProfile: {
       ...COMMON_COST_PROFILE,
       maxRounds: 2,
@@ -102,7 +102,7 @@ export const DEFAULT_WORKFLOW_PACK_SEEDS: WorkflowPackSeed[] = [
     outputTemplate: {
       sections: ["summary", "body", "action_items"],
     },
-    routingKeywords: ["report", "analysis", "brief", "보고서", "분석", "정리", "리포트"],
+    routingKeywords: ["report", "analysis", "brief", "レポート", "分析", "まとめ", "リポート"],
     costProfile: {
       ...COMMON_COST_PROFILE,
       defaultReasoning: "high",
@@ -127,7 +127,7 @@ export const DEFAULT_WORKFLOW_PACK_SEEDS: WorkflowPackSeed[] = [
     outputTemplate: {
       sections: ["concept", "script", "shot_list", "editing_notes", "video_file"],
     },
-    routingKeywords: ["video", "shorts", "reel", "콘티", "영상", "대본", "샷리스트"],
+    routingKeywords: ["video", "shorts", "reel", "コンテ", "動画", "台本", "ショットリスト"],
     costProfile: {
       ...COMMON_COST_PROFILE,
       maxRounds: 2,
@@ -152,7 +152,7 @@ export const DEFAULT_WORKFLOW_PACK_SEEDS: WorkflowPackSeed[] = [
     outputTemplate: {
       sections: ["summary", "findings", "citations", "recommendations"],
     },
-    routingKeywords: ["research", "web search", "investigate", "조사", "웹서치", "자료조사", "리서치"],
+    routingKeywords: ["research", "web search", "investigate", "調査", "ウェブ検索", "資料調査", "リサーチ"],
     costProfile: {
       ...COMMON_COST_PROFILE,
       maxRounds: 3,
@@ -177,7 +177,7 @@ export const DEFAULT_WORKFLOW_PACK_SEEDS: WorkflowPackSeed[] = [
     outputTemplate: {
       sections: ["dialogue"],
     },
-    routingKeywords: ["roleplay", "rp", "character chat", "역할놀이", "역할극", "대화해줘"],
+    routingKeywords: ["roleplay", "rp", "character chat", "ロールプレイ", "役割劇", "会話して"],
     costProfile: {
       ...COMMON_COST_PROFILE,
       maxRounds: 1,

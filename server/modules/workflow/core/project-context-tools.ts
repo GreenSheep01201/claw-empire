@@ -20,21 +20,21 @@ export function createProjectContextTools(deps: CreateProjectContextToolsDeps) {
   const { db, isGitRepo, taskWorktrees } = deps;
 
   const MVP_CODE_REVIEW_POLICY_BASE_LINES = [
-    "[MVP Code Review Policy / 코드 리뷰 정책]",
-    "- CRITICAL/HIGH: fix immediately / 즉시 수정",
-    "- MEDIUM/LOW: warning report only, no code changes / 경고 보고서만, 코드 수정 금지",
+    "[MVP Code Review Policy / コードレビューポリシー]",
+    "- CRITICAL/HIGH: fix immediately / 即時修正",
+    "- MEDIUM/LOW: warning report only, no code changes / 警告レポートのみ、コード修正禁止",
   ];
   const EXECUTION_CONTINUITY_POLICY_LINES = [
-    "[Execution Continuity / 실행 연속성]",
-    "- Continue from the latest state without self-introduction or kickoff narration / 자기소개·착수 멘트 없이 최신 상태에서 바로 이어서 작업",
-    "- Reuse prior codebase understanding and read only files needed for this delta / 기존 코드베이스 이해를 재사용하고 이번 변경에 필요한 파일만 확인",
-    "- Focus on unresolved checklist items and produce concrete diffs first / 미해결 체크리스트 중심으로 즉시 코드 변경부터 진행",
-    "[Git Workflow Guardrail / Git 워크플로우 가드레일]",
-    "- Do NOT run git merge/rebase/cherry-pick/push during task execution. Merge is performed only by the system after final review approval / 작업 실행 중 git merge/rebase/cherry-pick/push 금지. 병합은 최종 리뷰 승인 후 시스템이 수행",
+    "[Execution Continuity / 実行継続性]",
+    "- Continue from the latest state without self-introduction or kickoff narration / 自己紹介・着手メッセージなしで、最新状態からそのまま作業を継続",
+    "- Reuse prior codebase understanding and read only files needed for this delta / 既存コードベースの理解を再利用し、今回の変更に必要なファイルのみ確認",
+    "- Focus on unresolved checklist items and produce concrete diffs first / 未解決チェックリストを中心に、即座にコード変更から進める",
+    "[Git Workflow Guardrail / Gitワークフローガードレール]",
+    "- Do NOT run git merge/rebase/cherry-pick/push during task execution. Merge is performed only by the system after final review approval / 作業実行中はgit merge/rebase/cherry-pick/push禁止。マージは最終レビュー承認後にシステムが実行",
   ];
 
   const WARNING_FIX_OVERRIDE_LINE =
-    "- Exception override: User explicitly requested warning-level fixes for this task. You may fix the requested MEDIUM/LOW items / 예외: 이 작업에서 사용자 요청 시 MEDIUM/LOW도 해당 요청 범위 내에서 수정 가능";
+    "- Exception override: User explicitly requested warning-level fixes for this task. You may fix the requested MEDIUM/LOW items / 例外: このタスクでユーザーが明示的に要求した場合、MEDIUM/LOWも対象範囲内で修正可能";
 
   function hasExplicitWarningFixRequest(...textParts: Array<string | null | undefined>): boolean {
     const text = textParts

@@ -299,7 +299,7 @@ export function startLifecycle(ctx: RuntimeContext): void {
             ? `[WATCHDOG] '${task.title}' は in_progress でしたが実行プロセスが存在しないため inbox に復旧しました。`
             : lang === "zh"
               ? `[WATCHDOG] '${task.title}' 处于 in_progress，但未发现执行进程，已恢复到 inbox。`
-              : `[WATCHDOG] '${task.title}' 작업이 in_progress 상태였지만 실행 프로세스가 없어 inbox로 복구했습니다.`;
+              : `[WATCHDOG] '${task.title}' タスクがin_progress状態でしたが実行プロセスが見つからなかったため、inboxに復元しました。`;
       notifyCeo(watchdogMessage, task.id);
     }
   }

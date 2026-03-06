@@ -111,14 +111,14 @@ export default function AgentCard({
                 disabled={saving || agent.status === "working"}
                 className="px-2 py-0.5 rounded text-[10px] font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-40 transition-colors"
               >
-                {tr("해고", "Fire")}
+                {tr("해고", "Fire", "解雇")}
               </button>
               <button
                 onClick={onDeleteCancel}
                 className="px-2 py-0.5 rounded text-[10px] transition-colors"
                 style={{ color: "var(--th-text-muted)" }}
               >
-                {tr("취소", "No")}
+                {tr("취소", "No", "キャンセル")}
               </button>
             </>
           ) : (
@@ -126,7 +126,7 @@ export default function AgentCard({
               onClick={onDeleteClick}
               className="px-1.5 py-0.5 rounded text-xs hover:bg-red-500/15 hover:text-red-400 transition-colors"
               style={{ color: "var(--th-text-muted)" }}
-              title={tr("해고", "Fire")}
+              title={tr("해고", "Fire", "解雇")}
             >
               ✕
             </button>

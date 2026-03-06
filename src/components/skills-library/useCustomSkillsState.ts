@@ -59,7 +59,7 @@ export function useCustomSkillsState({
       setCustomSkillContent(reader.result as string);
     };
     reader.onerror = () => {
-      setCustomSkillError("파일 읽기 실패");
+      setCustomSkillError("ファイルの読み込みに失敗しました");
     };
     reader.readAsText(file);
   }, []);

@@ -14,10 +14,10 @@ interface LanguagePolicyDeps {
 }
 
 const ROLE_LABEL: Record<string, string> = {
-  team_leader: "팀장",
-  senior: "시니어",
-  junior: "주니어",
-  intern: "인턴",
+  team_leader: "チームリーダー",
+  senior: "シニア",
+  junior: "ジュニア",
+  intern: "インターン",
 };
 
 const ROLE_LABEL_L10N: Record<string, Record<Lang, string>> = {

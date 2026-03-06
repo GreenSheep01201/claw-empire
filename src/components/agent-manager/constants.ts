@@ -29,22 +29,22 @@ export const ICON_SPRITE_POOL = Array.from({ length: 13 }, (_, i) => i + 1);
 
 export const EMOJI_GROUPS: { label: string; labelEn: string; emojis: string[] }[] = [
   {
-    label: "부서/업무",
+    label: "部署/業務",
     labelEn: "Work",
     emojis: ["📊", "💻", "🎨", "🔍", "🛡️", "⚙️", "📁", "🏢", "📋", "📈", "💼", "🗂️", "📌", "🎯", "🔧", "🧪"],
   },
   {
-    label: "사람/표정",
+    label: "人物/表情",
     labelEn: "People",
     emojis: ["🤖", "👤", "👥", "😊", "😎", "🤓", "🧑‍💻", "👨‍🔬", "👩‍🎨", "🧑‍🏫", "🦸", "🦊", "🐱", "🐶", "🐻", "🐼"],
   },
   {
-    label: "사물/기호",
+    label: "物/記号",
     labelEn: "Objects",
     emojis: ["💡", "🚀", "⚡", "🔥", "💎", "🏆", "🎵", "🎮", "📱", "💾", "🖥️", "📡", "🔑", "🛠️", "📦", "🧩"],
   },
   {
-    label: "자연/색상",
+    label: "自然/色",
     labelEn: "Nature",
     emojis: ["🌟", "⭐", "🌈", "🌊", "🌸", "🍀", "🌙", "☀️", "❄️", "🔵", "🟢", "🟡", "🔴", "🟣", "🟠", "⚪"],
   },

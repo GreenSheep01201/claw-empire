@@ -92,7 +92,7 @@ export function registerTaskSubtaskRoutes(deps: TaskSubtaskRouteDeps): void {
       const targetDeptName = getDeptName(targetDeptId);
       db.prepare(
         "UPDATE subtasks SET target_department_id = ?, status = 'blocked', blocked_reason = ? WHERE id = ?",
-      ).run(targetDeptId, `${targetDeptName} 협업 대기`, id);
+      ).run(targetDeptId, `${targetDeptName} コラボレーション待機`, id);
     }
 
     const subtask = db.prepare("SELECT * FROM subtasks WHERE id = ?").get(id);

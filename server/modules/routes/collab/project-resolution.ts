@@ -163,9 +163,9 @@ export function initializeProjectResolution({ db }: InitializeProjectResolutionA
 
   function buildRoundGoal(coreGoal: string | null, ceoMessage: string): string {
     if (coreGoal) {
-      return `프로젝트 핵심목표("${coreGoal}")를 유지하면서 이번 요청("${ceoMessage}")을 이번 라운드에서 실행 가능한 산출물로 완수`;
+      return `プロジェクトのコアゴール（"${coreGoal}"）を維持しながら、今回のリクエスト（"${ceoMessage}"）を今ラウンドで実行可能な成果物として完遂する`;
     }
-    return `이번 요청("${ceoMessage}")을 이번 라운드 목표로 정의하고 실행 가능한 산출물까지 완수`;
+    return `今回のリクエスト（"${ceoMessage}"）を今ラウンドの目標として定義し、実行可能な成果物まで完遂する`;
   }
 
   return {

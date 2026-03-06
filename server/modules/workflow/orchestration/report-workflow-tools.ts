@@ -302,7 +302,7 @@ export function createReportWorkflowTools(deps: CreateReportWorkflowToolsDeps) {
 `,
     ).run(
       childTaskId,
-      `[디자인 컨펌] ${task.title.length > 48 ? `${task.title.slice(0, 45).trimEnd()}...` : task.title}`,
+      `[デザイン確認] ${task.title.length > 48 ? `${task.title.slice(0, 45).trimEnd()}...` : task.title}`,
       designDescription,
       designAgent.id,
       task.project_id ?? null,
@@ -314,7 +314,7 @@ export function createReportWorkflowTools(deps: CreateReportWorkflowToolsDeps) {
     );
     recordTaskCreationAudit({
       taskId: childTaskId,
-      taskTitle: `[디자인 컨펌] ${task.title.length > 48 ? `${task.title.slice(0, 45).trimEnd()}...` : task.title}`,
+      taskTitle: `[デザイン確認] ${task.title.length > 48 ? `${task.title.slice(0, 45).trimEnd()}...` : task.title}`,
       taskStatus: "planned",
       departmentId: "design",
       assignedAgentId: designAgent.id,
