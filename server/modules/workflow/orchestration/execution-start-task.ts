@@ -77,11 +77,27 @@ export function createExecutionStartTaskTools(deps: CreateExecutionStartTaskTool
   function startTaskExecutionForAgent(taskId: string, execAgent: any, deptId: string | null, deptName: string): void {
     const execName = execAgent.name_ko || execAgent.name;
     const t = nowMs();
+
+    // Determine work-phase status from title prefix (same logic as execution-run.ts)
+    const taskTitleRow = db.prepare("SELECT title FROM tasks WHERE id = ?").get(taskId) as { title: string } | undefined;
+    const workPhaseMap: Record<string, string> = {
+      "[コンポーネント]": "component_dev",
+      "[ドキュメント]": "documenting",
+      "[デバッグ]": "debugging",
+      "[UI実装]": "ui_work",
+      "[API実装]": "api_work",
+      "[テスト]": "testing",
+      "[コーディング]": "coding",
+      "[協業]": "collaborating",
+    };
+    const prefix = Object.keys(workPhaseMap).find((p) => taskTitleRow?.title?.startsWith(p));
+    const phaseStatus = prefix ? workPhaseMap[prefix] : "coding";
+
     db.prepare(
-      "UPDATE tasks SET status = 'in_progress', assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
-    ).run(execAgent.id, t, t, taskId);
+      "UPDATE tasks SET status = ?, assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
+    ).run(phaseStatus, execAgent.id, t, t, taskId);
     db.prepare("UPDATE agents SET status = 'working', current_task_id = ? WHERE id = ?").run(taskId, execAgent.id);
-    appendTaskLog(taskId, "system", `${execName} started (approved)`);
+    appendTaskLog(taskId, "system", `${execName} started (approved) | 📌 phase: ${phaseStatus}`);
 
     // ── Kickoff meeting record ──────────────────────────────────────────
     const taskRow = db.prepare("SELECT title, description, department_id FROM tasks WHERE id = ?").get(taskId) as

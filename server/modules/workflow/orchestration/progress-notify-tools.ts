@@ -10,7 +10,11 @@ export function createProgressNotifyTools(deps: CreateProgressNotifyToolsDeps) {
       const currentTask = db.prepare("SELECT status FROM tasks WHERE id = ?").get(taskId) as
         | { status: string }
         | undefined;
-      if (!currentTask || currentTask.status !== "in_progress") {
+      const ACTIVE_STATUSES = new Set([
+        "in_progress", "coding", "testing", "documenting",
+        "ui_work", "api_work", "component_dev", "debugging", "collaborating",
+      ]);
+      if (!currentTask || !ACTIVE_STATUSES.has(currentTask.status)) {
         clearInterval(timer);
         progressTimers.delete(taskId);
         return;

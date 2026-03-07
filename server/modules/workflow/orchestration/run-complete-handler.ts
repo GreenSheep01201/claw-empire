@@ -79,8 +79,12 @@ export function createRunCompleteHandler(deps: CreateRunCompleteHandlerDeps) {
     stopRequestedTasks.delete(taskId);
     stopRequestModeByTask.delete(taskId);
 
-    // If task was stopped/deleted or no longer in-progress, ignore late close events.
-    if (!task || stopRequested || task.status !== "in_progress") {
+    // If task was stopped/deleted or no longer in an active work phase, ignore late close events.
+    const ACTIVE_WORK_STATUSES = new Set([
+      "in_progress", "coding", "testing", "documenting",
+      "ui_work", "api_work", "component_dev", "debugging", "collaborating",
+    ]);
+    if (!task || stopRequested || !ACTIVE_WORK_STATUSES.has(task.status)) {
       if (task) {
         appendTaskLog(
           taskId,

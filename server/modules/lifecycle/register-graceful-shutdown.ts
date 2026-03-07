@@ -58,7 +58,7 @@ export function registerGracefulShutdownHandlers({
           task.assigned_agent_id,
         );
       }
-      db.prepare("UPDATE tasks SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = 'in_progress'").run(
+      db.prepare("UPDATE tasks SET status = 'cancelled', updated_at = ? WHERE id = ? AND status IN ('in_progress','coding','testing','documenting','ui_work','api_work','component_dev','debugging','collaborating')").run(
         nowMs(),
         taskId,
       );

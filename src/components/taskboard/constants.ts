@@ -103,6 +103,8 @@ export function saveCreateTaskDrafts(drafts: CreateTaskDraft[]): void {
   window.localStorage.setItem(TASK_CREATE_DRAFTS_STORAGE_KEY, JSON.stringify(drafts.slice(0, 20)));
 }
 
+// in_progress is intentionally excluded from COLUMNS — tasks are routed to specific work-phase columns.
+// Any task that would be "in_progress" defaults to "coding" via execution-run.ts.
 export const COLUMNS: {
   status: TaskStatus;
   icon: string;
@@ -132,32 +134,11 @@ export const COLUMNS: {
     dotColor: "bg-indigo-400",
   },
   {
-    status: "in_progress",
-    icon: "⚡",
-    headerBg: "bg-amber-900",
-    borderColor: "border-amber-700",
-    dotColor: "bg-amber-400",
-  },
-  {
     status: "coding",
     icon: "💻",
     headerBg: "bg-cyan-900",
     borderColor: "border-cyan-700",
     dotColor: "bg-cyan-400",
-  },
-  {
-    status: "documenting",
-    icon: "📝",
-    headerBg: "bg-teal-900",
-    borderColor: "border-teal-700",
-    dotColor: "bg-teal-400",
-  },
-  {
-    status: "ui_work",
-    icon: "🎨",
-    headerBg: "bg-pink-900",
-    borderColor: "border-pink-700",
-    dotColor: "bg-pink-400",
   },
   {
     status: "api_work",
@@ -172,6 +153,27 @@ export const COLUMNS: {
     headerBg: "bg-sky-900",
     borderColor: "border-sky-700",
     dotColor: "bg-sky-400",
+  },
+  {
+    status: "ui_work",
+    icon: "🎨",
+    headerBg: "bg-pink-900",
+    borderColor: "border-pink-700",
+    dotColor: "bg-pink-400",
+  },
+  {
+    status: "documenting",
+    icon: "📝",
+    headerBg: "bg-teal-900",
+    borderColor: "border-teal-700",
+    dotColor: "bg-teal-400",
+  },
+  {
+    status: "testing",
+    icon: "🧪",
+    headerBg: "bg-lime-900",
+    borderColor: "border-lime-700",
+    dotColor: "bg-lime-400",
   },
   {
     status: "debugging",
@@ -214,17 +216,19 @@ export const STATUS_OPTIONS: TaskStatus[] = [
   "inbox",
   "planned",
   "collaborating",
-  "in_progress",
   "coding",
-  "documenting",
-  "ui_work",
   "api_work",
   "component_dev",
+  "ui_work",
+  "documenting",
+  "testing",
   "debugging",
   "review",
   "done",
   "pending",
   "cancelled",
+  // in_progress is kept for backward compat but not shown in UI
+  "in_progress",
 ];
 
 export const TASK_TYPE_OPTIONS: { value: TaskType; color: string }[] = [
@@ -242,10 +246,14 @@ export function taskStatusLabel(status: TaskStatus, t: TFunction) {
       return t({ ko: "수신함", en: "Inbox", ja: "受信箱", zh: "收件箱" });
     case "planned":
       return t({ ko: "계획됨", en: "Planned", ja: "計画済み", zh: "已计划" });
+    case "collaborating":
+      return t({ ko: "협업 중", en: "Collaborating", ja: "協業中", zh: "协作中" });
     case "in_progress":
       return t({ ko: "진행 중", en: "In Progress", ja: "進行中", zh: "进行中" });
     case "coding":
       return t({ ko: "코딩", en: "Coding", ja: "コード生成", zh: "编码" });
+    case "testing":
+      return t({ ko: "테스트 중", en: "Testing", ja: "テスト中", zh: "测试中" });
     case "documenting":
       return t({ ko: "문서화 중", en: "Documenting", ja: "ドキュメント作成", zh: "文档编写" });
     case "ui_work":
@@ -257,7 +265,7 @@ export function taskStatusLabel(status: TaskStatus, t: TFunction) {
     case "debugging":
       return t({ ko: "디버깅", en: "Debugging", ja: "デバッグ", zh: "调试" });
     case "review":
-      return t({ ko: "검토", en: "Review", ja: "レビュー", zh: "审核" });
+      return t({ ko: "검토", en: "Review", ja: "레뷰", zh: "审核" });
     case "done":
       return t({ ko: "완료", en: "Done", ja: "完了", zh: "完成" });
     case "pending":

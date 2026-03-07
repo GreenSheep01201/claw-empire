@@ -121,14 +121,18 @@ export function registerTaskRunRoute(deps: TaskRunRouteDeps): void {
       }
     }
 
-    if (task.status === "in_progress" || task.status === "collaborating") {
+    const RUNNING_STATUSES = new Set([
+      "in_progress", "coding", "testing", "documenting",
+      "ui_work", "api_work", "component_dev", "debugging", "collaborating",
+    ]);
+    if (RUNNING_STATUSES.has(task.status)) {
       if (activeProcesses.has(id)) {
         return res.status(400).json({ error: "already_running" });
       }
       const t = nowMs();
       db.prepare("UPDATE tasks SET status = 'pending', updated_at = ? WHERE id = ?").run(t, id);
       task.status = "pending";
-      appendTaskLog(id, "system", `Reset stale in_progress status (no active process) for re-run`);
+      appendTaskLog(id, "system", `Reset stale ${task.status} status (no active process) for re-run`);
     }
 
     if (activeProcesses.has(id)) {
@@ -535,18 +539,21 @@ Whenever you complete a subtask, report it in this format:
     // ───────────────────────────────────────────────────────────────────
 
     // ── Auto-set work-phase status based on task title prefix ────────────
+    // Tasks without a recognized prefix default to "coding" instead of generic "in_progress".
+    // This keeps the kanban board meaningful: every running task shows its actual work phase.
     const workPhaseStatusMap: Record<string, string> = {
       "[コンポーネント]": "component_dev",
       "[ドキュメント]": "documenting",
       "[デバッグ]": "debugging",
       "[UI実装]": "ui_work",
       "[API実装]": "api_work",
+      "[テスト]": "testing",
+      "[コーディング]": "coding",
+      "[協業]": "collaborating",
     };
     const titlePrefix = Object.keys(workPhaseStatusMap).find((p) => task.title?.startsWith(p));
-    const targetStatus = titlePrefix ? workPhaseStatusMap[titlePrefix] : "in_progress";
-    if (titlePrefix) {
-      appendTaskLog(id, "system", `📌 Work phase: ${targetStatus}`);
-    }
+    const targetStatus = titlePrefix ? workPhaseStatusMap[titlePrefix] : "coding";
+    appendTaskLog(id, "system", `📌 Work phase: ${targetStatus}${titlePrefix ? ` (prefix: ${titlePrefix})` : " (default)"}`);
     // ────────────────────────────────────────────────────────────────────
 
     if (provider === "api") {

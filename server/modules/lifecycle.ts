@@ -173,7 +173,7 @@ export function startLifecycle(ctx: RuntimeContext): void {
         `
     SELECT id, title, assigned_agent_id, created_at, started_at, updated_at
     FROM tasks
-    WHERE status = 'in_progress'
+    WHERE status IN ('in_progress','coding','testing','documenting','ui_work','api_work','component_dev','debugging','collaborating')
     ORDER BY updated_at ASC
   `,
       )
@@ -267,7 +267,7 @@ export function startLifecycle(ctx: RuntimeContext): void {
 
       const t = nowMs();
       const move = db
-        .prepare("UPDATE tasks SET status = 'inbox', updated_at = ? WHERE id = ? AND status = 'in_progress'")
+        .prepare("UPDATE tasks SET status = 'inbox', updated_at = ? WHERE id = ? AND status IN ('in_progress','coding','testing','documenting','ui_work','api_work','component_dev','debugging','collaborating')")
         .run(t, task.id) as { changes?: number };
       if ((move.changes ?? 0) === 0) continue;
 

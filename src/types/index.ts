@@ -92,6 +92,7 @@ export type TaskStatus =
   | "collaborating"
   | "in_progress"
   | "coding"
+  | "testing"
   | "documenting"
   | "ui_work"
   | "api_work"
