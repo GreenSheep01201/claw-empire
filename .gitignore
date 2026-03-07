@@ -43,6 +43,7 @@ docs/.pdca-*
 .vscode/
 .idea/
 CLAUDE.md
+tasks.md
 *.swp
 *.swo
 *~

@@ -83,13 +83,12 @@ if [[ "${NODE_MAJOR}" -lt 22 ]]; then
   exit 1
 fi
 
-if ! command -v corepack >/dev/null 2>&1; then
-  echo "corepack is required (bundled with Node.js)." >&2
-  exit 1
-fi
-
-corepack enable >/dev/null 2>&1 || true
 if ! command -v pnpm >/dev/null 2>&1; then
+  if ! command -v corepack >/dev/null 2>&1; then
+    echo "pnpm is required. Install via: npm install -g pnpm" >&2
+    exit 1
+  fi
+  corepack enable >/dev/null 2>&1 || true
   corepack prepare pnpm@latest --activate >/dev/null 2>&1
 fi
 
