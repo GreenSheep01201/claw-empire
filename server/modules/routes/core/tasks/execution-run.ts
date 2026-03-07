@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomUUID as cryptoRandomUUID } from "node:crypto";
 import { notifyTaskStatus } from "../../../../gateway/client.ts";
 import type { RuntimeContext } from "../../../../types/runtime-context.ts";
 import type { AgentRow } from "../../shared/types.ts";
@@ -501,6 +502,37 @@ Whenever you complete a subtask, report it in this format:
     }
 
     appendTaskLog(id, "system", `RUN start (agent=${agent.name}, provider=${provider})`);
+
+    // ── Kickoff meeting record ──────────────────────────────────────────
+    {
+      const taskRowForKickoff = db.prepare("SELECT title, description FROM tasks WHERE id = ?").get(id) as
+        | { title: string; description: string | null }
+        | undefined;
+      if (taskRowForKickoff) {
+        const kMeetingId = cryptoRandomUUID();
+        const kT = nowMs();
+        const kDeptName = agent.department_name || agent.department_name_ko || "dev";
+        const kShortDesc = (taskRowForKickoff.description ?? "").slice(0, 800);
+        const kContent = [
+          `## タスク: ${taskRowForKickoff.title}`,
+          `## 担当: ${agent.name_ko || agent.name} (${kDeptName})`,
+          `## 開始時刻: ${new Date(kT).toISOString()}`,
+          kShortDesc ? `## 仕様概要:\n${kShortDesc}` : "",
+          `## 完了条件: コード生成・ドキュメント作成・gitコミット`,
+        ].filter(Boolean).join("\n\n");
+        db.prepare(
+          `INSERT INTO meeting_minutes (id, task_id, meeting_type, round, title, status, started_at, completed_at, created_at)
+           VALUES (?, ?, 'kickoff', 1, ?, 'completed', ?, ?, ?)`,
+        ).run(kMeetingId, id, `キックオフ: ${taskRowForKickoff.title}`, kT, kT, kT);
+        db.prepare(
+          `INSERT INTO meeting_minute_entries
+           (meeting_id, seq, speaker_agent_id, speaker_name, department_name, role_label, message_type, content, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, 'spec', ?, ?)`,
+        ).run(kMeetingId, 1, agent.id, agent.name_ko || agent.name, kDeptName, "担当", kContent, kT);
+        appendTaskLog(id, "system", `📋 kickoff meeting created: ${kMeetingId.slice(0, 8)}`);
+      }
+    }
+    // ───────────────────────────────────────────────────────────────────
 
     if (provider === "api") {
       const controller = new AbortController();
