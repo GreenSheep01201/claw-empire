@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomUUID as cryptoRandomUUID } from "node:crypto";
 import type { RuntimeContext } from "../../../types/runtime-context.ts";
 import { getDepartmentPromptForPack } from "../packs/department-scope.ts";
 import { ensureVideoPreprodRemotionBestPracticesSkill } from "../core/video-skill-bootstrap.ts";
@@ -87,7 +88,7 @@ export function createExecutionStartTaskTools(deps: CreateExecutionStartTaskTool
       | { title: string; description: string | null; department_id: string | null }
       | undefined;
     if (taskRow) {
-      const meetingId = crypto.randomUUID();
+      const meetingId = cryptoRandomUUID();
       const shortDesc = (taskRow.description ?? "").slice(0, 800);
       db.prepare(
         `INSERT INTO meeting_minutes (id, task_id, meeting_type, round, title, status, started_at, created_at)
