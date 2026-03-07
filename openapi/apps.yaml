@@ -1,0 +1,76 @@
+openapi: 3.0.3
+info:
+  title: ClawEmpire Apps API (demo)
+  version: "1.0.0"
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /apps:
+    get:
+      summary: List apps
+      responses:
+        '200':
+          description: list of apps
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  apps:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        status:
+                          type: string
+  /apps/{id}/status:
+    get:
+      summary: Get app status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: status
+  /apps/{id}/start:
+    post:
+      summary: Start an app (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: start result
+  /apps/{id}/stop:
+    post:
+      summary: Stop an app (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: stop result
