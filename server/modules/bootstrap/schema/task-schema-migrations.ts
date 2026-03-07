@@ -392,7 +392,7 @@ function migrateLegacyTasksStatusSchema(db: DbLike): void {
           assigned_agent_id TEXT REFERENCES agents(id),
           project_id TEXT REFERENCES projects(id),
           status TEXT NOT NULL DEFAULT 'inbox'
-            CHECK(status IN ('inbox','planned','collaborating','in_progress','review','done','cancelled','pending')),
+            CHECK(status IN ('inbox','planned','collaborating','in_progress','coding','testing','documenting','ui_work','api_work','component_dev','debugging','review','done','cancelled','pending')),
           priority INTEGER DEFAULT 0,
           task_type TEXT DEFAULT 'general'
             CHECK(task_type IN ('general','development','design','analysis','presentation','documentation')),
@@ -430,7 +430,7 @@ function migrateLegacyTasksStatusSchema(db: DbLike): void {
           id, title, description, department_id, assigned_agent_id,
           ${projectIdExpr},
           CASE
-            WHEN status IN ('inbox','planned','collaborating','in_progress','review','done','cancelled','pending')
+            WHEN status IN ('inbox','planned','collaborating','in_progress','coding','testing','documenting','ui_work','api_work','component_dev','debugging','review','done','cancelled','pending')
               THEN status
             ELSE 'inbox'
           END,

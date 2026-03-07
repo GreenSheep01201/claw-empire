@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   department_id TEXT REFERENCES departments(id),
   assigned_agent_id TEXT REFERENCES agents(id),
   project_id TEXT REFERENCES projects(id),
-  status TEXT NOT NULL DEFAULT 'inbox' CHECK(status IN ('inbox','planned','collaborating','in_progress','review','done','cancelled','pending')),
+  status TEXT NOT NULL DEFAULT 'inbox' CHECK(status IN ('inbox','planned','collaborating','in_progress','coding','testing','documenting','ui_work','api_work','component_dev','debugging','review','done','cancelled','pending')),
   priority INTEGER DEFAULT 0,
   task_type TEXT DEFAULT 'general' CHECK(task_type IN ('general','development','design','analysis','presentation','documentation')),
   workflow_pack_key TEXT NOT NULL DEFAULT 'development',
