@@ -534,6 +534,24 @@ Whenever you complete a subtask, report it in this format:
     }
     // ───────────────────────────────────────────────────────────────────
 
+    // ── Auto-set work-phase status based on task title prefix ────────────
+    {
+      const workPhaseStatus: Record<string, string> = {
+        "[コンポーネント]": "component_dev",
+        "[ドキュメント]": "documenting",
+        "[デバッグ]": "debugging",
+        "[UI実装]": "ui_work",
+        "[API実装]": "api_work",
+      };
+      const titlePrefix = Object.keys(workPhaseStatus).find((p) => task.title?.startsWith(p));
+      if (titlePrefix) {
+        const phase = workPhaseStatus[titlePrefix];
+        db.prepare("UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?").run(phase, nowMs(), id);
+        appendTaskLog(id, "system", `📌 Work phase: ${phase}`);
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────
+
     if (provider === "api") {
       const controller = new AbortController();
       const fakePid = getNextHttpAgentPid();
