@@ -196,8 +196,12 @@ export function createRunCompleteHandler(deps: CreateRunCompleteHandlerDeps) {
           const relFilePath = descMatch?.[1] ?? fileMatch?.[1] ?? null;
           const projectPath = task.project_path ?? "";
 
+          // Check worktree path first (agent writes files there), then fall back to project path
+          const wtInfo = taskWorktrees.get(taskId) as { worktreePath?: string } | undefined;
+          const checkRoot = wtInfo?.worktreePath ?? projectPath;
+
           if (relFilePath && projectPath) {
-            const absFilePath = path.join(projectPath, relFilePath);
+            const absFilePath = path.join(checkRoot, relFilePath);
             const fileExists = fs.existsSync(absFilePath);
 
             if (!fileExists) {
@@ -210,10 +214,10 @@ export function createRunCompleteHandler(deps: CreateRunCompleteHandlerDeps) {
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'inbox', ?, ?)`,
               ).run(newId, debugPayload.title, debugPayload.description, debugPayload.department_id, debugPayload.task_type, debugPayload.project_path, taskId, debugPayload.priority ?? 20, nowMs, nowMs);
             } else {
-              // Run tsc check if tsconfig exists
+              // Run tsc check if tsconfig exists (in worktree)
               let tscError = "";
-              const clientTsconfigPath = path.join(projectPath, "client", "tsconfig.json");
-              const tscRoot = fs.existsSync(clientTsconfigPath) ? path.join(projectPath, "client") : projectPath;
+              const clientTsconfigPath = path.join(checkRoot, "client", "tsconfig.json");
+              const tscRoot = fs.existsSync(clientTsconfigPath) ? path.join(checkRoot, "client") : checkRoot;
 
               if (fs.existsSync(path.join(tscRoot, "tsconfig.json"))) {
                 try {
