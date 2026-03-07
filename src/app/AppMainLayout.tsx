@@ -6,6 +6,7 @@ import TaskBoard from "../components/TaskBoard";
 import AgentManager from "../components/AgentManager";
 import SkillsLibrary from "../components/SkillsLibrary";
 import SettingsPanel from "../components/SettingsPanel";
+import { ComponentManagerPage } from "../components/component-manager";
 import { I18nProvider } from "../i18n";
 import type {
   Agent,
@@ -126,6 +127,10 @@ interface AppMainLayoutProps {
   onOpenDecisionInbox: () => void;
   onOpenAgentStatus: () => void;
   onOpenReportHistory: () => void;
+  onOpenStaffRoster: () => void;
+  onOpenSystemConsole: () => void;
+  onOpenLocalServer: () => void;
+  onOpenAppList: () => void;
   onOpenAnnouncement: () => void;
   onOpenRoomManager: () => void;
   onDismissAutoUpdateNotice: () => Promise<void>;
@@ -187,6 +192,10 @@ export default function AppMainLayout({
   onOpenDecisionInbox,
   onOpenAgentStatus,
   onOpenReportHistory,
+  onOpenStaffRoster,
+  onOpenSystemConsole,
+  onOpenLocalServer,
+  onOpenAppList,
   onOpenAnnouncement,
   onOpenRoomManager,
   onDismissAutoUpdateNotice,
@@ -392,6 +401,10 @@ export default function AppMainLayout({
             onOpenDecisionInbox={onOpenDecisionInbox}
             onOpenAgentStatus={onOpenAgentStatus}
             onOpenReportHistory={onOpenReportHistory}
+            onOpenStaffRoster={onOpenStaffRoster}
+            onOpenSystemConsole={onOpenSystemConsole}
+            onOpenLocalServer={onOpenLocalServer}
+            onOpenAppList={onOpenAppList}
             onOpenAnnouncement={onOpenAnnouncement}
             onOpenRoomManager={onOpenRoomManager}
             officePackControl={
@@ -540,6 +553,8 @@ export default function AppMainLayout({
             )}
 
             {view === "skills" && <SkillsLibrary agents={agents} />}
+
+            {view === "components" && <ComponentManagerPage />}
 
             {view === "settings" && (
               <SettingsPanel
