@@ -1,0 +1,38 @@
+[Unit]
+Description=Claw-Empire AI Agent Office (production)
+Documentation=https://github.com/GreenSheep01201/claw-empire
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=%h/claw-empire
+
+# Load production env file
+EnvironmentFile=-%h/claw-empire/deploy/.env.production
+
+# Use pnpm start (requires prior `pnpm run build`)
+ExecStartPre=/usr/bin/env bash -c 'cd %h/claw-empire && pnpm run build --if-present 2>/dev/null || true'
+ExecStart=/usr/bin/env bash -lc 'cd %h/claw-empire && pnpm run start'
+
+# Graceful stop
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+# Logging
+StandardOutput=append:%h/claw-empire/logs/claw-empire.log
+StandardError=append:%h/claw-empire/logs/claw-empire.err
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
