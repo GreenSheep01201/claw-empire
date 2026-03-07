@@ -82,6 +82,34 @@ export function createExecutionStartTaskTools(deps: CreateExecutionStartTaskTool
     db.prepare("UPDATE agents SET status = 'working', current_task_id = ? WHERE id = ?").run(taskId, execAgent.id);
     appendTaskLog(taskId, "system", `${execName} started (approved)`);
 
+    // ── Kickoff meeting record ──────────────────────────────────────────
+    const taskRow = db.prepare("SELECT title, description, department_id FROM tasks WHERE id = ?").get(taskId) as
+      | { title: string; description: string | null; department_id: string | null }
+      | undefined;
+    if (taskRow) {
+      const meetingId = crypto.randomUUID();
+      const shortDesc = (taskRow.description ?? "").slice(0, 800);
+      db.prepare(
+        `INSERT INTO meeting_minutes (id, task_id, meeting_type, round, title, status, started_at, created_at)
+         VALUES (?, ?, 'kickoff', 1, ?, 'completed', ?, ?)`,
+      ).run(meetingId, taskId, `キックオフ: ${taskRow.title}`, t, t);
+      const kickoffContent = [
+        `## タスク: ${taskRow.title}`,
+        `## 担当: ${execAgent.name_ja || execAgent.name} (${deptName})`,
+        `## 開始時刻: ${new Date(t).toISOString()}`,
+        shortDesc ? `## 仕様概要:\n${shortDesc}` : "",
+        `## 完了条件: コード生成・ドキュメント作成・gitコミット`,
+      ].filter(Boolean).join("\n\n");
+      db.prepare(
+        `INSERT INTO meeting_minute_entries
+         (meeting_id, seq, speaker_agent_id, speaker_name, department_name, role_label, message_type, content, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'spec', ?, ?)`,
+      ).run(meetingId, 1, execAgent.id, execAgent.name_ja || execAgent.name, deptName, "担当", kickoffContent, t);
+      db.prepare("UPDATE meeting_minutes SET completed_at = ? WHERE id = ?").run(t, meetingId);
+      appendTaskLog(taskId, "system", `📋 kickoff meeting created: ${meetingId.slice(0, 8)}`);
+    }
+    // ───────────────────────────────────────────────────────────────────
+
     broadcast("task_update", db.prepare("SELECT * FROM tasks WHERE id = ?").get(taskId));
     broadcast("agent_status", db.prepare("SELECT * FROM agents WHERE id = ?").get(execAgent.id));
 
@@ -236,7 +264,36 @@ export function createExecutionStartTaskTools(deps: CreateExecutionStartTaskTool
         execAgent.personality ? `Personality: ${execAgent.personality}` : "",
         deptConstraint,
         deptPromptBlock,
-        `NOTE: You are working in an isolated Git worktree branch (climpire/${taskId.slice(0, 8)}). Commit your changes normally.`,
+        (provider === "copilot" || provider === "antigravity" || provider === "api")
+          ? [
+              `NOTE: You are working in an isolated Git worktree branch (climpire/${taskId.slice(0, 8)}).`,
+              ``,
+              `⚠️ CRITICAL - FILE OUTPUT FORMAT (HTTP agent cannot run shell commands):`,
+              `You MUST output ALL file changes using the following patch block format.`,
+              `The system will automatically apply the patch and commit it to the worktree.`,
+              `WITHOUT this format, NO files will be created and the task FAILS.`,
+              ``,
+              `=== FORMAT ===`,
+              `*** Start Patch`,
+              `*** Add File: path/to/new-file.js`,
+              `+<line 1 of file content>`,
+              `+<line 2 of file content>`,
+              `*** Add File: path/to/another-file.json`,
+              `+{`,
+              `+  "key": "value"`,
+              `+}`,
+              `*** End Patch`,
+              ``,
+              `=== RULES ===`,
+              `- Every new file: use "*** Add File: <relative-path>" then prefix each content line with "+"`,
+              `- Every file update: use "*** Update File: <relative-path>" with unified diff lines`,
+              `- Every file deletion: use "*** Delete File: <relative-path>"`,
+              `- Wrap ALL file operations in a SINGLE "*** Start Patch" / "*** End Patch" block`,
+              `- Include the COMPLETE file content, not just snippets`,
+              `- After the patch block, describe what you did (for the task result)`,
+              `- Do NOT describe code without the patch block - descriptions alone produce NO files`,
+            ].join("\n")
+          : `NOTE: You are working in an isolated Git worktree branch (climpire/${taskId.slice(0, 8)}). After writing all files, run: git add -A && git commit -m "feat: <task summary>"`,
         interruptPromptBlock,
         continuationInstruction,
         runInstruction,

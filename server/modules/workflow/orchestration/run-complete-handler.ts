@@ -1,11 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import {
   discoverVideoArtifact,
   resolveVideoArtifactRelativeCandidates,
   resolveVideoArtifactSpecForTask,
 } from "../packs/video-artifact.ts";
 import { evaluateRemotionOnlyGateFromLogFiles } from "../packs/video-render-engine-gate.ts";
+import { applyPatchesFromLog } from "../core/patch-applicator.ts";
 
 type CreateRunCompleteHandlerDeps = Record<string, any>;
 
@@ -102,14 +104,154 @@ export function createRunCompleteHandler(deps: CreateRunCompleteHandlerDeps) {
     const logPath = path.join(logsDir, `${taskId}.log`);
     const t = nowMs();
     let finalExitCode = exitCode;
+    let rawLog: string | null = null;
     let result: string | null = null;
     try {
       if (fs.existsSync(logPath)) {
-        const raw = fs.readFileSync(logPath, "utf8");
-        result = raw.slice(-2000);
+        rawLog = fs.readFileSync(logPath, "utf8");
+        result = rawLog.slice(-2000);
       }
     } catch {
       /* ignore */
+    }
+
+    // Apply Copilot agent patches (*** Start Patch … *** End Patch) to worktree
+    if (rawLog) {
+      const wtPatch = taskWorktrees.get(taskId) as { worktreePath?: string } | undefined;
+      if (wtPatch?.worktreePath) {
+        try {
+          // Determine if this is an HTTP-only agent (copilot/antigravity/api).
+          // CLI agents (claude/codex/gemini) write files via bash directly — no patch blocks needed.
+          const agentRow = task.assigned_agent_id
+            ? (db.prepare("SELECT cli_provider FROM agents WHERE id = ?").get(task.assigned_agent_id) as { cli_provider?: string } | undefined)
+            : undefined;
+          const agentProvider = agentRow?.cli_provider ?? "copilot";
+          const isHttpAgent = ["copilot", "antigravity", "api"].includes(agentProvider);
+
+          const committed = applyPatchesFromLog(rawLog, wtPatch.worktreePath, task.title);
+          if (committed) {
+            appendTaskLog(taskId, "system", "Patch blocks applied and committed to worktree.");
+          } else if (isHttpAgent) {
+            // ── CODE VERIFICATION CHECK (HTTP agents only) ──
+            // HTTP agents MUST use *** Start Patch to write files. If they didn't, requeue.
+            const hasCodeContent =
+              /```[\w]*\n[\s\S]{100,}?\n```/m.test(rawLog) || // markdown code block 100+ chars
+              /\bfunction\b|\bclass\b|\bconst\b|\bimport\b|\bexport\b/.test(rawLog); // code keywords
+
+            const hasPatchAttempt = /\*\*\*\s*(Start|Begin|Add|Update)\s+(Patch|File)/i.test(rawLog);
+
+            if (hasCodeContent && !hasPatchAttempt) {
+              appendTaskLog(
+                taskId,
+                "system",
+                "⚠️ CODE-WITHOUT-PATCH DETECTED: Agent described code but did not use *** Start Patch / *** End Patch format. No files were written to the worktree. Task result is text-only — files were NOT created. The agent must re-run using the required patch block format.",
+              );
+              // ── AUTO-REQUEUE for dev department HTTP-agent tasks ──
+              if (task.department_id === "dev") {
+                db.prepare("UPDATE tasks SET status='todo', result=NULL WHERE id=?").run(taskId);
+                appendTaskLog(
+                  taskId,
+                  "system",
+                  "🔁 AUTO-RETRY: devタスクにコードがコミットされなかったため自動差し戻し。スタッフは *** Start Patch 形式でコードを書いて再実行します。",
+                );
+                return; // skip normal done transition
+              }
+            } else if (hasCodeContent && hasPatchAttempt) {
+              appendTaskLog(
+                taskId,
+                "system",
+                "⚠️ PATCH-PARSE-FAILED: Patch block detected but could not be applied. Check patch format syntax.",
+              );
+              // Also requeue dev tasks when patch parsing failed
+              if (task.department_id === "dev") {
+                db.prepare("UPDATE tasks SET status='todo', result=NULL WHERE id=?").run(taskId);
+                appendTaskLog(
+                  taskId,
+                  "system",
+                  "🔁 AUTO-RETRY: パッチブロックの解析に失敗したため自動差し戻し。形式を確認して再実行します。",
+                );
+                return;
+              }
+            }
+          }
+        } catch (patchErr: unknown) {
+          const msg = patchErr instanceof Error ? patchErr.message : String(patchErr);
+          appendTaskLog(taskId, "system", `Patch application warning: ${msg}`);
+        }
+      }
+    }
+
+    // ── COMPONENT TASK CHECKER ──
+    // If this is a [コンポーネント] task, verify the file exists and runs tsc.
+    // On success: auto-generate a [ドキュメント] subtask.
+    // On failure: auto-generate a [デバッグ] subtask and requeue.
+    if (task.title?.startsWith("[コンポーネント]") && task.project_path) {
+      (async () => {
+        try {
+          const { buildDocumentTaskPayload, buildDebugTaskPayload } = await import("../core/task-templates.ts");
+          // Extract file path from title: "[コンポーネント] FileName.tsx - description"
+          const fileMatch = task.title.match(/\[コンポーネント\]\s+([\w/\-.]+\.(tsx?|jsx?))/);
+          // Also check description for "ファイル: `path`"
+          const descMatch = task.description?.match(/ファイル:\s*`([^`]+)`/);
+          const relFilePath = descMatch?.[1] ?? fileMatch?.[1] ?? null;
+          const projectPath = task.project_path ?? "";
+
+          if (relFilePath && projectPath) {
+            const absFilePath = path.join(projectPath, relFilePath);
+            const fileExists = fs.existsSync(absFilePath);
+
+            if (!fileExists) {
+              appendTaskLog(taskId, "system", `⚠️ COMPONENT CHECK: ファイル ${relFilePath} が存在しません。デバッグタスクを生成します。`);
+              const debugPayload = buildDebugTaskPayload(relFilePath, projectPath, `ファイルが作成されていない: ${absFilePath}`, taskId);
+              const newId = crypto.randomUUID();
+              const nowMs = Date.now();
+              db.prepare(
+                `INSERT INTO tasks (id, title, description, department_id, task_type, project_path, source_task_id, priority, status, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'inbox', ?, ?)`,
+              ).run(newId, debugPayload.title, debugPayload.description, debugPayload.department_id, debugPayload.task_type, debugPayload.project_path, taskId, debugPayload.priority ?? 20, nowMs, nowMs);
+            } else {
+              // Run tsc check if tsconfig exists
+              let tscError = "";
+              const clientTsconfigPath = path.join(projectPath, "client", "tsconfig.json");
+              const tscRoot = fs.existsSync(clientTsconfigPath) ? path.join(projectPath, "client") : projectPath;
+
+              if (fs.existsSync(path.join(tscRoot, "tsconfig.json"))) {
+                try {
+                  execFileSync("npx", ["tsc", "--noEmit", "--skipLibCheck"], { cwd: tscRoot as string, stdio: "pipe", timeout: 30000 });
+                  appendTaskLog(taskId, "system", `✅ COMPONENT CHECK: ${relFilePath} 存在確認OK、TypeScriptエラーなし。ドキュメントタスクを生成します。`);
+                } catch (tscErr: any) {
+                  tscError = tscErr.stdout?.toString() ?? tscErr.stderr?.toString() ?? String(tscErr);
+                  appendTaskLog(taskId, "system", `⚠️ COMPONENT CHECK: TypeScriptエラー検出。デバッグタスクを生成します。`);
+                }
+              } else {
+                appendTaskLog(taskId, "system", `✅ COMPONENT CHECK: ${relFilePath} 存在確認OK。ドキュメントタスクを生成します。`);
+              }
+
+              if (tscError) {
+                const debugPayload = buildDebugTaskPayload(relFilePath, projectPath, tscError, taskId);
+                const newId = crypto.randomUUID();
+                const nowMs = Date.now();
+                db.prepare(
+                  `INSERT INTO tasks (id, title, description, department_id, task_type, project_path, source_task_id, priority, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'inbox', ?, ?)`,
+                ).run(newId, debugPayload.title, debugPayload.description, debugPayload.department_id, debugPayload.task_type, debugPayload.project_path, taskId, debugPayload.priority ?? 20, nowMs, nowMs);
+              } else {
+                // Success — generate document task
+                const docPayload = buildDocumentTaskPayload(relFilePath, projectPath, taskId);
+                const newId = crypto.randomUUID();
+                const nowMs = Date.now();
+                db.prepare(
+                  `INSERT INTO tasks (id, title, description, department_id, task_type, project_path, source_task_id, priority, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'inbox', ?, ?)`,
+                ).run(newId, docPayload.title, docPayload.description, docPayload.department_id, docPayload.task_type, docPayload.project_path, taskId, docPayload.priority ?? 5, nowMs, nowMs);
+              }
+            }
+          }
+        } catch (compCheckErr: unknown) {
+          const msg = compCheckErr instanceof Error ? compCheckErr.message : String(compCheckErr);
+          appendTaskLog(taskId, "system", `Component check error: ${msg}`);
+        }
+      })().catch(() => {});
     }
     const isVideoPreprodTask = task.workflow_pack_key === "video_preprod";
     const isVideoFinalRenderTask = isVideoPreprodTask && /\[VIDEO_FINAL_RENDER\]/i.test(task.title);
@@ -487,6 +629,31 @@ export function createRunCompleteHandler(deps: CreateRunCompleteHandlerDeps) {
       db.prepare("UPDATE tasks SET status = 'review', updated_at = ? WHERE id = ?").run(t, taskId);
 
       appendTaskLog(taskId, "system", "Status → review (team leader review pending)");
+
+      // ── Auto-save implementation summary as meeting record ───────────
+      try {
+        const logContent = fs.existsSync(logPath) ? fs.readFileSync(logPath, "utf8") : "";
+        const summaryMatch = logContent.match(/## 実装サマリー[\s\S]{0,1000}/);
+        const patchFiles = [...logContent.matchAll(/\*\*\* Add File: ([^\n]+)/g)].map(m => m[1]);
+        const summaryText = [
+          summaryMatch ? summaryMatch[0].trim() : "",
+          patchFiles.length > 0 ? `\n## 作成ファイル一覧\n${patchFiles.map(f => `- ${f}`).join("\n")}` : "",
+        ].filter(Boolean).join("\n\n") || "（実装サマリーなし）";
+        const meetingId = crypto.randomUUID();
+        db.prepare(
+          `INSERT INTO meeting_minutes (id, task_id, meeting_type, round, title, status, started_at, completed_at, created_at)
+           VALUES (?, ?, 'implementation_done', 1, ?, 'completed', ?, ?, ?)`,
+        ).run(meetingId, taskId, `実装完了: ${task?.title ?? taskId}`, t, t, t);
+        db.prepare(
+          `INSERT INTO meeting_minute_entries
+           (meeting_id, seq, speaker_agent_id, speaker_name, department_name, role_label, message_type, content, created_at)
+           VALUES (?, 1, ?, ?, '開発チーム', '担当', 'summary', ?, ?)`,
+        ).run(meetingId, task?.assigned_agent_id ?? "", task?.assigned_agent_id ?? "", summaryText, t);
+        appendTaskLog(taskId, "system", `📄 implementation summary saved: ${meetingId.slice(0, 8)}`);
+      } catch (summErr: unknown) {
+        appendTaskLog(taskId, "system", `summary save error: ${summErr instanceof Error ? summErr.message : String(summErr)}`);
+      }
+      // ─────────────────────────────────────────────────────────────────
 
       const updatedTask = db.prepare("SELECT * FROM tasks WHERE id = ?").get(taskId);
       broadcast("task_update", updatedTask);
