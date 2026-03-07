@@ -14,6 +14,8 @@ import { registerOAuthRoutes } from "./ops/oauth/routes.ts";
 import { registerSkillRoutes } from "./ops/skills/routes.ts";
 import { registerApiDocsRoutes } from "./ops/api-docs.ts";
 import { registerWorkflowPackRoutes } from "./ops/workflow-packs.ts";
+import { registerSystemConsoleRoutes } from "./ops/system-console.ts";
+import { registerLocalServerRoutes } from "./ops/local-server.ts";
 
 export function registerRoutesPartC(ctx: RuntimeContext): RouteOpsExports {
   const __ctx: RuntimeContext = ctx;
@@ -233,6 +235,8 @@ export function registerRoutesPartC(ctx: RuntimeContext): RouteOpsExports {
   });
 
   registerTaskReportRoutes(__ctx);
+  registerSystemConsoleRoutes(__ctx);
+  registerLocalServerRoutes(__ctx);
 
   return {
     prettyStreamJson,

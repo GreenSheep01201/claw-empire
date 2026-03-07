@@ -322,7 +322,7 @@ export function buildProjectProgressSummary(
     target.projectName ||
     target.projectPath ||
     target.projectId ||
-    deps.pickL(deps.l(["(미지정)"], ["(unknown)"]), lang);
+    deps.pickL(deps.l(["(미지정)"], ["(unknown)"], ["(未指定)"], ["(未指定)"]), lang);
   if (rows.length === 0) {
     return {
       lang,

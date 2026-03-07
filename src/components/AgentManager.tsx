@@ -23,7 +23,7 @@ export default function AgentManager({
 }: AgentManagerProps) {
   const { t, locale } = useI18n();
   const isKo = locale.startsWith("ko");
-  const tr = (ko: string, en: string) => t({ ko, en, ja: en, zh: en });
+  const tr = (ko: string, en: string, ja = en) => t({ ko, en, ja, zh: en });
   const officePackKey = normalizeOfficeWorkflowPack(activeOfficeWorkflowPack);
   const isIsolatedPack = officePackKey !== "development";
   const useDbBackedPack = isIsolatedPack && dbBackedOfficePack;

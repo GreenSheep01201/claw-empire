@@ -139,6 +139,48 @@ export const COLUMNS: {
     dotColor: "bg-amber-400",
   },
   {
+    status: "coding",
+    icon: "💻",
+    headerBg: "bg-cyan-900",
+    borderColor: "border-cyan-700",
+    dotColor: "bg-cyan-400",
+  },
+  {
+    status: "documenting",
+    icon: "📝",
+    headerBg: "bg-teal-900",
+    borderColor: "border-teal-700",
+    dotColor: "bg-teal-400",
+  },
+  {
+    status: "ui_work",
+    icon: "🎨",
+    headerBg: "bg-pink-900",
+    borderColor: "border-pink-700",
+    dotColor: "bg-pink-400",
+  },
+  {
+    status: "api_work",
+    icon: "🔌",
+    headerBg: "bg-violet-900",
+    borderColor: "border-violet-700",
+    dotColor: "bg-violet-400",
+  },
+  {
+    status: "component_dev",
+    icon: "🧩",
+    headerBg: "bg-sky-900",
+    borderColor: "border-sky-700",
+    dotColor: "bg-sky-400",
+  },
+  {
+    status: "debugging",
+    icon: "🐛",
+    headerBg: "bg-rose-900",
+    borderColor: "border-rose-700",
+    dotColor: "bg-rose-400",
+  },
+  {
     status: "review",
     icon: "🔍",
     headerBg: "bg-purple-900",
@@ -173,6 +215,12 @@ export const STATUS_OPTIONS: TaskStatus[] = [
   "planned",
   "collaborating",
   "in_progress",
+  "coding",
+  "documenting",
+  "ui_work",
+  "api_work",
+  "component_dev",
+  "debugging",
   "review",
   "done",
   "pending",
@@ -196,6 +244,18 @@ export function taskStatusLabel(status: TaskStatus, t: TFunction) {
       return t({ ko: "계획됨", en: "Planned", ja: "計画済み", zh: "已计划" });
     case "in_progress":
       return t({ ko: "진행 중", en: "In Progress", ja: "進行中", zh: "进行中" });
+    case "coding":
+      return t({ ko: "코딩", en: "Coding", ja: "コード生成", zh: "编码" });
+    case "documenting":
+      return t({ ko: "문서화 중", en: "Documenting", ja: "ドキュメント作成", zh: "文档编写" });
+    case "ui_work":
+      return t({ ko: "UI/UX 작업", en: "UI/UX Work", ja: "UI/UX作成", zh: "UI/UX开发" });
+    case "api_work":
+      return t({ ko: "API 작업", en: "API Work", ja: "API作成", zh: "API开发" });
+    case "component_dev":
+      return t({ ko: "컴포넌트", en: "Component", ja: "コンポーネント", zh: "组件开发" });
+    case "debugging":
+      return t({ ko: "디버깅", en: "Debugging", ja: "デバッグ", zh: "调试" });
     case "review":
       return t({ ko: "검토", en: "Review", ja: "レビュー", zh: "审核" });
     case "done":
@@ -246,7 +306,9 @@ export function priorityLabel(priority: number, t: TFunction) {
 }
 
 export function timeAgo(ts: number, localeTag: string): string {
+  if (!ts || !isFinite(ts)) return "—";
   const diffSec = Math.floor((Date.now() - ts) / 1000);
+  if (!isFinite(diffSec)) return "—";
   const relativeTimeFormat = new Intl.RelativeTimeFormat(localeTag, { numeric: "auto" });
   if (diffSec < 60) return relativeTimeFormat.format(-diffSec, "second");
   const diffMin = Math.floor(diffSec / 60);

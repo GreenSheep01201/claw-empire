@@ -85,6 +85,10 @@ export default function App() {
   const [showAgentStatus, setShowAgentStatus] = useState(false);
   const [showRoomManager, setShowRoomManager] = useState(false);
   const [showDecisionInbox, setShowDecisionInbox] = useState(false);
+  const [showStaffRoster, setShowStaffRoster] = useState(false);
+  const [showSystemConsole, setShowSystemConsole] = useState(false);
+  const [showLocalServer, setShowLocalServer] = useState(false);
+  const [showAppList, setShowAppList] = useState(false);
   const [decisionInboxLoading, setDecisionInboxLoading] = useState(false);
   const [decisionInboxItems, setDecisionInboxItems] = useState<DecisionInboxItem[]>([]);
   const [decisionReplyBusyKey, setDecisionReplyBusyKey] = useState<string | null>(null);
@@ -453,6 +457,10 @@ export default function App() {
       onOpenDecisionInbox={actions.handleOpenDecisionInbox}
       onOpenAgentStatus={() => setShowAgentStatus(true)}
       onOpenReportHistory={() => setShowReportHistory(true)}
+      onOpenStaffRoster={() => setShowStaffRoster(true)}
+      onOpenSystemConsole={() => setShowSystemConsole(true)}
+      onOpenLocalServer={() => setShowLocalServer(true)}
+      onOpenAppList={() => setShowAppList(true)}
       onOpenAnnouncement={actions.handleOpenAnnouncement}
       onOpenRoomManager={() => setShowRoomManager(true)}
       onDismissAutoUpdateNotice={actions.handleDismissAutoUpdateNotice}
@@ -539,6 +547,17 @@ export default function App() {
         onCloseTaskReport={() => setTaskReport(null)}
         showReportHistory={showReportHistory}
         onCloseReportHistory={() => setShowReportHistory(false)}
+        showStaffRoster={showStaffRoster}
+        onCloseStaffRoster={() => setShowStaffRoster(false)}
+        onOpenChatFromRoster={actions.handleOpenChat}
+        unreadAgentIds={unreadAgentIds}
+        showSystemConsole={showSystemConsole}
+        onCloseSystemConsole={() => setShowSystemConsole(false)}
+        showLocalServer={showLocalServer}
+        onCloseLocalServer={() => setShowLocalServer(false)}
+        showAppList={showAppList}
+        onCloseAppList={() => setShowAppList(false)}
+        onOpenLocalServerFromAppList={() => { setShowAppList(false); setShowLocalServer(true); }}
         showAgentStatus={showAgentStatus}
         onCloseAgentStatus={() => setShowAgentStatus(false)}
         showRoomManager={showRoomManager}

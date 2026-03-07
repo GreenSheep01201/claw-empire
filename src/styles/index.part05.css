@@ -25,10 +25,10 @@
   height: 50%;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: #3b82f6;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
 }
 [data-theme="light"] .sidebar-nav-active::before {
-  background: #2563eb;
+  background: linear-gradient(180deg, #4f46e5, #7c3aed);
 }
 
 /* ─── Settings toggle switch improvements ─── */
@@ -58,3 +58,79 @@
 [data-theme="light"] .task-card-hover:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
+
+/* ─── Panel overlay: glassmorphism upgrade ─── */
+.panel-overlay {
+  border-radius: 1rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255,255,255,0.04);
+  transition: box-shadow 0.2s ease;
+}
+[data-theme="light"] .panel-overlay {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+/* ─── Header: indigo-purple gradient accent line ─── */
+header.sticky::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.35) 30%, rgba(139,92,246,0.45) 60%, transparent 100%);
+  pointer-events: none;
+}
+
+/* ─── ツール dropdown menu: glass card ─── */
+.tools-dropdown-menu {
+  border-radius: 0.875rem;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: var(--th-bg-surface);
+  border: 1px solid var(--th-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24), 0 0 0 1px rgba(255,255,255,0.04);
+  animation: dropdown-in 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Header action btn: upgraded shadow on hover ─── */
+.header-action-btn-secondary:hover {
+  background: var(--th-bg-surface-hover);
+  border-color: var(--th-border-strong);
+  color: var(--th-text-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
+}
+[data-theme="light"] .header-action-btn-secondary:hover {
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.12);
+}
+
+/* ─── Card: subtle gradient border on hover ─── */
+.ce-card-interactive {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  border-radius: 0.875rem;
+}
+.ce-card-interactive:hover {
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  border-color: var(--th-border-strong);
+}
+[data-theme="light"] .ce-card-interactive:hover {
+  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.08);
+}
+
+/* ─── Status badge colors ─── */
+.badge-running  { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+.badge-stopped  { background: rgba(239,68,68,0.12);  color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
+.badge-error    { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+.badge-warning  { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+[data-theme="light"] .badge-running  { color: #059669; }
+[data-theme="light"] .badge-stopped  { color: #dc2626; }
+[data-theme="light"] .badge-error    { color: #d97706; }
+

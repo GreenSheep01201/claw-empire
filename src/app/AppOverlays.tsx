@@ -6,6 +6,10 @@ import TerminalPanel from "../components/TerminalPanel";
 import TaskReportPopup from "../components/TaskReportPopup";
 import ReportHistory from "../components/ReportHistory";
 import AgentStatusPanel from "../components/AgentStatusPanel";
+import StaffRosterPanel from "../components/StaffRosterPanel";
+import SystemConsolePanel from "../components/SystemConsolePanel";
+import LocalServerPanel from "../components/LocalServerPanel";
+import AppListPanel from "../components/AppListPanel";
 import OfficeRoomManager from "../components/OfficeRoomManager";
 import type { DecisionInboxItem } from "../components/chat/decision-inbox";
 import type { Agent, Department, Message, RoomTheme, SubAgent, SubTask, Task, WorkflowPackKey } from "../types";
@@ -65,6 +69,17 @@ interface AppOverlaysProps {
   onCloseTaskReport: () => void;
   showReportHistory: boolean;
   onCloseReportHistory: () => void;
+  showStaffRoster: boolean;
+  onCloseStaffRoster: () => void;
+  onOpenChatFromRoster: (agent: Agent) => void;
+  unreadAgentIds: Set<string>;
+  showSystemConsole: boolean;
+  onCloseSystemConsole: () => void;
+  showLocalServer: boolean;
+  onCloseLocalServer: () => void;
+  showAppList: boolean;
+  onCloseAppList: () => void;
+  onOpenLocalServerFromAppList: () => void;
   showAgentStatus: boolean;
   onCloseAgentStatus: () => void;
   showRoomManager: boolean;
@@ -112,6 +127,17 @@ export default function AppOverlays({
   onCloseTaskReport,
   showReportHistory,
   onCloseReportHistory,
+  showStaffRoster,
+  onCloseStaffRoster,
+  onOpenChatFromRoster,
+  unreadAgentIds,
+  showSystemConsole,
+  onCloseSystemConsole,
+  showLocalServer,
+  onCloseLocalServer,
+  showAppList,
+  onCloseAppList,
+  onOpenLocalServerFromAppList,
   showAgentStatus,
   onCloseAgentStatus,
   showRoomManager,
@@ -204,7 +230,26 @@ export default function AppOverlays({
         />
       )}
 
-      {showAgentStatus && <AgentStatusPanel agents={agents} uiLanguage={uiLanguage} onClose={onCloseAgentStatus} />}
+      {showStaffRoster && (
+        <StaffRosterPanel
+          agents={agents}
+          departments={departments}
+          unreadAgentIds={unreadAgentIds}
+          uiLanguage={uiLanguage}
+          onOpenChat={onOpenChatFromRoster}
+          onClose={onCloseStaffRoster}
+        />
+      )}
+
+      {showSystemConsole && <SystemConsolePanel onClose={onCloseSystemConsole} />}
+
+      {showLocalServer && <LocalServerPanel onClose={onCloseLocalServer} />}
+
+      {showAppList && (
+        <AppListPanel onClose={onCloseAppList} onOpenLocalServer={onOpenLocalServerFromAppList} />
+      )}
+
+      {showAgentStatus && <AgentStatusPanel agents={agents} departments={departments} uiLanguage={uiLanguage} onClose={onCloseAgentStatus} />}
 
       {showRoomManager && (
         <OfficeRoomManager

@@ -61,7 +61,7 @@ export function ChatPanel({
   onClose,
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
-  const [mode, setMode] = useState<ChatMode>(selectedAgent ? "task" : "announcement");
+  const [mode, setMode] = useState<ChatMode>(selectedAgent ? "chat" : "announcement");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const spriteMap = useMemo(() => buildSpriteMap(agents), [agents]);
@@ -114,7 +114,7 @@ export function ChatPanel({
     if (!selectedAgent) {
       setMode("announcement");
     } else if (mode === "announcement") {
-      setMode("task");
+      setMode("chat");
     }
   }, [selectedAgent]);
 

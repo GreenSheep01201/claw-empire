@@ -29,7 +29,7 @@ export default function AgentFormModal({
 }: {
   isKo: boolean;
   locale: string;
-  tr: (ko: string, en: string) => string;
+  tr: (ko: string, en: string, ja?: string) => string;
   form: FormData;
   setForm: (f: FormData) => void;
   departments: Department[];

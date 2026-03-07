@@ -240,7 +240,7 @@ export function createReportRoutingTools(deps: ReportRoutingDeps) {
     const assigneeDeptName = REPORT_DEPT_LABELS[assigneeDeptId] || assigneeDeptId || "Planning";
     const requestPreview = cleanRequest.length > 64 ? `${cleanRequest.slice(0, 61).trimEnd()}...` : cleanRequest;
     const taskTitle =
-      outputFormat === "ppt" ? `보고 자료(PPT) 작성: ${requestPreview}` : `보고 문서(MD) 작성: ${requestPreview}`;
+      outputFormat === "ppt" ? `報告資料(PPT)作成: ${requestPreview}` : `報告書(MD)作成: ${requestPreview}`;
     const detectedPath = detectProjectPath(cleanRequest);
     const fileStamp = new Date().toISOString().replace(/[:]/g, "-").slice(0, 16);
     const outputPath =

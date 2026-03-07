@@ -36,9 +36,22 @@ export default function ChatComposer({
 }: ChatComposerProps) {
   return (
     <>
-      <div className="flex flex-shrink-0 gap-2 border-t border-gray-700/50 px-4 pb-1 pt-3">
+      <div className="flex flex-shrink-0 gap-1.5 border-t border-gray-700/50 px-4 pb-1 pt-3">
         <button
-          onClick={() => onModeChange(mode === "task" ? "chat" : "task")}
+          onClick={() => onModeChange("chat")}
+          disabled={!selectedAgent}
+          className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+            mode === "chat"
+              ? "bg-indigo-600 text-white"
+              : "bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
+          }`}
+        >
+          <span>💬</span>
+          <span>{tr("채팅", "Chat", "チャット", "聊天")}</span>
+        </button>
+
+        <button
+          onClick={() => onModeChange("task")}
           disabled={!selectedAgent}
           className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
             mode === "task"
@@ -47,7 +60,7 @@ export default function ChatComposer({
           }`}
         >
           <span>📋</span>
-          <span>{tr("업무 지시", "Task", "タスク指示", "任务指示")}</span>
+          <span>{tr("업무 지시", "Task", "タスク", "任务")}</span>
         </button>
 
         <button
@@ -57,11 +70,11 @@ export default function ChatComposer({
           }`}
         >
           <span>📢</span>
-          <span>{tr("전사 공지", "Announcement", "全体告知", "全员公告")}</span>
+          <span>{tr("전사 공지", "Announce", "告知", "公告")}</span>
         </button>
 
         <button
-          onClick={() => onModeChange(mode === "report" ? "chat" : "report")}
+          onClick={() => onModeChange("report")}
           disabled={!selectedAgent}
           className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
             mode === "report"
@@ -70,7 +83,7 @@ export default function ChatComposer({
           }`}
         >
           <span>📊</span>
-          <span>{tr("보고 요청", "Report", "レポート依頼", "报告请求")}</span>
+          <span>{tr("보고 요청", "Report", "レポート", "报告")}</span>
         </button>
       </div>
 

@@ -39,7 +39,9 @@ export function useNow(localeTag: string, t: TFunction) {
 }
 
 export function timeAgo(timestamp: number, localeTag: string): string {
+  if (!timestamp || !isFinite(timestamp)) return "—";
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (!isFinite(seconds)) return "—";
   const relativeTimeFormat = new Intl.RelativeTimeFormat(localeTag, { numeric: "auto" });
   if (seconds < 60) return relativeTimeFormat.format(-seconds, "second");
   const minutes = Math.floor(seconds / 60);

@@ -51,7 +51,7 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
 
   const [currentReport, setCurrentReport] = useState<TaskReportDetail>(report);
   const [refreshingArchive, setRefreshingArchive] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("planning");
+  const [activeTab, setActiveTab] = useState<string>("staff");
   const [expandedDocs, setExpandedDocs] = useState<Record<string, boolean>>({});
   const [documentPages, setDocumentPages] = useState<Record<string, number>>({});
 
@@ -80,7 +80,7 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
   };
 
   useEffect(() => {
-    setActiveTab("planning");
+    setActiveTab("staff");
     setExpandedDocs({});
     setDocumentPages({});
   }, [currentReport.task.id, currentReport.requested_task_id, teamReports.length]);
@@ -106,11 +106,122 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
       : taskDeptFromMap?.name || currentReport.task.dept_name || currentReport.task.dept_name_ko;
 
   const selectedTeam = useMemo(() => {
-    if (activeTab === "planning") return null;
+    if (activeTab === "planning" || activeTab === "staff" || activeTab === "timeline") return null;
     return teamReports.find((team) => team.id === activeTab || team.task_id === activeTab) ?? null;
   }, [activeTab, teamReports]);
 
   const planningDocs = planningSummary?.documents ?? [];
+
+  // ── Staff contribution data ────────────────────────────────────────────────
+  const allSubtasks = currentReport.subtasks ?? [];
+  const staffContributions = useMemo(() => {
+    // Gather agent entries from team reports + subtasks
+    type StaffEntry = {
+      agent_id: string | null;
+      agent_name: string;
+      agent_role: string | null;
+      dept_name: string;
+      dept_id: string | null;
+      subtasks: typeof allSubtasks;
+      completed_at: number | null;
+    };
+    const map = new Map<string, StaffEntry>();
+
+    // From team reports
+    for (const team of teamReports) {
+      const key = team.agent_id || team.agent_name;
+      if (!map.has(key)) {
+        map.set(key, {
+          agent_id: team.agent_id,
+          agent_name: team.agent_name,
+          agent_role: team.agent_role,
+          dept_name: team.department_name,
+          dept_id: team.department_id,
+          subtasks: [],
+          completed_at: team.completed_at,
+        });
+      }
+      // Add linked subtasks to this agent
+      const entry = map.get(key)!;
+      for (const st of team.linked_subtasks) {
+        if (!entry.subtasks.find((s) => s.id === st.id)) {
+          entry.subtasks.push({
+            id: st.id,
+            title: st.title,
+            status: st.status,
+            assigned_agent_id: st.assigned_agent_id,
+            target_department_id: st.target_department_id,
+            delegated_task_id: st.delegated_task_id,
+            completed_at: st.completed_at,
+            agent_name: st.agent_name,
+            agent_name_ko: st.agent_name_ko,
+            target_dept_name: st.target_dept_name,
+            target_dept_name_ko: st.target_dept_name_ko,
+          });
+        }
+      }
+    }
+
+    // From root-level subtasks
+    for (const st of allSubtasks) {
+      const key = st.assigned_agent_id || st.agent_name || "unknown";
+      if (!map.has(key)) {
+        const dept = departments.find((d) => d.id === st.target_department_id);
+        map.set(key, {
+          agent_id: st.assigned_agent_id,
+          agent_name: st.agent_name,
+          agent_role: null,
+          dept_name: dept?.name || st.target_dept_name || "",
+          dept_id: st.target_department_id || null,
+          subtasks: [],
+          completed_at: null,
+        });
+      }
+      const entry = map.get(key)!;
+      if (!entry.subtasks.find((s) => s.id === st.id)) {
+        entry.subtasks.push(st);
+      }
+    }
+
+    return Array.from(map.values()).filter((e) => e.agent_name);
+  }, [allSubtasks, teamReports, departments]);
+
+  // ── Timeline events ────────────────────────────────────────────────────────
+  const timelineEvents = useMemo(() => {
+    type TimelineEvent = { ts: number; icon: string; label: string; sub?: string };
+    const events: TimelineEvent[] = [];
+
+    for (const st of allSubtasks) {
+      if (st.completed_at) {
+        events.push({ ts: st.completed_at, icon: "✅", label: st.title, sub: st.agent_name || undefined });
+      }
+    }
+    for (const team of teamReports) {
+      if (team.started_at) {
+        events.push({ ts: team.started_at, icon: "🚀", label: `${team.department_name} 開始`, sub: team.agent_name });
+      }
+      if (team.completed_at) {
+        events.push({ ts: team.completed_at, icon: "🏁", label: `${team.department_name} 完了`, sub: team.agent_name });
+      }
+      for (const lg of team.logs.filter((l) => l.kind === "system").slice(-10)) {
+        events.push({ ts: lg.created_at, icon: "📝", label: lg.message, sub: team.agent_name });
+      }
+    }
+    for (const lg of (currentReport.logs ?? []).filter((l) => l.kind === "system").slice(-20)) {
+      events.push({ ts: lg.created_at, icon: "🔧", label: lg.message });
+    }
+
+    return events.sort((a, b) => a.ts - b.ts);
+  }, [allSubtasks, teamReports, currentReport.logs]);
+
+  // ── Digest strip counts ────────────────────────────────────────────────────
+  const digestStats = useMemo(() => {
+    const agentCount = staffContributions.length;
+    const subDone = allSubtasks.filter((s) => s.status === "done").length;
+    const subTotal = allSubtasks.length;
+    const depts = new Set(teamReports.map((t) => t.department_id).filter(Boolean)).size;
+    return { agentCount, subDone, subTotal, depts };
+  }, [staffContributions, allSubtasks, teamReports]);
 
   const toggleDoc = (docId: string) => {
     setExpandedDocs((prev) => {
@@ -201,6 +312,94 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
             </button>
           </div>
         )}
+      </div>
+    );
+  };
+
+  // ── Staff Contributions Tab ────────────────────────────────────────────────
+  const renderStaffContributions = () => {
+    if (!staffContributions.length) {
+      return (
+        <p className="py-8 text-center text-sm text-slate-500">
+          {t({ ko: "스태프 정보가 없습니다", en: "No staff data available", ja: "スタッフ情報がありません", zh: "无员工数据" })}
+        </p>
+      );
+    }
+    return (
+      <div className="space-y-3">
+        {staffContributions.map((staff, idx) => {
+          const agentObj = agents.find((a) => a.id === staff.agent_id);
+          const deptObj = departments.find((d) => d.id === staff.dept_id);
+          const doneCount = staff.subtasks.filter((s) => s.status === "done").length;
+          return (
+            <div key={idx} className="rounded-xl border border-slate-700/60 bg-slate-800/50 p-3">
+              <div className="mb-2 flex items-center gap-3">
+                <AgentAvatar agent={agentObj} agents={agents} size={36} rounded="xl" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white">{staff.agent_name || "-"}</p>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-400">
+                    {staff.agent_role && <span className="rounded bg-slate-700 px-1.5 py-0.5">{staff.agent_role}</span>}
+                    {(deptObj || staff.dept_name) && (
+                      <span
+                        className="rounded px-1.5 py-0.5"
+                        style={deptObj ? { backgroundColor: deptObj.color + "25", color: deptObj.color } : undefined}
+                      >
+                        {deptObj?.icon} {deptObj?.name || staff.dept_name}
+                      </span>
+                    )}
+                    {staff.subtasks.length > 0 && (
+                      <span className="text-emerald-400">✅ {doneCount}/{staff.subtasks.length} subtasks</span>
+                    )}
+                  </div>
+                </div>
+                {staff.completed_at && (
+                  <span className="shrink-0 text-[11px] text-slate-500">{fmtTime(staff.completed_at)}</span>
+                )}
+              </div>
+              {staff.subtasks.length > 0 && (
+                <div className="space-y-1 pl-1">
+                  {staff.subtasks.map((st) => (
+                    <div key={st.id} className="flex items-center gap-1.5 text-[11px]">
+                      <span>{st.status === "done" ? "✅" : st.status === "in_progress" ? "🔨" : st.status === "blocked" ? "🚫" : "⏳"}</span>
+                      <span className={`flex-1 truncate ${st.status === "done" ? "text-slate-500 line-through" : "text-slate-300"}`}>
+                        {st.title}
+                      </span>
+                      {st.completed_at && (
+                        <span className="shrink-0 text-slate-600">{fmtTime(st.completed_at)}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ── Timeline Tab ───────────────────────────────────────────────────────────
+  const renderTimeline = () => {
+    if (!timelineEvents.length) {
+      return (
+        <p className="py-8 text-center text-sm text-slate-500">
+          {t({ ko: "타임라인 데이터가 없습니다", en: "No timeline data", ja: "タイムラインデータなし", zh: "无时间线数据" })}
+        </p>
+      );
+    }
+    return (
+      <div className="relative space-y-0 pl-5">
+        <div className="absolute left-2 top-0 bottom-0 w-px bg-slate-700/60" />
+        {timelineEvents.map((ev, idx) => (
+          <div key={idx} className="relative flex items-start gap-3 pb-3">
+            <span className="absolute -left-3 mt-0.5 text-sm">{ev.icon}</span>
+            <div className="min-w-0 flex-1 pl-2">
+              <p className="text-xs text-slate-300 leading-snug">{ev.label}</p>
+              {ev.sub && <p className="text-[11px] text-slate-500">{ev.sub}</p>}
+            </div>
+            <span className="shrink-0 text-[11px] text-slate-600 whitespace-nowrap">{fmtTime(ev.ts)}</span>
+          </div>
+        ))}
       </div>
     );
   };
@@ -349,6 +548,7 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
           </button>
         </div>
 
+        {/* Task header with agent info */}
         <div className="border-b border-slate-700/40 px-6 py-3">
           <div className="flex items-start gap-3">
             <AgentAvatar agent={taskAgent} agents={agents} size={40} rounded="xl" />
@@ -371,17 +571,52 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
           </div>
         </div>
 
+        {/* Digest strip */}
+        <div className="grid grid-cols-4 divide-x divide-slate-700/50 border-b border-slate-700/40 bg-slate-800/30">
+          <div className="px-4 py-2 text-center">
+            <p className="text-lg font-bold text-white">{digestStats.agentCount}</p>
+            <p className="text-[10px] text-slate-500">{t({ ko: "참여 스태프", en: "Staff", ja: "参加スタッフ", zh: "参与员工" })}</p>
+          </div>
+          <div className="px-4 py-2 text-center">
+            <p className="text-lg font-bold text-emerald-400">{digestStats.subDone}</p>
+            <p className="text-[10px] text-slate-500">{t({ ko: "완료 서브태스크", en: "Done tasks", ja: "完了サブタスク", zh: "完成子任务" })}</p>
+          </div>
+          <div className="px-4 py-2 text-center">
+            <p className="text-lg font-bold text-blue-400">{digestStats.depts}</p>
+            <p className="text-[10px] text-slate-500">{t({ ko: "협업 부서", en: "Depts", ja: "協業部門", zh: "协作部门" })}</p>
+          </div>
+          <div className="px-4 py-2 text-center">
+            <p className="text-lg font-bold text-amber-400">{elapsed(currentReport.task.created_at, currentReport.task.completed_at)}</p>
+            <p className="text-[10px] text-slate-500">{t({ ko: "소요 시간", en: "Duration", ja: "所要時間", zh: "耗时" })}</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
         <div className="border-b border-slate-700/40 px-6 py-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setActiveTab("planning")}
+              onClick={() => setActiveTab("staff")}
               className={`rounded-lg px-3 py-1.5 text-xs ${
-                activeTab === "planning"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                activeTab === "staff" ? "bg-violet-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
               }`}
             >
-              {t({ ko: "기획팀장 취합본", en: "Planning Summary", ja: "企画サマリー", zh: "规划汇总" })}
+              👥 {t({ ko: "스태프 기여", en: "Staff", ja: "スタッフ貢献", zh: "员工贡献" })}
+            </button>
+            <button
+              onClick={() => setActiveTab("timeline")}
+              className={`rounded-lg px-3 py-1.5 text-xs ${
+                activeTab === "timeline" ? "bg-amber-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              }`}
+            >
+              🕐 {t({ ko: "타임라인", en: "Timeline", ja: "タイムライン", zh: "时间线" })}
+            </button>
+            <button
+              onClick={() => setActiveTab("planning")}
+              className={`rounded-lg px-3 py-1.5 text-xs ${
+                activeTab === "planning" ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+              }`}
+            >
+              {t({ ko: "기획 취합본", en: "Planning", ja: "企画サマリー", zh: "规划汇总" })}
             </button>
             {teamReports.map((team) => {
               const label =
@@ -403,8 +638,12 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
           </div>
         </div>
 
-        <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
-          {activeTab === "planning" ? (
+        <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
+          {activeTab === "staff" ? (
+            renderStaffContributions()
+          ) : activeTab === "timeline" ? (
+            renderTimeline()
+          ) : activeTab === "planning" ? (
             renderPlanningSummary()
           ) : selectedTeam ? (
             renderTeamReport(selectedTeam)
@@ -424,10 +663,10 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500">
               {t({
-                ko: `팀 보고서 ${teamReports.length}개`,
-                en: `${teamReports.length} team reports`,
-                ja: `チームレポート ${teamReports.length}件`,
-                zh: `${teamReports.length} 个团队报告`,
+                ko: `스태프 ${digestStats.agentCount}명 · 팀 보고서 ${teamReports.length}개`,
+                en: `${digestStats.agentCount} staff · ${teamReports.length} team reports`,
+                ja: `スタッフ ${digestStats.agentCount}名 · チームレポート ${teamReports.length}件`,
+                zh: `${digestStats.agentCount} 名员工 · ${teamReports.length} 个团队报告`,
               })}
             </span>
             <button

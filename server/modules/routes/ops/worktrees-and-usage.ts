@@ -125,6 +125,98 @@ export function registerWorktreeAndUsageRoutes(ctx: RuntimeContext): {
     res.json({ ok: true, message: "Worktree discarded" });
   });
 
+  // POST /api/tasks/:id/decompose-to-components — decompose a feature task into component subtasks
+  app.post("/api/tasks/:id/decompose-to-components", async (req, res) => {
+    const parentId = String(req.params.id);
+    const parentTask = db.prepare("SELECT * FROM tasks WHERE id = ?").get(parentId) as Record<string, any> | undefined;
+    if (!parentTask) return res.status(404).json({ ok: false, error: "Task not found" });
+
+    const projectPath = parentTask.project_path as string | null;
+    if (!projectPath) return res.status(400).json({ ok: false, error: "Task has no project_path" });
+
+    // Build component specs from request body, or use auto-decompose via Copilot API
+    const body = req.body as { components?: Array<{ filePath: string; description: string; props?: string; requirements?: string[] }> };
+    const specs = body.components;
+    if (!specs || specs.length === 0) {
+      return res.status(400).json({ ok: false, error: "Provide components[] array in request body" });
+    }
+
+    const { buildComponentTaskPayload } = await import("../../workflow/core/task-templates.ts");
+
+    const created: string[] = [];
+    for (const spec of specs) {
+      const payload = buildComponentTaskPayload(spec, projectPath, parentId);
+      const newId = crypto.randomUUID();
+      const nowMs = Date.now();
+      db.prepare(
+        `INSERT INTO tasks (id, title, description, department_id, task_type, project_path, source_task_id, priority, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'inbox', ?, ?)`,
+      ).run(newId, payload.title, payload.description, payload.department_id, payload.task_type, payload.project_path, payload.source_task_id ?? null, payload.priority ?? 0, nowMs, nowMs);
+      created.push(newId);
+    }
+
+    broadcast("tasks_updated", {});
+    return res.json({ ok: true, created, count: created.length });
+  });
+
+  // GET /api/tasks/:id/verify-commit
+  app.get("/api/tasks/:id/verify-commit", (req, res) => {
+    const id = String(req.params.id);
+    const wtInfo = taskWorktrees.get(id);
+
+    const worktreePath = wtInfo?.worktreePath ?? null;
+
+    if (!worktreePath) {
+      return res.json({ ok: true, hasWorktree: false, hasCommit: false, commitCount: 0, files: [], verdict: "no_worktree" });
+    }
+
+    try {
+      // Count commits ahead of origin/main
+      const commitLog = execFileSync(
+        "git",
+        ["log", "origin/main..HEAD", "--oneline"],
+        { cwd: worktreePath, stdio: "pipe", timeout: 8000 },
+      ).toString().trim();
+      const commits = commitLog ? commitLog.split("\n").filter(Boolean) : [];
+
+      // List files changed vs origin/main
+      let changedFiles: string[] = [];
+      try {
+        changedFiles = execFileSync(
+          "git",
+          ["diff", "origin/main..HEAD", "--name-only"],
+          { cwd: worktreePath, stdio: "pipe", timeout: 8000 },
+        ).toString().trim().split("\n").filter(Boolean);
+      } catch { /* no diff */ }
+
+      const hasRealCode = changedFiles.some(
+        (f) => f.endsWith(".ts") || f.endsWith(".js") || f.endsWith(".tsx") || f.endsWith(".jsx") ||
+               f.endsWith(".json") || f.endsWith(".html") || f.endsWith(".css") || f.endsWith(".py"),
+      );
+
+      const verdict = commits.length === 0
+        ? "no_commit"
+        : hasRealCode
+          ? "ok"
+          : "commit_but_no_code";
+
+      res.json({
+        ok: true,
+        hasWorktree: true,
+        hasCommit: commits.length > 0,
+        commitCount: commits.length,
+        commits,
+        files: changedFiles,
+        hasRealCode,
+        verdict,
+        worktreePath,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.json({ ok: false, error: msg, verdict: "error" });
+    }
+  });
+
   app.get("/api/worktrees", (_req, res) => {
     const entries: Array<{ taskId: string; branchName: string; worktreePath: string; projectPath: string }> = [];
     for (const [taskId, info] of taskWorktrees) {

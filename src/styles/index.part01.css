@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@600;700;800&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -20,8 +20,8 @@
 /* ─── Dark Theme: 심야작업 오피스 (late-night coding session) ─── */
 :root,
 [data-theme="dark"] {
-  --th-font-display: "Sora", "IBM Plex Sans KR", "Segoe UI", sans-serif;
-  --th-font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  --th-font-display: "Sora", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", "Segoe UI", sans-serif;
+  --th-font-body: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic UI", "Meiryo", "Segoe UI", sans-serif;
   --th-font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --th-bg-primary: #0a0a18;
   --th-bg-secondary: #10102a;

@@ -279,7 +279,7 @@
 }
 
 .classroom-chalk-text {
-  font-family: "Sora", "IBM Plex Sans KR", sans-serif;
+  font-family: "Sora", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", sans-serif;
   font-size: 28px;
   font-weight: 800;
   color: #f0e6d0;

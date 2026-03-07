@@ -535,20 +535,17 @@ Whenever you complete a subtask, report it in this format:
     // ───────────────────────────────────────────────────────────────────
 
     // ── Auto-set work-phase status based on task title prefix ────────────
-    {
-      const workPhaseStatus: Record<string, string> = {
-        "[コンポーネント]": "component_dev",
-        "[ドキュメント]": "documenting",
-        "[デバッグ]": "debugging",
-        "[UI実装]": "ui_work",
-        "[API実装]": "api_work",
-      };
-      const titlePrefix = Object.keys(workPhaseStatus).find((p) => task.title?.startsWith(p));
-      if (titlePrefix) {
-        const phase = workPhaseStatus[titlePrefix];
-        db.prepare("UPDATE tasks SET status = ?, updated_at = ? WHERE id = ?").run(phase, nowMs(), id);
-        appendTaskLog(id, "system", `📌 Work phase: ${phase}`);
-      }
+    const workPhaseStatusMap: Record<string, string> = {
+      "[コンポーネント]": "component_dev",
+      "[ドキュメント]": "documenting",
+      "[デバッグ]": "debugging",
+      "[UI実装]": "ui_work",
+      "[API実装]": "api_work",
+    };
+    const titlePrefix = Object.keys(workPhaseStatusMap).find((p) => task.title?.startsWith(p));
+    const targetStatus = titlePrefix ? workPhaseStatusMap[titlePrefix] : "in_progress";
+    if (titlePrefix) {
+      appendTaskLog(id, "system", `📌 Work phase: ${targetStatus}`);
     }
     // ────────────────────────────────────────────────────────────────────
 
@@ -558,8 +555,8 @@ Whenever you complete a subtask, report it in this format:
 
       const t = nowMs();
       db.prepare(
-        "UPDATE tasks SET status = 'in_progress', assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
-      ).run(agentId, t, t, id);
+        "UPDATE tasks SET status = ?, assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
+      ).run(targetStatus, agentId, t, t, id);
       db.prepare("UPDATE agents SET status = 'working', current_task_id = ? WHERE id = ?").run(id, agentId);
 
       const updatedTask = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
@@ -615,8 +612,8 @@ Whenever you complete a subtask, report it in this format:
 
       const t = nowMs();
       db.prepare(
-        "UPDATE tasks SET status = 'in_progress', assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
-      ).run(agentId, t, t, id);
+        "UPDATE tasks SET status = ?, assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
+      ).run(targetStatus, agentId, t, t, id);
       db.prepare("UPDATE agents SET status = 'working', current_task_id = ? WHERE id = ?").run(id, agentId);
 
       const updatedTask = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);
@@ -665,8 +662,8 @@ Whenever you complete a subtask, report it in this format:
 
     const t = nowMs();
     db.prepare(
-      "UPDATE tasks SET status = 'in_progress', assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
-    ).run(agentId, t, t, id);
+      "UPDATE tasks SET status = ?, assigned_agent_id = ?, started_at = ?, updated_at = ? WHERE id = ?",
+    ).run(targetStatus, agentId, t, t, id);
     db.prepare("UPDATE agents SET status = 'working', current_task_id = ? WHERE id = ?").run(id, agentId);
 
     const updatedTask = db.prepare("SELECT * FROM tasks WHERE id = ?").get(id);

@@ -364,7 +364,7 @@ export function createSubtaskDelegationBatch(deps: BatchDeps) {
         targetDeptId,
         parentTask.project_id ?? null,
         delegatedWorkflowPackKey,
-        parentTask.project_path,
+        parentTask.project_path ?? resolveProjectPath(parentTask) ?? null,
         parentTask.id,
         ct,
         ct,

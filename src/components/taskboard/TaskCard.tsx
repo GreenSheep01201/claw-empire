@@ -230,6 +230,14 @@ export default function TaskCard({
                     >
                       {subtask.title}
                     </span>
+                    {subtask.assigned_agent_id && (() => {
+                      const a = agents.find((ag) => ag.id === subtask.assigned_agent_id);
+                      return a ? (
+                        <span className="shrink-0 text-[10px] text-slate-500" title={a.name}>
+                          {a.avatar_emoji || "🤖"} {a.name}
+                        </span>
+                      ) : null;
+                    })()}
                     {targetDepartment && (
                       <span
                         className="shrink-0 rounded px-1 py-0.5 text-[10px] font-medium"

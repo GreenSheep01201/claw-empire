@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import type { WorkflowPackKey } from "../types";
 import type { View } from "./types";
 
@@ -34,8 +35,12 @@ interface AppHeaderBarProps {
   onOpenDecisionInbox: () => void;
   onOpenAgentStatus: () => void;
   onOpenReportHistory: () => void;
+  onOpenStaffRoster: () => void;
+  onOpenSystemConsole: () => void;
   onOpenAnnouncement: () => void;
   onOpenRoomManager: () => void;
+  onOpenLocalServer?: () => void;
+  onOpenAppList?: () => void;
   onToggleTheme: () => void;
   onToggleMobileHeaderMenu: () => void;
   onCloseMobileHeaderMenu: () => void;
@@ -61,17 +66,41 @@ export default function AppHeaderBar({
   onOpenDecisionInbox,
   onOpenAgentStatus,
   onOpenReportHistory,
+  onOpenStaffRoster,
+  onOpenSystemConsole,
   onOpenAnnouncement,
   onOpenRoomManager,
+  onOpenLocalServer,
+  onOpenAppList,
   onToggleTheme,
   onToggleMobileHeaderMenu,
   onCloseMobileHeaderMenu,
 }: AppHeaderBarProps) {
+  const [toolsMenuOpen, setToolsMenuOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!toolsMenuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (toolsRef.current && !toolsRef.current.contains(e.target as Node)) {
+        setToolsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [toolsMenuOpen]);
+
+  function openTool(fn: () => void) {
+    fn();
+    setToolsMenuOpen(false);
+  }
+
   return (
     <header
       className="sticky top-0 z-30 flex items-center justify-between px-3 py-2 backdrop-blur-sm sm:px-4 sm:py-3 lg:px-6"
       style={{ borderBottom: "1px solid var(--th-border)", background: "var(--th-bg-header)" }}
     >
+      {/* ── Left: nav + title ── */}
       <div className="flex min-w-0 items-center gap-2">
         <button
           onClick={onOpenMobileNav}
@@ -130,7 +159,10 @@ export default function AppHeaderBar({
           </label>
         )}
       </div>
-      <div className="flex items-center gap-2 sm:gap-3">
+
+      {/* ── Right: action buttons ── */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Primary: Tasks */}
         <button
           onClick={onOpenTasks}
           className="header-action-btn header-action-btn-primary"
@@ -139,6 +171,8 @@ export default function AppHeaderBar({
           <span className="sm:hidden">📋</span>
           <span className="hidden sm:inline">📋 {tasksPrimaryLabel}</span>
         </button>
+
+        {/* Primary: Decision Inbox */}
         <button
           onClick={onOpenDecisionInbox}
           disabled={decisionInboxLoading}
@@ -153,19 +187,69 @@ export default function AppHeaderBar({
           </span>
           {decisionInboxCount > 0 && <span className="header-decision-badge">{decisionInboxCount}</span>}
         </button>
-        <button onClick={onOpenAgentStatus} className="header-action-btn header-action-btn-secondary mobile-hidden">
-          &#x1F6E0; {agentStatusLabel}
-        </button>
-        <button onClick={onOpenReportHistory} className="header-action-btn header-action-btn-secondary mobile-hidden">
-          {reportLabel}
-        </button>
+
+        {/* Announcement (always visible) */}
         <button onClick={onOpenAnnouncement} className="header-action-btn header-action-btn-secondary">
           <span className="sm:hidden">📢</span>
           <span className="hidden sm:inline">{announcementLabel}</span>
         </button>
-        <button onClick={onOpenRoomManager} className="header-action-btn header-action-btn-secondary mobile-hidden">
-          {roomManagerLabel}
-        </button>
+
+        {/* ── Tools dropdown (desktop) ── */}
+        <div className="relative mobile-hidden" ref={toolsRef}>
+          <button
+            onClick={() => setToolsMenuOpen((v) => !v)}
+            className={`header-action-btn header-action-btn-secondary flex items-center gap-1${toolsMenuOpen ? " opacity-80" : ""}`}
+            aria-label="ツールメニュー"
+            aria-expanded={toolsMenuOpen}
+          >
+            <span>⚙️ ツール</span>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ transition: "transform 0.15s", transform: toolsMenuOpen ? "rotate(180deg)" : "none" }}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {toolsMenuOpen && (
+            <div
+              className="absolute right-0 top-full z-50 mt-1.5 min-w-[200px] rounded-xl py-1.5 shadow-xl"
+              style={{
+                border: "1px solid var(--th-border)",
+                background: "var(--th-bg-surface)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              {[
+                { icon: "🛠️", label: agentStatusLabel, fn: onOpenAgentStatus },
+                { icon: "📊", label: reportLabel, fn: onOpenReportHistory },
+                { icon: "👥", label: "スタッフ名簿", fn: onOpenStaffRoster },
+                { icon: "🔧", label: "管理コンソール", fn: onOpenSystemConsole },
+                ...(onOpenLocalServer ? [{ icon: "🖥️", label: "サーバー管理", fn: onOpenLocalServer }] : []),
+                ...(onOpenAppList ? [{ icon: "📦", label: "アプリ一覧", fn: onOpenAppList }] : []),
+                { icon: "🏢", label: roomManagerLabel, fn: onOpenRoomManager },
+              ].map(({ icon, label, fn }) => (
+                <button
+                  key={label}
+                  onClick={() => openTool(fn)}
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm transition-colors hover:opacity-80"
+                  style={{ color: "var(--th-text-primary)" }}
+                >
+                  <span className="w-5 text-center">{icon}</span>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Theme toggle */}
         <button
           onClick={onToggleTheme}
           className="theme-toggle-btn"
@@ -210,6 +294,8 @@ export default function AppHeaderBar({
             )}
           </span>
         </button>
+
+        {/* Mobile ⋮ menu */}
         <div className="relative sm:hidden">
           <button
             onClick={onToggleMobileHeaderMenu}
@@ -240,7 +326,7 @@ export default function AppHeaderBar({
             <>
               <button className="fixed inset-0 z-40" onClick={onCloseMobileHeaderMenu} aria-label="Close menu" />
               <div
-                className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg py-1 shadow-lg"
+                className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-xl py-1.5 shadow-xl"
                 style={{ border: "1px solid var(--th-border)", background: "var(--th-bg-surface)" }}
               >
                 {officePackControl && (
@@ -274,42 +360,36 @@ export default function AppHeaderBar({
                     </select>
                   </div>
                 )}
-                <button
-                  onClick={() => {
-                    onOpenAgentStatus();
-                    onCloseMobileHeaderMenu();
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:opacity-80"
-                  style={{ color: "var(--th-text-primary)" }}
-                >
-                  &#x1F6E0; {agentStatusLabel}
-                </button>
-                <button
-                  onClick={() => {
-                    onOpenReportHistory();
-                    onCloseMobileHeaderMenu();
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:opacity-80"
-                  style={{ color: "var(--th-text-primary)" }}
-                >
-                  {reportLabel}
-                </button>
-                <button
-                  onClick={() => {
-                    onOpenRoomManager();
-                    onCloseMobileHeaderMenu();
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:opacity-80"
-                  style={{ color: "var(--th-text-primary)" }}
-                >
-                  {roomManagerLabel}
-                </button>
+                {[
+                  { icon: "🛠️", label: agentStatusLabel, fn: onOpenAgentStatus },
+                  { icon: "📊", label: reportLabel, fn: onOpenReportHistory },
+                  { icon: "👥", label: "スタッフ名簿", fn: onOpenStaffRoster },
+                  { icon: "🔧", label: "管理コンソール", fn: onOpenSystemConsole },
+                  ...(onOpenLocalServer ? [{ icon: "🖥️", label: "サーバー管理", fn: onOpenLocalServer }] : []),
+                  ...(onOpenAppList ? [{ icon: "📦", label: "アプリ一覧", fn: onOpenAppList }] : []),
+                  { icon: "🏢", label: roomManagerLabel, fn: onOpenRoomManager },
+                ].map(({ icon, label, fn }) => (
+                  <button
+                    key={label}
+                    onClick={() => {
+                      fn();
+                      onCloseMobileHeaderMenu();
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm transition hover:opacity-80"
+                    style={{ color: "var(--th-text-primary)" }}
+                  >
+                    <span className="w-5 text-center">{icon}</span>
+                    {label}
+                  </button>
+                ))}
               </div>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs" style={{ color: "var(--th-text-muted)" }}>
-          <div className={`w-2 h-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`} />
+
+        {/* Connection indicator */}
+        <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--th-text-muted)" }}>
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${connected ? "bg-green-500" : "bg-red-500"}`} />
           <span className="hidden sm:inline">{connected ? "Live" : "Offline"}</span>
         </div>
       </div>

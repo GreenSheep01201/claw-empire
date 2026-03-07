@@ -17,6 +17,85 @@ function normalizePackKey(raw: string | null | undefined): WorkflowPackKey {
   return DEFAULT_WORKFLOW_PACK_KEY;
 }
 
+const DEVELOPMENT_GUIDANCE_LINES: Record<SupportedLang, string[]> = {
+  ko: [
+    "[Development Output Requirement / 개발 산출물 요구사항]",
+    "- 이 작업은 설계 문서나 계획서만 작성하면 완료가 아닙니다. 실제로 실행 가능한 애플리케이션 코드를 생성해야 합니다.",
+    "- 반드시 실행 가능한 엔트리 포인트 파일을 생성하세요 (예: index.js, index.ts, src/index.ts, server.js 등).",
+    "- package.json에 유효한 `start` 스크립트를 포함하세요. `npm start`로 애플리케이션이 정상 실행되어야 합니다.",
+    "- TypeScript 프로젝트라면 빌드 스텝(npm run build)을 먼저 수행하거나, ts-node/tsx 등으로 직접 실행 가능하게 하세요.",
+    "- 의존성은 반드시 `npm install` 또는 `npm ci`로 설치하세요. node_modules 없이는 실행 불가합니다.",
+    "- 서버 애플리케이션이라면 지정된 포트(기본 PORT 환경변수, 없으면 README 지시사항)에서 수신 대기해야 합니다.",
+    "- `/health` 또는 `/` 엔드포인트로 200 OK를 반환하는 헬스체크 경로를 포함하세요.",
+    "- 작업 완료 전에 `npm start`를 실제로 실행해 오류 없이 구동되는지 확인하고, 결과를 보고서에 포함하세요.",
+    "- 생성한 모든 소스 파일은 git add / git commit으로 버전 관리하세요 (push 금지).",
+    "",
+    "[Anti-Patterns to Avoid / 피해야 할 패턴]",
+    "- package.json이 없거나 start 스크립트가 없는 상태로 작업을 마치지 마세요.",
+    "- 존재하지 않는 파일을 가리키는 start 스크립트를 작성하지 마세요 (예: `node dist/index.js` 인데 빌드 안 함).",
+    "- JSON 파일에 주석(// 또는 /* */)을 넣지 마세요. JSON은 주석을 허용하지 않습니다.",
+    "- package.json에 중복 키(scripts, dependencies 등)를 두지 마세요.",
+    "- `/* existing scripts... */` 같은 플레이스홀더를 실제 JSON에 넣지 마세요.",
+  ],
+  en: [
+    "[Development Output Requirement]",
+    "- This task is NOT complete with design documents or planning specs alone. You must produce actual runnable application code.",
+    "- Always create a working entry point file (e.g., index.js, index.ts, src/index.ts, server.js).",
+    "- Include a valid `start` script in package.json so the application launches with `npm start`.",
+    "- For TypeScript projects, either run the build step first (npm run build) or use ts-node/tsx for direct execution.",
+    "- Install dependencies with `npm install` or `npm ci`. The app cannot run without node_modules.",
+    "- For server apps, listen on the designated port (PORT env var by default, or as specified in README).",
+    "- Include a health-check route (`/health` or `/`) that returns 200 OK.",
+    "- Before marking the task done, actually run `npm start` to confirm it starts without errors and include the result in your report.",
+    "- Commit all created source files with git add / git commit (no push).",
+    "",
+    "[Anti-Patterns to Avoid]",
+    "- Do NOT finish the task without a package.json or without a start script.",
+    "- Do NOT write a start script pointing to a file that does not exist (e.g., `node dist/index.js` without building).",
+    "- Do NOT add comments (// or /* */) inside JSON files. JSON does not allow comments.",
+    "- Do NOT add duplicate keys (scripts, dependencies, etc.) in package.json.",
+    "- Do NOT insert placeholder text like `/* existing scripts... */` into real JSON.",
+  ],
+  ja: [
+    "[Development Output Requirement / 開発成果物要件]",
+    "- このタスクは設計ドキュメントや計画書だけを作成しても完了ではありません。実際に実行可能なアプリケーションコードを生成してください。",
+    "- 必ず動作するエントリーポイントファイルを作成してください（例: index.js, index.ts, src/index.ts, server.js 等）。",
+    "- package.json に有効な `start` スクリプトを含め、`npm start` でアプリが起動できるようにしてください。",
+    "- TypeScript プロジェクトの場合はビルドステップ（npm run build）を先に実行するか、ts-node/tsx で直接実行できるようにしてください。",
+    "- 依存関係は必ず `npm install` または `npm ci` でインストールしてください。node_modules がないと実行できません。",
+    "- サーバーアプリの場合、指定のポート（PORT 環境変数、またはREADMEに記載のポート）でリッスンしてください。",
+    "- `/health` または `/` エンドポイントで 200 OK を返すヘルスチェックルートを含めてください。",
+    "- タスク完了前に実際に `npm start` を実行してエラーなく起動することを確認し、その結果をレポートに含めてください。",
+    "- 作成した全ソースファイルを git add / git commit でバージョン管理してください（push 禁止）。",
+    "",
+    "[Anti-Patterns to Avoid / 避けるべきパターン]",
+    "- package.json がない、または start スクリプトがない状態でタスクを完了しないでください。",
+    "- 存在しないファイルを指す start スクリプトを書かないでください（例: ビルドせずに `node dist/index.js`）。",
+    "- JSON ファイル内にコメント（// や /* */）を入れないでください。JSON はコメントを許可しません。",
+    "- package.json に重複キー（scripts, dependencies 等）を入れないでください。",
+    "- `/* existing scripts... */` のようなプレースホルダーを実際の JSON に入れないでください。",
+  ],
+  zh: [
+    "[Development Output Requirement / 开发产出要求]",
+    "- 本任务仅产出设计文档或规划说明不算完成，必须生成真实可运行的应用代码。",
+    "- 必须创建可用的入口文件（例如：index.js、index.ts、src/index.ts、server.js 等）。",
+    "- package.json 中必须包含有效的 `start` 脚本，使 `npm start` 能正常启动应用。",
+    "- TypeScript 项目需先执行构建（npm run build），或使用 ts-node/tsx 直接运行。",
+    "- 必须通过 `npm install` 或 `npm ci` 安装依赖。没有 node_modules 无法运行。",
+    "- 服务端应用需在指定端口（PORT 环境变量，或 README 中说明的端口）上监听。",
+    "- 包含 `/health` 或 `/` 路由，返回 200 OK 作为健康检查。",
+    "- 标记任务完成前，实际执行 `npm start` 确认无错误启动，并将结果写入报告。",
+    "- 将所有新建源文件通过 git add / git commit 纳入版本管理（禁止 push）。",
+    "",
+    "[Anti-Patterns to Avoid / 禁止事项]",
+    "- 不得在没有 package.json 或缺少 start 脚本的情况下结束任务。",
+    "- 不得编写指向不存在文件的 start 脚本（例如未构建就写 `node dist/index.js`）。",
+    "- 不得在 JSON 文件中添加注释（// 或 /* */）。JSON 不允许注释。",
+    "- 不得在 package.json 中放置重复键（scripts、dependencies 等）。",
+    "- 不得将 `/* existing scripts... */` 之类的占位符写入真实 JSON 文件。",
+  ],
+};
+
 export function buildWorkflowPackExecutionGuidance(
   packKeyRaw: string | null | undefined,
   langRaw: string | null | undefined,
@@ -25,6 +104,12 @@ export function buildWorkflowPackExecutionGuidance(
   },
 ): string {
   const packKey = normalizePackKey(packKeyRaw);
+
+  if (packKey === "development") {
+    const lang = normalizeLang(langRaw);
+    return DEVELOPMENT_GUIDANCE_LINES[lang].join("\n");
+  }
+
   if (packKey !== "video_preprod") return "";
 
   const lang = normalizeLang(langRaw);
