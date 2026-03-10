@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import type { Agent } from '../types';
 
+const assetBase = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+
 /** Map agent IDs to sprite numbers (stable order, same as OfficeView) */
 export function buildSpriteMap(agents: Agent[]): Map<string, number> {
   const map = new Map<string, number>();
@@ -41,6 +43,7 @@ export default function AgentAvatar({
 }: AgentAvatarProps) {
   const map = spriteMap ?? (agents ? buildSpriteMap(agents) : new Map());
   const spriteNum = agent ? map.get(agent.id) : undefined;
+  const imageLoading = size <= 48 ? 'lazy' : 'eager';
 
   const roundedClass = rounded === 'full' ? 'rounded-full' : rounded === 'xl' ? 'rounded-xl' : 'rounded-2xl';
 
@@ -51,8 +54,13 @@ export default function AgentAvatar({
         style={{ width: size, height: size }}
       >
         <img
-          src={`/sprites/${spriteNum}-D-1.png`}
+          src={`${assetBase}/sprites/${spriteNum}-D-1.png`}
           alt={agent?.name ?? ''}
+          width={size}
+          height={size}
+          loading={imageLoading}
+          decoding="async"
+          draggable={false}
           className="w-full h-full object-cover"
           style={{ imageRendering: 'pixelated' }}
         />

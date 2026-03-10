@@ -17,6 +17,12 @@ import { getCliStatus, getCliUsage, refreshCliUsage, type CliUsageEntry, type Cl
 import { useI18n, type UiLanguage } from "../i18n";
 import { useTheme, type ThemeMode } from "../ThemeContext";
 
+const assetBase = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "");
+
+function spritePath(fileName: string): string {
+  return `${assetBase}/sprites/${fileName}`;
+}
+
 /* ================================================================== */
 /*  Types                                                              */
 /* ================================================================== */
@@ -2618,14 +2624,14 @@ export default function OfficeView({
       for (let i = 1; i <= 12; i++) {
         for (const f of [1, 2, 3]) {
           const key = `${i}-D-${f}`;
-          loads.push(Assets.load<Texture>(`/sprites/${key}.png`).then(t => { textures[key] = t; }).catch(() => {}));
+          loads.push(Assets.load<Texture>(spritePath(`${key}.png`)).then(t => { textures[key] = t; }).catch(() => {}));
         }
         for (const dir of ['L', 'R']) {
           const key = `${i}-${dir}-1`;
-          loads.push(Assets.load<Texture>(`/sprites/${key}.png`).then(t => { textures[key] = t; }).catch(() => {}));
+          loads.push(Assets.load<Texture>(spritePath(`${key}.png`)).then(t => { textures[key] = t; }).catch(() => {}));
         }
       }
-      loads.push(Assets.load<Texture>("/sprites/ceo-lobster.png").then(t => { textures["ceo"] = t; }).catch(() => {}));
+      loads.push(Assets.load<Texture>(spritePath("ceo-lobster.png")).then(t => { textures["ceo"] = t; }).catch(() => {}));
       await Promise.all(loads);
       if (initIdRef.current !== currentInitId) { app.destroy(); return; }
       texturesRef.current = textures;

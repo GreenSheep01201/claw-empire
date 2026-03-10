@@ -34,6 +34,8 @@ export default function Sidebar({
   const workingCount = agents.filter((a) => a.status === "working").length;
   const totalAgents = agents.length;
   const isKorean = locale.startsWith("ko");
+  const assetBase = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "");
+  const ceoSpriteSrc = `${assetBase}/sprites/ceo-lobster.png`;
 
   const tr = (ko: string, en: string, ja = en, zh = en) =>
     t({ ko, en, ja, zh });
@@ -45,24 +47,32 @@ export default function Sidebar({
     tasks: tr("업무 관리", "Tasks", "タスク管理", "任务管理"),
     settings: tr("설정", "Settings", "設定", "设置"),
   };
+  const sidebarToggleLabel = collapsed
+    ? tr("사이드바 펼치기", "Expand sidebar", "サイドバーを開く", "展开侧边栏")
+    : tr("사이드바 접기", "Collapse sidebar", "サイドバーを閉じる", "收起侧边栏");
 
   return (
     <aside
-      className={`flex h-full flex-col backdrop-blur-sm transition-all duration-300 ${
+      className={`flex h-full flex-col bg-slate-800/80 backdrop-blur-sm border-r border-slate-700/50 transition-all duration-300 ${
         collapsed ? "w-16" : "w-48"
       }`}
-      style={{ background: 'var(--th-bg-sidebar)', borderRight: '1px solid var(--th-border)' }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2 px-3 py-4" style={{ borderBottom: '1px solid var(--th-border)', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.06)' }}>
+      <div className="flex items-center gap-2 px-3 py-4 border-b border-slate-700/50">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          aria-label={sidebarToggleLabel}
+          aria-expanded={!collapsed}
+          title={sidebarToggleLabel}
+          className="flex min-h-[44px] items-center gap-2 rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
         >
           <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 relative overflow-visible">
             <img
-              src="/sprites/ceo-lobster.png"
+              src={ceoSpriteSrc}
               alt={tr("CEO", "CEO")}
+              width={32}
+              height={32}
+              decoding="async"
               className="w-8 h-8 object-contain"
               style={{ imageRendering: 'pixelated' }}
             />
@@ -70,10 +80,10 @@ export default function Sidebar({
           </div>
           {!collapsed && (
             <div className="overflow-hidden">
-              <div className="text-sm font-bold truncate" style={{ color: 'var(--th-text-heading)' }}>
+              <div className="text-sm font-bold text-white truncate">
                 {settings.companyName}
               </div>
-              <div className="text-[10px]" style={{ color: 'var(--th-text-muted)' }}>
+              <div className="text-[10px] text-slate-400">
                 👑 {settings.ceoName}
               </div>
             </div>
@@ -87,10 +97,11 @@ export default function Sidebar({
           <button
             key={item.view}
             onClick={() => onChangeView(item.view)}
-            className={`sidebar-nav-item ${
+            aria-current={currentView === item.view ? "page" : undefined}
+            className={`w-full min-h-[44px] flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800 ${
               currentView === item.view
-                ? "active font-semibold shadow-sm shadow-blue-500/10"
-                : ""
+                ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
+                : "text-slate-400 hover:bg-slate-700/50 hover:text-slate-200 border border-transparent"
             }`}
           >
             <span className="text-base shrink-0">{item.icon}</span>
@@ -101,8 +112,8 @@ export default function Sidebar({
 
       {/* Department quick stats */}
       {!collapsed && (
-        <div className="px-3 py-2" style={{ borderTop: '1px solid var(--th-border)' }}>
-          <div className="text-[10px] uppercase font-semibold mb-1.5 tracking-wider" style={{ color: 'var(--th-text-muted)' }}>
+        <div className="px-3 py-2 border-t border-slate-700/50">
+          <div className="text-[10px] uppercase text-slate-500 font-semibold mb-1.5 tracking-wider">
             {tr("부서 현황", "Department Status", "部門状況", "部门状态")}
           </div>
           {departments.map((d) => {
@@ -115,8 +126,7 @@ export default function Sidebar({
             return (
               <div
                 key={d.id}
-                className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs hover:bg-[var(--th-bg-surface-hover)] transition-colors"
-                style={{ color: 'var(--th-text-secondary)' }}
+                className="flex items-center gap-1.5 py-0.5 text-xs text-slate-400"
               >
                 <span>{d.icon}</span>
                 <span className="flex-1 truncate">
@@ -136,15 +146,15 @@ export default function Sidebar({
       )}
 
       {/* Status bar */}
-      <div className="px-3 py-2.5" style={{ borderTop: '1px solid var(--th-border)' }}>
+      <div className="px-3 py-2.5 border-t border-slate-700/50">
         <div className="flex items-center gap-2">
           <div
-            className={`w-2.5 h-2.5 rounded-full ${
-              connected ? "bg-green-500 animate-pulse" : "bg-red-500"
+            className={`w-2 h-2 rounded-full ${
+              connected ? "bg-green-500" : "bg-red-500"
             }`}
           />
           {!collapsed && (
-            <div className="text-[10px]" style={{ color: 'var(--th-text-muted)' }}>
+            <div className="text-[10px] text-slate-500">
               {connected
                 ? tr("연결됨", "Connected", "接続中", "已连接")
                 : tr("연결 끊김", "Disconnected", "接続なし", "已断开")}{" "}

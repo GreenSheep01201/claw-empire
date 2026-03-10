@@ -2,7 +2,7 @@
 import type { RuntimeContext } from "../types/runtime-context.ts";
 import fs from "node:fs";
 import path from "path";
-import { HOST, PKG_VERSION, PORT } from "../config/runtime.ts";
+import { APP_BASE_PREFIX, HOST, PKG_VERSION, PORT } from "../config/runtime.ts";
 import { notifyTaskStatus } from "../gateway/client.ts";
 
 export function startLifecycle(ctx: RuntimeContext): void {
@@ -404,7 +404,26 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 // WebSocket server on same HTTP server
+const allowedWsPaths = new Set<string>(["/ws"]);
+if (APP_BASE_PREFIX) {
+  allowedWsPaths.add(`${APP_BASE_PREFIX}/ws`);
+}
+
 const wss = new WebSocketServer({ server });
+const defaultShouldHandle = wss.shouldHandle.bind(wss);
+wss.shouldHandle = (req) => {
+  const rawUrl = typeof req.url === "string" ? req.url : "/";
+  let pathname = "/";
+  try {
+    pathname = new URL(rawUrl, "http://127.0.0.1").pathname;
+  } catch {
+    pathname = rawUrl.split("?")[0] || "/";
+  }
+  if (!allowedWsPaths.has(pathname)) {
+    return false;
+  }
+  return defaultShouldHandle(req);
+};
 
 wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
   if (!isIncomingMessageOriginTrusted(req) || !isIncomingMessageAuthenticated(req)) {

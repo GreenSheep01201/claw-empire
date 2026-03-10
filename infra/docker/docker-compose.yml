@@ -1,0 +1,32 @@
+services:
+  claw-empire:
+    container_name: claw-empire
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: claw-empire:1.1.4
+    restart: unless-stopped
+    env_file:
+      - ../../.env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8790
+      VITE_BASE_PATH: /claw-empire/
+      HOME: /home/opc
+      DB_PATH: ${CLAW_EMPIRE_DB_PATH:-/runtime/db/claw-empire.sqlite}
+      LOGS_DIR: /runtime/logs
+      TMPDIR: /runtime/tmp
+    ports:
+      - "127.0.0.1:${CLAW_EMPIRE_HOST_PORT:-8790}:8790"
+    volumes:
+      - /mnt/sdb/opc-data/claw-empire-runtime/db:/runtime/db
+      - /mnt/sdb/opc-data/claw-empire-runtime/logs:/runtime/logs
+      - /mnt/sdb/opc-data/claw-empire-runtime/tmp:/runtime/tmp
+      - /home/opc/.openclaw:/home/opc/.openclaw
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8790/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

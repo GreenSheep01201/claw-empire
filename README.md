@@ -569,6 +569,28 @@ pnpm start              # run the built server
 curl -fsS http://127.0.0.1:8790/healthz
 ```
 
+### Docker Run (Same Tailnet Contract)
+
+```bash
+# Canary (no downtime, binds host 8791)
+CLAW_EMPIRE_HOST_PORT=8791 CLAW_EMPIRE_DB_PATH=/runtime/db/claw-empire-canary.sqlite docker compose -f infra/docker/docker-compose.yml up -d --build
+
+# Cutover target (binds host 8790)
+CLAW_EMPIRE_HOST_PORT=8790 docker compose -f infra/docker/docker-compose.yml up -d --build
+```
+
+Runbook: `docs/operations/docker-cutover-runbook-2026-02-22.md`
+
+### Base Path Deployments
+
+When serving Claw-Empire from a subpath, set `VITE_BASE_PATH` to the public mount point:
+
+```bash
+VITE_BASE_PATH=/claw-empire/
+```
+
+With that setting, the frontend assets, API bootstrap calls, health endpoints, and websocket URL all resolve under `/claw-empire/`, while the legacy root paths remain available for gradual cutovers and rollback.
+
 ### Communication QA Checks (v1.1.4)
 
 ```bash
@@ -697,6 +719,7 @@ Claw-Empire is designed with security in mind:
 - **No personal credentials in source** — All user-specific tokens (GitHub, Google OAuth) are stored encrypted in the local SQLite database, never in source code
 - **No secrets in repo** — Comprehensive `.gitignore` blocks `.env`, `*.pem`, `*.key`, `credentials.json`, etc.
 - **Preflight security checks** — Run `pnpm run preflight:public` before any public release to scan for leaked secrets in both working tree and git history
+- **Audit log verification is fail-closed** — `pnpm run audit:verify` now fails when the target log file is missing. Use `pnpm run audit:init` first to create the file, and pass `--allow-empty` only for clean-environment permission checks
 - **Localhost by default** — Development server binds to `127.0.0.1`, not exposed to network
 
 ---

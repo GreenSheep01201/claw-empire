@@ -1,0 +1,29 @@
+name: Predeploy IaC Drift Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  iac-drift-gate:
+    name: Terraform Plan Drift Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run IaC drift gate
+        env:
+          IAC_CI_RUN_ID: ${{ github.run_id }}
+        run: pnpm run security:iac:gate
+
+      - name: Upload IaC evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: iac-drift-gate-evidence
+          path: logs/iac-drift-gate-*.log
+          if-no-files-found: warn

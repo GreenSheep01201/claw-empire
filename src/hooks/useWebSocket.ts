@@ -11,7 +11,9 @@ export function useWebSocket() {
 
   useEffect(() => {
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${proto}//${location.host}/ws`;
+    const rawBaseUrl = (import.meta.env.BASE_URL || "/").trim();
+    const base = rawBaseUrl === "/" ? "" : rawBaseUrl.replace(/\/+$/, "");
+    const url = `${proto}//${location.host}${base}/ws`;
     let alive = true;
     let ws: WebSocket;
     let reconnectTimer: ReturnType<typeof setTimeout>;

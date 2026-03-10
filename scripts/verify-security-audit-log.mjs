@@ -2,14 +2,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import { resolveSecurityAuditLogPath } from "./security-audit-init.mjs";
 
 const CHAIN_SEED =
   (process.env.SECURITY_AUDIT_CHAIN_SEED || "").trim() || "claw-empire-security-audit-v1";
 const CHAIN_KEY = process.env.SECURITY_AUDIT_CHAIN_KEY || "";
-const logsDir = process.env.LOGS_DIR || path.join(process.cwd(), "logs");
-const targetPath = process.argv[2]
-  ? path.resolve(process.argv[2])
-  : path.join(logsDir, "security-audit.ndjson");
+const args = process.argv.slice(2);
+const normalizedArgs = args.filter((arg) => arg !== "--");
+const allowEmpty =
+  normalizedArgs.includes("--allow-empty") || process.env.SECURITY_AUDIT_ALLOW_EMPTY === "1";
+const targetArg = normalizedArgs.find((arg) => arg !== "--allow-empty") ?? "";
+const targetPath = resolveSecurityAuditLogPath(targetArg);
 
 function canonicalizeAuditValue(value) {
   if (Array.isArray(value)) return value.map(canonicalizeAuditValue);
@@ -50,7 +53,17 @@ function computeChainHash(prevHash, entry) {
 }
 
 if (!fs.existsSync(targetPath)) {
-  console.error(`[verify-security-audit-log] log file not found: ${targetPath}`);
+  console.error(
+    JSON.stringify(
+      {
+        ok: false,
+        path: targetPath,
+        error: "log_file_not_found",
+      },
+      null,
+      2,
+    ),
+  );
   process.exit(1);
 }
 
@@ -66,11 +79,22 @@ const summary = {
   invalid_shape: 0,
   invalid_prev_hash: 0,
   invalid_chain_hash: 0,
+  empty_log: false,
+  allow_empty: allowEmpty,
   by_endpoint: {},
   by_outcome: {},
   first_created_at: null,
   last_created_at: null,
 };
+
+if (lines.length === 0) {
+  summary.empty_log = true;
+  if (!allowEmpty) {
+    summary.ok = false;
+    console.log(JSON.stringify(summary, null, 2));
+    process.exit(1);
+  }
+}
 
 let expectedPrevHash = "GENESIS";
 

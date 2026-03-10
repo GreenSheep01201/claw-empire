@@ -102,8 +102,25 @@ export function initializeDatabaseRuntime(): {
   );
 
   const logsDir = process.env.LOGS_DIR ?? path.join(process.cwd(), "logs");
+  const securityAuditLogPath = path.join(logsDir, "security-audit.ndjson");
+  const securityAuditFallbackLogPath = path.join(logsDir, "security-audit-fallback.ndjson");
   try {
-    fs.mkdirSync(logsDir, { recursive: true });
+    fs.mkdirSync(logsDir, { recursive: true, mode: 0o700 });
+    try {
+      fs.chmodSync(logsDir, 0o700);
+    } catch {
+      // chmod may fail on non-POSIX filesystems.
+    }
+
+    for (const filePath of [securityAuditLogPath, securityAuditFallbackLogPath]) {
+      const fd = fs.openSync(filePath, "a", 0o600);
+      fs.closeSync(fd);
+      try {
+        fs.chmodSync(filePath, 0o600);
+      } catch {
+        // chmod may fail on non-POSIX filesystems.
+      }
+    }
   } catch {
     // ignore
   }

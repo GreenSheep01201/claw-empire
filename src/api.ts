@@ -9,7 +9,8 @@ import type {
   RoomTheme
 } from './types';
 
-const base = '';
+const rawBaseUrl = (import.meta.env.BASE_URL || '/').trim();
+const base = rawBaseUrl === '/' ? '' : rawBaseUrl.replace(/\/+$/, '');
 const SESSION_BOOTSTRAP_PATH = '/api/auth/session';
 const API_AUTH_TOKEN_SESSION_KEY = 'claw_api_auth_token';
 const POST_RETRY_LIMIT = 2;

@@ -46,6 +46,15 @@ export const HOST = process.env.HOST ?? "127.0.0.1";
 export const OAUTH_BASE_HOST = HOST === "0.0.0.0" || HOST === "::" ? "127.0.0.1" : HOST;
 export const SESSION_COOKIE_NAME = "claw_session";
 
+export function normalizeBasePath(raw: string | undefined): string {
+  const trimmed = (raw ?? "").trim().replace(/^['"]|['"]$/g, "");
+  if (!trimmed || trimmed === "/") return "/";
+
+  const collapsed = trimmed.replace(/\/{2,}/g, "/");
+  const withLeadingSlash = collapsed.startsWith("/") ? collapsed : `/${collapsed}`;
+  return withLeadingSlash.endsWith("/") ? withLeadingSlash : `${withLeadingSlash}/`;
+}
+
 export function normalizeSecret(raw: string | undefined): string {
   const trimmed = (raw ?? "").trim().replace(/^['\"]|['\"]$/g, "");
   if (!trimmed || trimmed === "__CHANGE_ME__") return "";
@@ -68,6 +77,8 @@ export const OPENCLAW_CONFIG_PATH = normalizePathEnv(process.env.OPENCLAW_CONFIG
 export const API_AUTH_TOKEN = normalizeSecret(process.env.API_AUTH_TOKEN);
 export const INBOX_WEBHOOK_SECRET = normalizeSecret(process.env.INBOX_WEBHOOK_SECRET);
 export const SESSION_AUTH_TOKEN = API_AUTH_TOKEN || randomBytes(32).toString("hex");
+export const APP_BASE_PATH = normalizeBasePath(process.env.VITE_BASE_PATH ?? process.env.APP_BASE_PATH);
+export const APP_BASE_PREFIX = APP_BASE_PATH === "/" ? "" : APP_BASE_PATH.slice(0, -1);
 export const ALLOWED_ORIGIN_SUFFIXES = (process.env.ALLOWED_ORIGIN_SUFFIXES ?? ".ts.net")
   .split(",")
   .map((v) => v.trim())
@@ -82,6 +93,23 @@ export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? "")
 // ---------------------------------------------------------------------------
 export const DIST_DIR = path.resolve(SERVER_DIRNAME, "..", "..", "dist");
 export const IS_PRODUCTION = !process.env.VITE_DEV && fs.existsSync(path.join(DIST_DIR, "index.html"));
+
+export function stripConfiguredBasePath(rawUrl: string): string {
+  if (!APP_BASE_PREFIX) return rawUrl;
+
+  const queryIndex = rawUrl.indexOf("?");
+  const pathname = queryIndex >= 0 ? rawUrl.slice(0, queryIndex) : rawUrl;
+  const suffix = queryIndex >= 0 ? rawUrl.slice(queryIndex) : "";
+
+  if (pathname === APP_BASE_PREFIX) {
+    return `/${suffix}`;
+  }
+  if (pathname.startsWith(`${APP_BASE_PREFIX}/`)) {
+    const stripped = pathname.slice(APP_BASE_PREFIX.length);
+    return `${stripped || "/"}${suffix}`;
+  }
+  return rawUrl;
+}
 
 // ---------------------------------------------------------------------------
 // Database defaults

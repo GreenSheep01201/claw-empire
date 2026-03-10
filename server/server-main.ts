@@ -6,8 +6,10 @@ import { WebSocketServer, WebSocket } from "ws";
 import type { BaseRuntimeContext, RuntimeContext } from "./types/runtime-context.ts";
 
 import {
+  APP_BASE_PATH,
   DIST_DIR,
   IS_PRODUCTION,
+  stripConfiguredBasePath,
 } from "./config/runtime.ts";
 import {
   IN_PROGRESS_ORPHAN_GRACE_MS,
@@ -34,6 +36,15 @@ import { registerApiRoutes } from "./modules/routes.ts";
 import { initializeWorkflow } from "./modules/workflow.ts";
 
 const app = express();
+if (APP_BASE_PATH !== "/") {
+  app.use((req, _res, next) => {
+    const rewrittenUrl = stripConfiguredBasePath(req.url);
+    if (rewrittenUrl !== req.url) {
+      req.url = rewrittenUrl;
+    }
+    next();
+  });
+}
 installSecurityMiddleware(app);
 
 const { dbPath, db, logsDir } = initializeDatabaseRuntime();
@@ -80,6 +91,19 @@ function firstQueryValue(value: unknown): string | undefined {
   }
   return undefined;
 }
+function readSettingString(key: string): string | undefined {
+  try {
+    const row = db
+      .prepare("SELECT value FROM settings WHERE key = ?")
+      .get(key) as { value?: unknown } | undefined;
+    const value = row?.value;
+    if (value == null) return undefined;
+    return typeof value === "string" ? value : String(value);
+  } catch {
+    return undefined;
+  }
+}
+
 
 const securityAuditLogPath = path.join(logsDir, "security-audit.ndjson");
 const securityAuditFallbackLogPath = path.join(logsDir, "security-audit-fallback.ndjson");
@@ -1721,6 +1745,7 @@ const runtimeContext: Record<string, any> & BaseRuntimeContext = {
   nowMs,
   runInTransaction,
   firstQueryValue,
+  readSettingString,
 
   IN_PROGRESS_ORPHAN_GRACE_MS,
   IN_PROGRESS_ORPHAN_SWEEP_MS,
