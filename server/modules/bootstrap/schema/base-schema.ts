@@ -365,7 +365,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_learning_history_skill_lookup
 CREATE TABLE IF NOT EXISTS api_providers (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
-  type TEXT NOT NULL DEFAULT 'openai' CHECK(type IN ('openai','anthropic','google','ollama','openrouter','together','groq','cerebras','custom')),
+  type TEXT NOT NULL DEFAULT 'openai' CHECK(type IN ('openai','anthropic','google','ollama','openrouter','together','groq','cerebras','novita','custom')),
   base_url TEXT NOT NULL,
   api_key_enc TEXT,
   preset_key TEXT,

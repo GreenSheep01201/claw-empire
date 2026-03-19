@@ -18,9 +18,10 @@ type ApiProviderType =
   | "together"
   | "groq"
   | "cerebras"
+  | "novita"
   | "custom";
 
-type OfficialApiProviderType = Extract<ApiProviderType, "openai" | "anthropic">;
+type OfficialApiProviderType = Extract<ApiProviderType, "openai" | "anthropic" | "novita">;
 
 type OfficialApiProviderPreset = {
   label: string;
@@ -76,6 +77,7 @@ const API_PROVIDER_PRESETS: Record<ApiProviderType, ApiProviderPreset> = {
   together: { base_url: "https://api.together.xyz/v1", models_path: "/models", auth_header: "Bearer" },
   groq: { base_url: "https://api.groq.com/openai/v1", models_path: "/models", auth_header: "Bearer" },
   cerebras: { base_url: "https://api.cerebras.ai/v1", models_path: "/models", auth_header: "Bearer" },
+  novita: { base_url: "https://api.novita.ai/openai", models_path: "/models", auth_header: "Bearer" },
   custom: { base_url: "", models_path: "/models", auth_header: "Bearer" },
 };
 
@@ -139,6 +141,16 @@ const OFFICIAL_API_PROVIDER_PRESETS = {
       "glm-4.7",
     ],
     required_api_key_prefix: "sk-sp-",
+  },
+  "novita-ai": {
+    label: "Novita AI",
+    description: "Novita AI direct API preset using the OpenAI-compatible protocol.",
+    type: "novita",
+    base_url: "https://api.novita.ai/openai",
+    docs_url: "https://novita.ai/docs",
+    api_key_hint: "Use a Novita AI API key for this endpoint.",
+    api_key_placeholder: "...",
+    fallback_models: ["moonshotai/kimi-k2.5", "deepseek/deepseek-v3.2", "zai-org/glm-5"],
   },
 } as const satisfies Record<string, OfficialApiProviderPreset>;
 

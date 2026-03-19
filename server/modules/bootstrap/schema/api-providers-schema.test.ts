@@ -118,6 +118,7 @@ describe("api_providers schema migrations", () => {
           | undefined
       )?.sql;
       expect(tableSql).toContain("'cerebras'");
+      expect(tableSql).toContain("'novita'");
     } finally {
       db.close();
     }
