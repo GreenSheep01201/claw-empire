@@ -25,6 +25,7 @@ export type ApiProviderType =
   | "together"
   | "groq"
   | "cerebras"
+  | "novita"
   | "custom";
 
 export interface ApiProviderRow {

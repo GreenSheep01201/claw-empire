@@ -358,6 +358,58 @@ describe("api provider routes", () => {
     }
   });
 
+  it("returns novita-ai in the official presets catalog with correct metadata", async () => {
+    const { app, db } = await createHarness();
+
+    try {
+      const response = await request(app).get("/api/api-providers/presets").expect(200);
+
+      expect(response.body.ok).toBe(true);
+      expect(response.body.presets.novita.base_url).toBe("https://api.novita.ai/openai");
+      expect(response.body.official_presets["novita-ai"]).toMatchObject({
+        type: "novita",
+        base_url: "https://api.novita.ai/openai",
+      });
+      expect(response.body.official_presets["novita-ai"].fallback_models).toContain("moonshotai/kimi-k2.5");
+    } finally {
+      db.close();
+    }
+  });
+
+  it("creates a novita-ai preset-backed provider with seeded fallback models", async () => {
+    const { app, db } = await createHarness();
+
+    try {
+      const createResponse = await request(app).post("/api/api-providers").send({
+        name: "Novita AI",
+        preset_key: "novita-ai",
+        api_key: "test-novita-key",
+      });
+
+      expect(createResponse.status).toBe(200);
+      expect(createResponse.body.ok).toBe(true);
+
+      const row = db
+        .prepare("SELECT name, type, base_url, preset_key, models_cache FROM api_providers WHERE id = ?")
+        .get(createResponse.body.id) as
+        | { name: string; type: string; base_url: string; preset_key: string | null; models_cache: string | null }
+        | undefined;
+
+      expect(row).toMatchObject({
+        name: "Novita AI",
+        type: "novita",
+        base_url: "https://api.novita.ai/openai",
+        preset_key: "novita-ai",
+      });
+      const models = JSON.parse(String(row?.models_cache));
+      expect(models).toContain("moonshotai/kimi-k2.5");
+      expect(models).toContain("deepseek/deepseek-v3.2");
+      expect(models).toContain("zai-org/glm-5");
+    } finally {
+      db.close();
+    }
+  });
+
   it("merges fetched models with preset fallback models during test", async () => {
     const { app, db } = await createHarness();
 
