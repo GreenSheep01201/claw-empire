@@ -147,8 +147,27 @@ export function createUsageCliTools(deps: CreateUsageCliToolsDeps) {
       checkAuth: () => {
         const home = os.homedir();
         const claudeJson = path.join(home, ".claude.json");
+
+        // Legacy/local auth footprints used by older Claude Code releases.
         if (jsonHasKey(claudeJson, "oauthAccount") || jsonHasKey(claudeJson, "session")) return true;
-        return fileExistsNonEmpty(path.join(home, ".claude", "auth.json"));
+        if (fileExistsNonEmpty(path.join(home, ".claude", "auth.json"))) return true;
+
+        // Current OAuth storage path (and macOS keychain bridge) used by usage endpoint fetch.
+        if (readClaudeToken()) return true;
+
+        // Last-resort runtime probe: rely on Claude CLI status exit behavior.
+        // If authenticated, this command exits successfully in current releases.
+        try {
+          const cmd = process.platform === "win32" ? "cmd" : "claude";
+          const args = process.platform === "win32" ? ["/c", "claude auth status"] : ["auth", "status"];
+          execFileSync(cmd, args, {
+            timeout: 4000,
+            stdio: ["ignore", "pipe", "pipe"],
+          });
+          return true;
+        } catch {
+          return false;
+        }
       },
     },
     {
