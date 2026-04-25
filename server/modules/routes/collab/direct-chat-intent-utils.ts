@@ -5,26 +5,29 @@ export function shouldTreatDirectChatAsTask(ceoMessage: string, messageType: str
   if (!text) return false;
   if (/^\[(의사결정\s*회신|decision\s*reply|意思決定返信|决策回复)\]/i.test(text)) return false;
 
-  if (/^\s*(task|todo|업무|지시|작업|할일)\s*[:-]/i.test(text)) return true;
+  if (/^\s*(task|todo|업무|지시|작업|할일|tarefa|trabalho)\s*[:-]/i.test(text)) return true;
 
   const taskKeywords =
-    /(테스트|검증|확인해|진행해|수정해|구현해|반영해|처리해|해줘|부탁|검토|검수|리뷰|평가|분석|보고서|작성해|파악|업무|작업|요청|fix|implement|refactor|test|verify|check|review|audit|analyze|analysis|report|run|apply|update|debug|investigate|対応|確認|修正|実装|レビュー|監査|分析|报告|评估|测试|检查|修复|处理|审查|审核)/i;
+    /(테스트|검증|확인해|진행해|수정해|구현해|반영해|처리해|해줘|부탁|검토|검수|리뷰|평가|분석|보고서|작성해|파악|업무|작업|요청|fix|implement|refactor|test|verify|check|review|audit|analyze|analysis|report|run|apply|update|debug|investigate|対応|確認|修正|実装|レビュー|監査|分析|报告|评估|测试|检查|修复|处理|审查|审核|crie|cria|criar|criando|faça|faca|faz|fazer|fazendo|monte|monta|montar|implemente|implementa|implementar|corrija|corrige|corrigir|conserte|conserta|consertar|ajuste|ajusta|ajustar|gere|gera|gerar|escreva|escreve|escrever|verifique|verifica|verificar|teste|testa|testar|revise|revisa|revisar|analise|analisa|analisar|investigue|investiga|investigar|melhore|melhora|melhorar|otimize|otimiza|otimizar|refatore|refatora|refatorar|atualize|atualiza|atualizar|adicione|adiciona|adicionar|remova|remove|remover|delete|deleta|deletar|relatorio|relatório|tarefa|trabalho|implementação|implementacao)/i;
   if (taskKeywords.test(text)) return true;
 
   const requestTone =
-    /(해주세요|해 주세요|부탁해|부탁합니다|해줄래|해줘요|please|can you|could you|would you|お願いします|してください|请|麻烦)/i;
+    /(해주세요|해 주세요|부탁해|부탁합니다|해줄래|해줘요|please|can you|could you|would you|お願いします|してください|请|麻烦|por favor|pode|poderia|consegue|conseguiria|me ajuda|me ajude)/i;
   if (requestTone.test(text) && text.length >= 12) return true;
 
   const requestIntent =
-    /(필요해|필요합니다|원해|원합니다|받고싶|받고 싶|해보고 싶|want|need|i need|i want|してほしい|必要|想要|需要)/i;
-  if (requestIntent.test(text) && /(검토|검수|리뷰|평가|분석|보고서|업무|작업|review|audit|analy|report)/i.test(text)) {
+    /(필요해|필요합니다|원해|원합니다|받고싶|받고 싶|해보고 싶|want|need|i need|i want|してほしい|必要|想要|需要|preciso|necessito|quero|gostaria|gostariamos|preciso de|preciso da|preciso do)/i;
+  if (
+    requestIntent.test(text) &&
+    /(검토|검수|리뷰|평가|분석|보고서|업무|작업|review|audit|analy|report|revisão|revisao|auditoria|análise|analise|relatório|relatorio|tarefa|trabalho|projeto)/i.test(text)
+  ) {
     return true;
   }
 
   const analysisRequestVerb =
-    /(찾아와|찾아와줘|찾아줘|파악해|파악해줘|조사해|조사해줘|점검해|점검해줘|정리해|정리해줘|추려줘|도출해|도출해줘|identify|find|inspect|investigate|analyze|review|audit)/i;
+    /(찾아와|찾아와줘|찾아줘|파악해|파악해줘|조사해|조사해줘|점검해|점검해줘|정리해|정리해줘|추려줘|도출해|도출해줘|identify|find|inspect|investigate|analyze|review|audit|analise|analisa|analisar|investigue|investiga|investigar|inspecione|inspeciona|examine|examina|verifique|verifica|revise|revisa|audite|audita|encontre|encontra|identifique|identifica)/i;
   const softwareContext =
-    /(소스코드|코드|repo|repository|프로젝트|모듈|파일|이슈|버그|취약점|리팩터|리팩토링|test|build|lint|tsc|보고서|report)/i;
+    /(소스코드|코드|repo|repository|프로젝트|모듈|파일|이슈|버그|취약점|리팩터|리팩토링|test|build|lint|tsc|보고서|report|projeto|código|codigo|código-fonte|codigo-fonte|repositório|repositorio|módulo|modulo|arquivo|issue|bug|vulnerabilidade|refator|refatoração|refatoracao|relatório|relatorio)/i;
   if (analysisRequestVerb.test(text) && softwareContext.test(text)) {
     return true;
   }
@@ -62,6 +65,8 @@ export function isTaskKickoffMessage(text: string): boolean {
   if (!normalized) return false;
   if (/^(고고|ㄱㄱ|가자|가즈아|진행|진행해|시작|시작해|착수|착수해|바로 진행|바로해)$/i.test(normalized)) return true;
   if (/^(go|go go|gogo|let'?s go|start|proceed|execute|go ahead)$/i.test(normalized)) return true;
+  if (/^(vai|bora|manda|manda bala|toca|toca o barco|começa|comeca|começar|comecar|iniciar|prossegue|prossiga|prosseguir|executa|executar|segue|seguir|fecha|fechou)$/i.test(normalized))
+    return true;
   return false;
 }
 
@@ -74,7 +79,7 @@ export function isAffirmativeReply(text: string): boolean {
   if (!normalized) return false;
 
   const negativePatterns = [
-    /^(아니|아니요|아뇨|노|안됨|하지마|중지|멈춰|스탑|stop|no|nope|nah|don'?t|not now|later|아직|다음에|やめて|いいえ|不要|不用|不行|先不要)/i,
+    /^(아니|아니요|아뇨|노|안됨|하지마|중지|멈춰|스탑|stop|no|nope|nah|don'?t|not now|later|아직|다음에|やめて|いいえ|不要|不用|不行|先不要|n[aã]o|nao|negativo|de jeito nenhum|nem pensar|cancela|para com isso|depois|mais tarde|agora n[aã]o)/i,
   ];
   if (negativePatterns.some((pattern) => pattern.test(normalized))) return false;
 
@@ -82,6 +87,7 @@ export function isAffirmativeReply(text: string): boolean {
     /^(네|예|응|ㅇㅇ|좋아|좋아요|오케이|ok|okay|sure|yep|yeah|yes|go|go ahead|proceed|do it|start|let'?s go|let?s do it|진행|시작|착수|바로 해|콜|ㄱㄱ|고고)/i,
     /^(はい|了解|お願いします|進めて|進めてください|開始して|いいよ|いいです|実行して)/i,
     /^(好|好的|可以|行|开始吧|继续|请开始|执行吧|马上开始)/i,
+    /^(sim|claro|beleza|blz|pode|pode ser|isso|isso a[ií]|isso ai|positivo|com certeza|certo|certinho|t[aá] bom|ta bom|tudo certo|tudo bem|fechou|fechado|combinado|bora|vai|manda|manda bala|valeu|aprovado|prossegue|prossiga|segue|segue o jogo|segue o baile|de boa|tranquilo)/i,
   ];
   return affirmativePatterns.some((pattern) => pattern.test(normalized));
 }
@@ -104,7 +110,9 @@ export function isAgentEscalationPrompt(text: string): boolean {
 export function isCancelReply(text: string): boolean {
   const normalized = text.trim().toLowerCase().replace(/\s+/g, " ");
   if (!normalized) return false;
-  return /^(취소|중지|멈춰|그만|나중에|cancel|stop|abort|later|not now|いいえ|中止|不要|先不要)/i.test(normalized);
+  return /^(취소|중지|멈춰|그만|나중에|cancel|stop|abort|later|not now|いいえ|中止|不要|先不要|cancela|cancelar|cancelado|para|parar|parou|chega|deixa|deixa pra l[aá]|depois|mais tarde|agora n[aã]o|esquece|abandona|aborta|abortar)/i.test(
+    normalized,
+  );
 }
 
 export function isNoPathReply(text: string): boolean {
@@ -134,16 +142,21 @@ export function detectProjectKindChoice(text: string): "existing" | "new" | null
   if (numericNew && !numericExisting) return "new";
 
   const existingHit =
-    /(?:기존\s*프로젝트|기존\b|기존으로|기존거|있던\s*거|원래\s*있던|existing\s*project|existing\s*one|\bexisting\b|already\s*project|already\s*existing|既存プロジェクト|既存|已有项目|已有)/i.test(
+    /(?:기존\s*프로젝트|기존\b|기존으로|기존거|있던\s*거|원래\s*있던|existing\s*project|existing\s*one|\bexisting\b|already\s*project|already\s*existing|既存プロジェクト|既存|已有项目|已有|projeto\s*existente|existente|\batual\b|projeto\s*atual|j[aá]\s*existente|que\s*j[aá]\s*existe)/i.test(
       raw,
-    ) || compact.includes("기존프로젝트");
+    ) ||
+    compact.includes("기존프로젝트") ||
+    compact.includes("projetoexistente") ||
+    compact.includes("projetoatual");
   const newHit =
-    /(신규\s*프로젝트|신규\b|신규로|새\s*프로젝트|새로\s*프로젝트|새거|new\s*project|\bnew\b|新規プロジェクト|新規|新项目)/i.test(
+    /(신규\s*프로젝트|신규\b|신규로|새\s*프로젝트|새로\s*프로젝트|새거|new\s*project|\bnew\b|新規プロジェクト|新規|新项目|projeto\s*novo|novo\s*projeto|\bnovo\b)/i.test(
       raw,
     ) ||
     compact.includes("새프로젝트") ||
     compact.includes("신규프로젝트") ||
-    compact.includes("newproject");
+    compact.includes("newproject") ||
+    compact.includes("projetonovo") ||
+    compact.includes("novoprojeto");
 
   if (existingHit && !newHit) return "existing";
   if (newHit && !existingHit) return "new";

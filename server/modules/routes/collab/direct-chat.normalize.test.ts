@@ -134,6 +134,45 @@ describe("task intent upgrade", () => {
     expect(isProjectProgressInquiry("프로젝트 디자인 검토 보고서 작성해줘")).toBe(false);
   });
 
+  it("Brazilian Portuguese imperative requests are recognized as task intent", () => {
+    expect(shouldTreatDirectChatAsTask("crie um SVG de cartão de visita pra Tyber Empire", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("faça uma landing page do projeto", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("monte um relatório das vendas do mês", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("implemente o login social com Google", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("corrija o bug do botão de checkout", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("ajuste o layout da home", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("gere um logo em PNG transparente", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("revise o pull request #42 por favor", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("analise o código do módulo de pagamento", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("teste o endpoint /api/users", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("refatore o repositório pra TypeScript estrito", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("preciso de uma análise do projeto", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("quero um relatório de bugs do mês", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("pode atualizar o README do repositório?", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("tarefa: deploy do staging", "chat")).toBe(true);
+    expect(shouldTreatDirectChatAsTask("oi, tudo bem?", "chat")).toBe(false);
+    expect(shouldTreatDirectChatAsTask("que dia é hoje?", "chat")).toBe(false);
+  });
+
+  it("Brazilian Portuguese affirmative and cancel replies are routed correctly", () => {
+    expect(isAffirmativeReply("sim, pode prosseguir")).toBe(true);
+    expect(isAffirmativeReply("claro")).toBe(true);
+    expect(isAffirmativeReply("beleza, manda bala")).toBe(true);
+    expect(isAffirmativeReply("isso aí")).toBe(true);
+    expect(isAffirmativeReply("fechou")).toBe(true);
+    expect(isAffirmativeReply("não, espera")).toBe(false);
+    expect(isAffirmativeReply("agora não")).toBe(false);
+  });
+
+  it("Brazilian Portuguese kickoff and project-kind choices work", () => {
+    expect(isTaskKickoffMessage("vai")).toBe(true);
+    expect(isTaskKickoffMessage("bora")).toBe(true);
+    expect(isTaskKickoffMessage("manda bala")).toBe(true);
+    expect(detectProjectKindChoice("projeto existente")).toBe("existing");
+    expect(detectProjectKindChoice("novo projeto")).toBe("new");
+    expect(detectProjectKindChoice("o atual")).toBe("existing");
+  });
+
   it("구조화된 선택지/목록 안내는 원문 보존 대상으로 인식한다", () => {
     expect(
       shouldPreserveStructuredFallback("기존 프로젝트인가요, 신규 프로젝트인가요?\n1️⃣ 기존 프로젝트\n2️⃣ 신규 프로젝트"),
