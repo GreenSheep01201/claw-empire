@@ -64,6 +64,29 @@ describe("api provider routes", () => {
     }
   });
 
+  it("returns MiniMax regional presets with current model IDs", async () => {
+    const { app, db } = await createHarness();
+
+    try {
+      const response = await request(app).get("/api/api-providers/presets").expect(200);
+      const expectedPresets = {
+        "minimax-global-openai": { type: "openai", base_url: "https://api.minimax.io/v1" },
+        "minimax-global-anthropic": { type: "anthropic", base_url: "https://api.minimax.io/anthropic" },
+        "minimax-cn-openai": { type: "openai", base_url: "https://api.minimaxi.com/v1" },
+        "minimax-cn-anthropic": { type: "anthropic", base_url: "https://api.minimaxi.com/anthropic" },
+      };
+
+      for (const [key, expected] of Object.entries(expectedPresets)) {
+        expect(response.body.official_presets[key]).toMatchObject({
+          ...expected,
+          fallback_models: ["MiniMax-M3", "MiniMax-M2.7"],
+        });
+      }
+    } finally {
+      db.close();
+    }
+  });
+
   it("creates a preset-backed provider with authoritative type/base_url and seeded models", async () => {
     const { app, db } = await createHarness();
 
