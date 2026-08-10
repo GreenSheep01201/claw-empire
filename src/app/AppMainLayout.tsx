@@ -500,8 +500,8 @@ export default function AppMainLayout({
             {view === "dashboard" && (
               <Dashboard
                 stats={stats}
-                agents={agents}
-                tasks={tasks}
+                agents={officeScopedAgents}
+                tasks={tasksForActivePack}
                 companyName={settings.companyName}
                 onPrimaryCtaClick={() => setView("tasks")}
               />

@@ -183,6 +183,14 @@ describe("office pack display helpers", () => {
       department_id: "dev",
       personality: `hermes-member:${"b".repeat(64)}\n\n正式所属: 🎨 開発部門`,
     });
+    const linkedHermes = makeAgent({
+      id: "hermes",
+      name: "Hermes",
+      name_ko: "Hermes",
+      name_ja: "エルメス",
+      department_id: "secretariat",
+      personality: `hermes-member:${"e".repeat(64)}\n\n正式所属: 🧑‍💼 秘書室`,
+    });
     const defaultAgent = makeAgent({
       id: "default-sage",
       name: "Sage",
@@ -201,12 +209,13 @@ describe("office pack display helpers", () => {
     const departments = [
       makeDepartment({ id: "planning", name: "Planning", name_ko: "Planning", name_ja: "企画チーム" }),
       makeDepartment({ id: "dev", name: "Development", name_ko: "Development", name_ja: "🎨 開発部門" }),
+      makeDepartment({ id: "secretariat", name: "Secretariat", name_ko: "Secretariat", name_ja: "🧑‍💼 秘書室" }),
       makeDepartment({ id: "qa", name: "QA", name_ko: "QA", name_ja: "品質管理チーム" }),
     ];
 
     const { scopedAgents, mergedAgents } = resolvePackAgentViews({
       packKey: "development",
-      globalAgents: [defaultAgent, linkedAthena, linkedIris, foreignPackLinkedAgent],
+      globalAgents: [defaultAgent, linkedAthena, linkedIris, linkedHermes, foreignPackLinkedAgent],
     });
     const visibleDepartments = resolvePackDepartmentsForDisplay({
       packKey: "development",
@@ -214,10 +223,11 @@ describe("office pack display helpers", () => {
       visibleAgents: mergedAgents,
     });
 
-    expect(scopedAgents.map((agent) => agent.id)).toEqual(["athena", "iris"]);
-    expect(mergedAgents.map((agent) => agent.id)).toEqual(["athena", "iris"]);
-    expect(visibleDepartments.map((department) => department.id)).toEqual(["dev"]);
+    expect(scopedAgents.map((agent) => agent.id)).toEqual(["athena", "iris", "hermes"]);
+    expect(mergedAgents.map((agent) => agent.id)).toEqual(["athena", "iris", "hermes"]);
+    expect(visibleDepartments.map((department) => department.id)).toEqual(["dev", "secretariat"]);
     expect(visibleDepartments[0]?.name_ja).toBe("🎨 開発部門");
+    expect(visibleDepartments[1]?.name_ja).toBe("🧑‍💼 秘書室");
   });
 
   it("keeps the normal development roster when no Notion-linked agent exists", () => {
