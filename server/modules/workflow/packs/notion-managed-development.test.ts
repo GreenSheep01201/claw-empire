@@ -20,7 +20,7 @@ function setupDb(): DatabaseSync {
 }
 
 describe("Notion managed development scope", () => {
-  it("returns only departments referenced by development-pack Hermes members", () => {
+  it("returns the complete Notion department catalog when development-pack Hermes members exist", () => {
     const db = setupDb();
     try {
       const marker = (hex: string) => `hermes-member:${hex.repeat(64)}\n\nprofile`;
@@ -31,9 +31,25 @@ describe("Notion managed development scope", () => {
 
       expect(readNotionManagedDevelopmentScope(db as any)).toEqual({
         agentIds: ["athena", "hermes"],
-        departmentIds: ["dev", "secretariat"],
+        departmentIds: [
+          "representative",
+          "secretariat",
+          "marketing",
+          "social",
+          "sales",
+          "dev",
+          "backoffice",
+        ],
       });
-      expect(readNotionManagedDevelopmentDepartmentIds(db as any)).toEqual(["dev", "secretariat"]);
+      expect(readNotionManagedDevelopmentDepartmentIds(db as any)).toEqual([
+        "representative",
+        "secretariat",
+        "marketing",
+        "social",
+        "sales",
+        "dev",
+        "backoffice",
+      ]);
     } finally {
       db.close();
     }

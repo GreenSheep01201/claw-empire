@@ -208,8 +208,13 @@ describe("office pack display helpers", () => {
     });
     const departments = [
       makeDepartment({ id: "planning", name: "Planning", name_ko: "Planning", name_ja: "企画チーム" }),
-      makeDepartment({ id: "dev", name: "Development", name_ko: "Development", name_ja: "🎨 開発部門" }),
-      makeDepartment({ id: "secretariat", name: "Secretariat", name_ko: "Secretariat", name_ja: "🧑‍💼 秘書室" }),
+      makeDepartment({ id: "representative", name: "代表", name_ko: "代表", name_ja: "代表", icon: "👤" }),
+      makeDepartment({ id: "secretariat", name: "秘書室", name_ko: "秘書室", name_ja: "秘書室", icon: "🧑‍💼" }),
+      makeDepartment({ id: "marketing", name: "マーケティング部門", name_ko: "マーケティング部門", name_ja: "マーケティング部門", icon: "📊" }),
+      makeDepartment({ id: "social", name: "SNS運用部門", name_ko: "SNS運用部門", name_ja: "SNS運用部門", icon: "🌏" }),
+      makeDepartment({ id: "sales", name: "営業部門", name_ko: "営業部門", name_ja: "営業部門", icon: "💸" }),
+      makeDepartment({ id: "dev", name: "開発部門", name_ko: "開発部門", name_ja: "開発部門", icon: "🎨" }),
+      makeDepartment({ id: "backoffice", name: "バックオフィス部門", name_ko: "バックオフィス部門", name_ja: "バックオフィス部門", icon: "⚙️" }),
       makeDepartment({ id: "qa", name: "QA", name_ko: "QA", name_ja: "品質管理チーム" }),
     ];
 
@@ -225,9 +230,24 @@ describe("office pack display helpers", () => {
 
     expect(scopedAgents.map((agent) => agent.id)).toEqual(["athena", "iris", "hermes"]);
     expect(mergedAgents.map((agent) => agent.id)).toEqual(["athena", "iris", "hermes"]);
-    expect(visibleDepartments.map((department) => department.id)).toEqual(["dev", "secretariat"]);
-    expect(visibleDepartments[0]?.name_ja).toBe("🎨 開発部門");
-    expect(visibleDepartments[1]?.name_ja).toBe("🧑‍💼 秘書室");
+    expect(visibleDepartments.map((department) => department.id)).toEqual([
+      "representative",
+      "secretariat",
+      "marketing",
+      "social",
+      "sales",
+      "dev",
+      "backoffice",
+    ]);
+    expect(visibleDepartments.map(({ name_ja, icon }) => [name_ja, icon])).toEqual([
+      ["代表", "👤"],
+      ["秘書室", "🧑‍💼"],
+      ["マーケティング部門", "📊"],
+      ["SNS運用部門", "🌏"],
+      ["営業部門", "💸"],
+      ["開発部門", "🎨"],
+      ["バックオフィス部門", "⚙️"],
+    ]);
   });
 
   it("keeps the normal development roster when no Notion-linked agent exists", () => {

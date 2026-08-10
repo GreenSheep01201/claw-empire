@@ -46,12 +46,22 @@ function harness() {
 }
 
 describe("department Notion scope", () => {
-  it("GET /api/departments exposes exactly the two Notion-managed departments", () => {
+  it("GET /api/departments exposes the complete Notion-managed department catalog", () => {
     const { db, routes } = harness();
     try {
-      for (const [id, order] of [["planning", 1], ["dev", 2], ["secretariat", 3], ["qa", 4]] as const) {
-        db.prepare("INSERT INTO departments (id, name, name_ja, sort_order) VALUES (?, ?, ?, ?)")
-          .run(id, id, id === "dev" ? "🎨 開発部門" : id === "secretariat" ? "🧑‍💼 秘書室" : id, order);
+      for (const [id, name, icon, order] of [
+        ["planning", "Planning", "📋", 1],
+        ["representative", "代表", "👤", 101],
+        ["secretariat", "秘書室", "🧑‍💼", 102],
+        ["marketing", "マーケティング部門", "📊", 103],
+        ["social", "SNS運用部門", "🌏", 104],
+        ["sales", "営業部門", "💸", 105],
+        ["dev", "開発部門", "🎨", 106],
+        ["backoffice", "バックオフィス部門", "⚙️", 107],
+        ["qa", "QA", "🔍", 4],
+      ] as const) {
+        db.prepare("INSERT INTO departments (id, name, name_ja, icon, sort_order) VALUES (?, ?, ?, ?, ?)")
+          .run(id, name, name, icon, order);
       }
       const marker = (hex: string) => `hermes-member:${hex.repeat(64)}\n\nprofile`;
       db.prepare("INSERT INTO agents VALUES (?, ?, ?, ?, ?, ?, ?)").run("athena", "アテナ", "dev", "development", marker("a"), "team_leader", "idle");
@@ -60,7 +70,15 @@ describe("department Notion scope", () => {
 
       const res = response();
       routes.get("GET /api/departments")?.({ query: { workflow_pack_key: "development" } }, res);
-      expect((res.payload as { departments: Array<{ id: string }> }).departments.map(({ id }) => id)).toEqual(["dev", "secretariat"]);
+      expect((res.payload as { departments: Array<{ id: string; name_ja: string; icon: string }> }).departments.map(({ id, name_ja, icon }) => [id, name_ja, icon])).toEqual([
+        ["representative", "代表", "👤"],
+        ["secretariat", "秘書室", "🧑‍💼"],
+        ["marketing", "マーケティング部門", "📊"],
+        ["social", "SNS運用部門", "🌏"],
+        ["sales", "営業部門", "💸"],
+        ["dev", "開発部門", "🎨"],
+        ["backoffice", "バックオフィス部門", "⚙️"],
+      ]);
     } finally {
       db.close();
     }
