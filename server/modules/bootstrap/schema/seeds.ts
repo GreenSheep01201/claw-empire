@@ -248,18 +248,23 @@ export function applyDefaultSeeds(db: DbLike): void {
       ["Pipe", "파이프", "devsecops", "senior", "codex", "🔧", "CI/CD 파이프라인 전문가"],
     ];
 
+    const hasHermesLinkedRoster = Boolean(
+      db.prepare("SELECT 1 FROM agents WHERE personality LIKE 'hermes-member:%' LIMIT 1").get(),
+    );
     let added = 0;
-    for (const [name, nameKo, dept, role, provider, emoji, personality] of newAgents) {
-      if (!existingNames.has(name)) {
-        if (!existingDeptIds.has(dept)) {
-          console.warn(`[Claw-Empire] Skip adding agent "${name}": missing department "${dept}"`);
-          continue;
-        }
-        try {
-          insertAgentIfMissing.run(randomUUID(), name, nameKo, dept, role, provider, emoji, personality);
-          added++;
-        } catch (err) {
-          console.warn(`[Claw-Empire] Skip adding agent "${name}":`, err);
+    if (!hasHermesLinkedRoster) {
+      for (const [name, nameKo, dept, role, provider, emoji, personality] of newAgents) {
+        if (!existingNames.has(name)) {
+          if (!existingDeptIds.has(dept)) {
+            console.warn(`[Claw-Empire] Skip adding agent "${name}": missing department "${dept}"`);
+            continue;
+          }
+          try {
+            insertAgentIfMissing.run(randomUUID(), name, nameKo, dept, role, provider, emoji, personality);
+            added++;
+          } catch (err) {
+            console.warn(`[Claw-Empire] Skip adding agent "${name}":`, err);
+          }
         }
       }
     }
