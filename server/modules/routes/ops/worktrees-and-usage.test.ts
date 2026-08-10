@@ -75,7 +75,10 @@ function initRepo(basePrefix: string): string {
   return dir;
 }
 
-function createHarness(taskWorktrees: Map<string, { worktreePath: string; branchName: string; projectPath: string }>) {
+function createHarness(
+  taskWorktrees: Map<string, { worktreePath: string; branchName: string; projectPath: string }>,
+  restartTasks: Array<{ taskId: string; projectPath: string; hermes?: boolean; fingerprint?: string }> = [],
+) {
   const appendLogCalls: Array<{ taskId: string | null; kind: string; message: string }> = [];
   const getRoutes = new Map<string, RouteHandler>();
   const postRoutes = new Map<string, RouteHandler>();
@@ -119,6 +122,21 @@ function createHarness(taskWorktrees: Map<string, { worktreePath: string; branch
       }),
     );
   }
+  for (const task of restartTasks) {
+    db.prepare("INSERT INTO tasks (id, project_path, status, workflow_meta_json) VALUES (?, ?, 'review', ?)").run(
+      task.taskId,
+      task.projectPath,
+      task.hermes === false
+        ? null
+        : JSON.stringify({
+            hermes_execution: {
+              contract: "hermes-claw-execution/v2",
+              execution_id: HERMES_EXECUTION_ID,
+              request_fingerprint: task.fingerprint ?? HERMES_REQUEST_FINGERPRINT,
+            },
+          }),
+    );
+  }
   registerWorktreeAndUsageRoutes({
     app: app as any,
     taskWorktrees,
@@ -160,6 +178,98 @@ afterEach(() => {
 });
 
 describe("worktree verify-commit route", () => {
+  it("서버 재시작 후 디스크의 정확한 Hermes review worktree를 복구한다", () => {
+    const repo = initRepo("climpire-restart-recovery-");
+    tempDirs.push(repo);
+    const taskId = "d5cfce68-0be7-46f9-ad7c-76c0b6f6a8da";
+    const beforeRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const tools = createWorktreeLifecycleTools({ appendTaskLog: () => {}, taskWorktrees: beforeRestart });
+    const worktreePath = tools.createWorktree(repo, taskId, "Athena");
+    expect(worktreePath).toBeTruthy();
+
+    const afterRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const { db, getRoutes } = createHarness(afterRestart, [{ taskId, projectPath: repo }]);
+    try {
+      expect(afterRestart.get(taskId)).toEqual({
+        projectPath: repo,
+        worktreePath,
+        branchName: `climpire/${taskId.slice(0, 8)}`,
+      });
+
+      const listResponse = createFakeResponse();
+      getRoutes.get("/api/worktrees")?.({}, listResponse);
+      expect(listResponse.payload).toMatchObject({
+        ok: true,
+        worktrees: [{ taskId, projectPath: repo, worktreePath }],
+      });
+
+      const verifyResponse = createFakeResponse();
+      getRoutes.get("/api/tasks/:id/verify-commit")?.({ params: { id: taskId } }, verifyResponse);
+      expect(verifyResponse.payload).toMatchObject({
+        ok: true,
+        hasWorktree: true,
+        verdict: "no_commit",
+      });
+    } finally {
+      db.close();
+    }
+  }, 15_000);
+
+  it("Hermes 실행 표식이 없는 review worktree는 재시작 후 복구하지 않는다", () => {
+    const repo = initRepo("climpire-restart-non-hermes-");
+    tempDirs.push(repo);
+    const taskId = "a5cfce68-0be7-46f9-ad7c-76c0b6f6a8da";
+    const beforeRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const tools = createWorktreeLifecycleTools({ appendTaskLog: () => {}, taskWorktrees: beforeRestart });
+    expect(tools.createWorktree(repo, taskId, "Athena")).toBeTruthy();
+
+    const afterRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const { db } = createHarness(afterRestart, [{ taskId, projectPath: repo, hermes: false }]);
+    try {
+      expect(afterRestart.has(taskId)).toBe(false);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("같은 project와 short task id를 공유하는 Hermes review task들은 복구하지 않는다", () => {
+    const repo = initRepo("climpire-restart-collision-");
+    tempDirs.push(repo);
+    const firstTaskId = "b5cfce68-0be7-46f9-ad7c-76c0b6f6a8da";
+    const secondTaskId = "b5cfce68-1111-4222-8333-444444444444";
+    const beforeRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const tools = createWorktreeLifecycleTools({ appendTaskLog: () => {}, taskWorktrees: beforeRestart });
+    expect(tools.createWorktree(repo, firstTaskId, "Athena")).toBeTruthy();
+
+    const afterRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const { db } = createHarness(afterRestart, [
+      { taskId: firstTaskId, projectPath: repo },
+      { taskId: secondTaskId, projectPath: repo },
+    ]);
+    try {
+      expect(afterRestart.size).toBe(0);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("유효하지 않은 Hermes request fingerprint가 있는 review worktree는 복구하지 않는다", () => {
+    const repo = initRepo("climpire-restart-invalid-identity-");
+    tempDirs.push(repo);
+    const taskId = "c5cfce68-0be7-46f9-ad7c-76c0b6f6a8da";
+    const beforeRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const tools = createWorktreeLifecycleTools({ appendTaskLog: () => {}, taskWorktrees: beforeRestart });
+    expect(tools.createWorktree(repo, taskId, "Athena")).toBeTruthy();
+
+    const afterRestart = new Map<string, { worktreePath: string; branchName: string; projectPath: string }>();
+    const { db } = createHarness(afterRestart, [{ taskId, projectPath: repo, fingerprint: "not-a-fingerprint" }]);
+    try {
+      expect(afterRestart.has(taskId)).toBe(false);
+    } finally {
+      db.close();
+    }
+  });
+
   it("worktree가 없으면 no_worktree 판정을 돌려준다", () => {
     const { db, getRoutes } = createHarness(new Map());
     try {

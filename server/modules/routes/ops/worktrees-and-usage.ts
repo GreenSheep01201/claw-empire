@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 import type { RuntimeContext } from "../../../types/runtime-context.ts";
 import { hasValidCsrfToken, shouldRequireCsrf } from "../../../security/auth.ts";
 import type { CliUsageEntry } from "../shared/types.ts";
@@ -15,6 +16,8 @@ import {
 
 const WORKSPACE_RELEASE_RECEIPT_PREFIX = "Workspace release receipt: ";
 const WORKSPACE_RELEASE_PREPARED_PREFIX = "Workspace release prepared: ";
+const WORKTREE_RECOVERY_BUDGET_MS = 8000;
+const WORKTREE_RECOVERY_MAX_TASKS = 256;
 
 function readHermesTaskIdentity(value: unknown): { executionId: string; requestFingerprint: string } | null {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -26,7 +29,10 @@ function readHermesTaskIdentity(value: unknown): { executionId: string; requestF
     if (
       (marker?.contract !== "hermes-claw-execution/v1" && marker?.contract !== "hermes-claw-execution/v2") ||
       typeof marker.execution_id !== "string" ||
-      typeof marker.request_fingerprint !== "string"
+      !marker.execution_id ||
+      marker.execution_id.trim() !== marker.execution_id ||
+      typeof marker.request_fingerprint !== "string" ||
+      !/^[a-f0-9]{64}$/u.test(marker.request_fingerprint)
     ) {
       return null;
     }
@@ -60,6 +66,185 @@ function refExists(cwd: string, ref: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+type RecoverableTaskRow = {
+  id: string;
+  project_path: string | null;
+  workflow_meta_json: string | null;
+};
+
+type PorcelainWorktree = {
+  worktreePath: string;
+  head: string | null;
+  branchRef: string | null;
+};
+
+type RecoveryCandidate = {
+  taskId: string;
+  projectPath: string;
+  canonicalProjectPath: string;
+  shortId: string;
+};
+
+function parseWorktreeListPorcelain(value: string): PorcelainWorktree[] {
+  return value
+    .split(/\n\s*\n/u)
+    .map((block) => {
+      const lines = block.split("\n");
+      const worktreeLine = lines.find((line) => line.startsWith("worktree "));
+      if (!worktreeLine) return null;
+      const headLine = lines.find((line) => line.startsWith("HEAD "));
+      const branchLine = lines.find((line) => line.startsWith("branch "));
+      return {
+        worktreePath: worktreeLine.slice("worktree ".length),
+        head: headLine ? headLine.slice("HEAD ".length) : null,
+        branchRef: branchLine ? branchLine.slice("branch ".length) : null,
+      };
+    })
+    .filter((entry): entry is PorcelainWorktree => Boolean(entry));
+}
+
+function recoverHermesReviewWorktrees(
+  db: RuntimeContext["db"],
+  taskWorktrees: RuntimeContext["taskWorktrees"],
+): void {
+  let tasks: RecoverableTaskRow[];
+  try {
+    tasks = db
+      .prepare(
+        "SELECT id, project_path, workflow_meta_json FROM tasks WHERE status = 'review' AND workflow_meta_json LIKE '%\"hermes_execution\"%' LIMIT ?",
+      )
+      .all(WORKTREE_RECOVERY_MAX_TASKS + 1) as RecoverableTaskRow[];
+  } catch {
+    return;
+  }
+  if (tasks.length > WORKTREE_RECOVERY_MAX_TASKS) return;
+
+  const candidates: RecoveryCandidate[] = [];
+  for (const task of tasks) {
+    if (!task.project_path || !readHermesTaskIdentity(task.workflow_meta_json)) continue;
+    const shortId = task.id.slice(0, 8);
+    if (!/^[a-f0-9]{8}$/u.test(shortId) || !path.isAbsolute(task.project_path)) continue;
+    try {
+      const projectPath = path.resolve(task.project_path);
+      candidates.push({
+        taskId: task.id,
+        projectPath,
+        canonicalProjectPath: fs.realpathSync(projectPath),
+        shortId,
+      });
+    } catch {
+      // Invalid project paths are not recoverable.
+    }
+  }
+
+  const ownershipGroups = new Map<string, RecoveryCandidate[]>();
+  for (const candidate of candidates) {
+    const key = `${candidate.canonicalProjectPath}\0${candidate.shortId}`;
+    const group = ownershipGroups.get(key) ?? [];
+    group.push(candidate);
+    ownershipGroups.set(key, group);
+  }
+
+  const claimedPaths = new Set<string>();
+  const claimedBranches = new Set<string>();
+  for (const info of taskWorktrees.values()) {
+    let canonicalProjectPath: string;
+    try {
+      canonicalProjectPath = fs.realpathSync(path.resolve(info.projectPath));
+      claimedBranches.add(`${canonicalProjectPath}\0${info.branchName}`);
+    } catch {
+      continue;
+    }
+    try {
+      claimedPaths.add(fs.realpathSync(path.resolve(info.worktreePath)));
+    } catch {
+      // A missing mapped path still owns its project-scoped branch name.
+    }
+  }
+
+  const deadline = Date.now() + WORKTREE_RECOVERY_BUDGET_MS;
+  const projectCache = new Map<string, PorcelainWorktree[] | null>();
+  const inspectProject = (canonicalProjectPath: string): PorcelainWorktree[] | null => {
+    if (projectCache.has(canonicalProjectPath)) return projectCache.get(canonicalProjectPath) ?? null;
+    const runBounded = (args: string[], capMs: number): string | null => {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) return null;
+      try {
+        return execFileSync("git", args, {
+          cwd: canonicalProjectPath,
+          stdio: "pipe",
+          timeout: Math.max(1, Math.min(capMs, remainingMs)),
+        }).toString();
+      } catch {
+        return null;
+      }
+    };
+
+    const topLevelOutput = runBounded(["rev-parse", "--show-toplevel"], 2500);
+    if (!topLevelOutput) {
+      projectCache.set(canonicalProjectPath, null);
+      return null;
+    }
+    try {
+      if (fs.realpathSync(topLevelOutput.trim()) !== canonicalProjectPath) {
+        projectCache.set(canonicalProjectPath, null);
+        return null;
+      }
+    } catch {
+      projectCache.set(canonicalProjectPath, null);
+      return null;
+    }
+
+    const worktreeOutput = runBounded(["worktree", "list", "--porcelain"], 4000);
+    const worktrees = worktreeOutput ? parseWorktreeListPorcelain(worktreeOutput) : null;
+    projectCache.set(canonicalProjectPath, worktrees);
+    return worktrees;
+  };
+
+  for (const group of ownershipGroups.values()) {
+    if (group.length !== 1 || Date.now() >= deadline) continue;
+    const candidate = group[0]!;
+    if (taskWorktrees.has(candidate.taskId)) continue;
+
+    try {
+      const worktrees = inspectProject(candidate.canonicalProjectPath);
+      if (!worktrees) continue;
+      const matches = worktrees.filter((entry) => {
+        for (let suffix = 0; suffix <= 3; suffix += 1) {
+          const suffixText = suffix === 0 ? "" : `-${suffix}`;
+          const expectedPath = path.join(
+            candidate.canonicalProjectPath,
+            ".climpire-worktrees",
+            `${candidate.shortId}${suffixText}`,
+          );
+          const expectedBranchRef = `refs/heads/climpire/${candidate.shortId}${suffixText}`;
+          if (path.resolve(entry.worktreePath) !== expectedPath || entry.branchRef !== expectedBranchRef) continue;
+          if (!fs.existsSync(expectedPath) || fs.realpathSync(expectedPath) !== expectedPath) return false;
+          return /^[a-f0-9]{40}$/u.test(entry.head ?? "");
+        }
+        return false;
+      });
+      if (matches.length !== 1) continue;
+
+      const match = matches[0]!;
+      const canonicalWorktreePath = fs.realpathSync(match.worktreePath);
+      const branchName = match.branchRef!.slice("refs/heads/".length);
+      const branchKey = `${candidate.canonicalProjectPath}\0${branchName}`;
+      if (claimedPaths.has(canonicalWorktreePath) || claimedBranches.has(branchKey)) continue;
+
+      taskWorktrees.set(candidate.taskId, {
+        projectPath: candidate.projectPath,
+        worktreePath: path.join(candidate.projectPath, ".climpire-worktrees", path.basename(match.worktreePath)),
+        branchName: match.branchRef!.slice("refs/heads/".length),
+      });
+      claimedPaths.add(canonicalWorktreePath);
+      claimedBranches.add(branchKey);
+    } catch {
+      // Recovery is fail-closed: malformed or ambiguous disk state remains unmapped.
+    }
   }
 }
 
@@ -220,6 +405,7 @@ export function registerWorktreeAndUsageRoutes(ctx: RuntimeContext): {
     broadcast,
   } = ctx;
   const workspaceReleaseInFlight = new Set<string>();
+  recoverHermesReviewWorktrees(db, taskWorktrees);
 
   app.get("/api/tasks/:id/diff", (req, res) => {
     const id = String(req.params.id);
