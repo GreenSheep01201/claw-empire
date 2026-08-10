@@ -370,8 +370,9 @@ export default function App() {
         packKey: activePackKey,
         globalDepartments: departments,
         packDepartments: activePackProfile?.departments ?? null,
+        visibleAgents: agents,
       }),
-    [activePackKey, activePackProfile?.departments, departments],
+    [activePackKey, activePackProfile?.departments, agents, departments],
   );
   const { mergedAgents: overlayAgents } = useMemo(
     () =>
