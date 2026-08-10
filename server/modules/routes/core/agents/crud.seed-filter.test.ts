@@ -66,6 +66,47 @@ function createHarness(): { db: DatabaseSync; routes: Map<string, RouteHandler> 
       stats_xp INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE tasks (
+      id TEXT PRIMARY KEY,
+      assigned_agent_id TEXT
+    );
+
+    CREATE TABLE subtasks (
+      id TEXT PRIMARY KEY,
+      assigned_agent_id TEXT
+    );
+
+    CREATE TABLE meeting_minute_entries (
+      id INTEGER PRIMARY KEY,
+      speaker_agent_id TEXT,
+      speaker_name TEXT NOT NULL,
+      content TEXT NOT NULL
+    );
+
+    CREATE TABLE task_report_archives (
+      id TEXT PRIMARY KEY,
+      generated_by_agent_id TEXT
+    );
+
+    CREATE TABLE project_review_decision_states (
+      id TEXT PRIMARY KEY,
+      planner_agent_id TEXT
+    );
+
+    CREATE TABLE review_round_decision_states (
+      meeting_id TEXT PRIMARY KEY,
+      snapshot_hash TEXT NOT NULL,
+      status TEXT NOT NULL,
+      planner_summary TEXT,
+      planner_agent_id TEXT,
+      planner_agent_name TEXT
+    );
+
+    CREATE TABLE project_agents (
+      project_id TEXT NOT NULL,
+      agent_id TEXT NOT NULL
+    );
   `);
 
   const routes = new Map<string, RouteHandler>();
@@ -150,6 +191,54 @@ describe("agent CRUD seed filter", () => {
       expect(res.statusCode).toBe(200);
       const payload = res.payload as { agents: Array<{ id: string }> };
       expect(payload.agents.map((agent) => agent.id)).toEqual(["dev-leader", "video_preprod-seed-2"]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("DELETE /api/agents/:id preserves denormalized meeting and review attribution", () => {
+    const { db, routes } = createHarness();
+    try {
+      db.prepare(
+        "INSERT INTO agents (id, name, role, status, created_at) VALUES (?, ?, 'senior', 'idle', 1)",
+      ).run("historical-agent", "Historical Agent");
+      db.prepare(
+        "INSERT INTO meeting_minute_entries (id, speaker_agent_id, speaker_name, content) VALUES (1, ?, ?, ?)",
+      ).run("historical-agent", "Historical Agent", "Retained meeting content");
+      db.prepare(
+        `INSERT INTO review_round_decision_states
+          (meeting_id, snapshot_hash, status, planner_summary, planner_agent_id, planner_agent_name)
+         VALUES ('meeting-1', 'snapshot-1', 'ready', 'Retained planner summary', ?, ?)`,
+      ).run("historical-agent", "Historical Agent");
+
+      const handler = routes.get("DELETE /api/agents/:id");
+      expect(handler).toBeTypeOf("function");
+      const res = createFakeResponse();
+      handler?.({ params: { id: "historical-agent" } }, res);
+
+      expect(res.statusCode).toBe(200);
+      expect(db.prepare("SELECT id FROM agents WHERE id = ?").get("historical-agent")).toBeUndefined();
+      expect(
+        db.prepare(
+          "SELECT speaker_agent_id, speaker_name, content FROM meeting_minute_entries WHERE id = 1",
+        ).get(),
+      ).toEqual({
+        speaker_agent_id: null,
+        speaker_name: "Historical Agent",
+        content: "Retained meeting content",
+      });
+      expect(
+        db.prepare(
+          `SELECT snapshot_hash, status, planner_summary, planner_agent_id, planner_agent_name
+           FROM review_round_decision_states WHERE meeting_id = 'meeting-1'`,
+        ).get(),
+      ).toEqual({
+        snapshot_hash: "snapshot-1",
+        status: "ready",
+        planner_summary: "Retained planner summary",
+        planner_agent_id: null,
+        planner_agent_name: "Historical Agent",
+      });
     } finally {
       db.close();
     }
