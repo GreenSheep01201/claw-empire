@@ -5,6 +5,7 @@ import {
   parseWorkflowPackKeyInput,
   readActiveOfficeWorkflowPackKey,
 } from "../../workflow/packs/department-scope.ts";
+import { readNotionManagedDevelopmentDepartmentIds } from "../../workflow/packs/notion-managed-development.ts";
 
 export type DepartmentRouteDeps = Pick<
   RuntimeContext,
@@ -58,6 +59,10 @@ export function registerDepartmentRoutes(deps: DepartmentRouteDeps): void {
   function listDevelopmentDepartments(includeSeed: boolean): unknown[] {
     const seedFilterClause = includeSeed ? "" : " AND a.id NOT LIKE '%-seed-%'";
     const agentPackExpr = hasAgentWorkflowPackColumn ? "COALESCE(a.workflow_pack_key, 'development')" : "'development'";
+    const managedDepartmentIds = readNotionManagedDevelopmentDepartmentIds(db as any);
+    const managedDepartmentClause = managedDepartmentIds
+      ? `WHERE d.id IN (${managedDepartmentIds.map(() => "?").join(", ")})`
+      : "";
     return db
       .prepare(
         `
@@ -67,10 +72,11 @@ export function registerDepartmentRoutes(deps: DepartmentRouteDeps): void {
        WHERE a.department_id = d.id
          AND ${agentPackExpr} = 'development'${seedFilterClause}) AS agent_count
     FROM departments d
+    ${managedDepartmentClause}
     ORDER BY d.sort_order ASC
   `,
       )
-      .all();
+      .all(...(managedDepartmentIds ?? []));
   }
 
   function listScopedDepartments(packKey: WorkflowPackKey, includeSeed: boolean): unknown[] {

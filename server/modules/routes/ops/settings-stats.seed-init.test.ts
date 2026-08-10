@@ -61,6 +61,7 @@ function setupDb(): DatabaseSync {
       cli_provider TEXT,
       avatar_emoji TEXT NOT NULL DEFAULT '🤖',
       personality TEXT,
+      workflow_pack_key TEXT NOT NULL DEFAULT 'development',
       status TEXT NOT NULL DEFAULT 'idle',
       current_task_id TEXT,
       stats_tasks_done INTEGER NOT NULL DEFAULT 0,
@@ -78,6 +79,7 @@ function setupDb(): DatabaseSync {
       title TEXT,
       updated_at INTEGER,
       assigned_agent_id TEXT
+      ,workflow_pack_key TEXT NOT NULL DEFAULT 'development'
     );
 
     CREATE TABLE task_logs (
@@ -113,6 +115,62 @@ function createHarness(db: DatabaseSync) {
 }
 
 describe("ops settings seed init guard", () => {
+  it("GET /api/stats reports exactly the seven Notion-managed agents and complete department catalog", () => {
+    const db = setupDb();
+    try {
+      for (const [id, name, order] of [
+        ["planning", "Planning", 1],
+        ["representative", "代表", 101],
+        ["secretariat", "秘書室", 102],
+        ["marketing", "マーケティング部門", 103],
+        ["social", "SNS運用部門", 104],
+        ["sales", "営業部門", 105],
+        ["dev", "開発部門", 106],
+        ["backoffice", "バックオフィス部門", 107],
+        ["qa", "QA", 4],
+      ] as const) {
+        db.prepare("INSERT INTO departments (id, name, name_ja, sort_order) VALUES (?, ?, ?, ?)")
+          .run(id, name, name, order);
+      }
+      const marker = (hex: string) => `hermes-member:${hex.repeat(64)}\n\nprofile`;
+      for (const [index, name] of ["アポロン", "アイリス", "メティス", "ダイダロス", "アルゴス", "アテナ"].entries()) {
+        db.prepare(
+          "INSERT INTO agents (id, name, department_id, workflow_pack_key, personality, status, stats_xp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ).run(`dev-${index + 1}`, name, "dev", "development", marker(String(index + 1)), index === 5 ? "working" : "idle", index + 1);
+      }
+      db.prepare(
+        "INSERT INTO agents (id, name, department_id, workflow_pack_key, personality, status, stats_xp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ).run("hermes", "エルメス", "secretariat", "development", marker("a"), "idle", 7);
+      db.prepare(
+        "INSERT INTO agents (id, name, department_id, workflow_pack_key, personality, status, stats_xp) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ).run("default", "Default", "planning", "development", "default", "working", 999);
+
+      const { getRoutes } = createHarness(db);
+      const res = createFakeResponse();
+      getRoutes.get("/api/stats")?.({}, res);
+      const stats = (res.payload as {
+        stats: {
+          agents: { total: number; working: number; idle: number };
+          top_agents: Array<{ id: string }>;
+          tasks_by_department: Array<{ id: string }>;
+        };
+      }).stats;
+      expect(stats.agents).toEqual({ total: 7, working: 1, idle: 6 });
+      expect(stats.top_agents.map(({ id }) => id)).toEqual(["hermes", "dev-6", "dev-5", "dev-4", "dev-3"]);
+      expect(stats.tasks_by_department.map(({ id }) => id)).toEqual([
+        "representative",
+        "secretariat",
+        "marketing",
+        "social",
+        "sales",
+        "dev",
+        "backoffice",
+      ]);
+    } finally {
+      db.close();
+    }
+  });
+
   it("서버 재시작 시 officePackProfiles가 있어도 seed agent를 대량 주입하지 않는다", () => {
     const db = setupDb();
     try {

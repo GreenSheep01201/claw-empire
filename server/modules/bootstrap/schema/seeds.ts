@@ -189,37 +189,53 @@ export function applyDefaultSeeds(db: DbLike): void {
     } catch {
       /* noop */
     }
+    const hasNotionManagedDevelopmentRoster = Boolean(
+      db
+        .prepare(
+          "SELECT 1 FROM agents WHERE workflow_pack_key = 'development' AND personality LIKE 'hermes-member:%' LIMIT 1",
+        )
+        .get(),
+    );
+    const hasHermesLinkedRoster = Boolean(
+      db.prepare("SELECT 1 FROM agents WHERE personality LIKE 'hermes-member:%' LIMIT 1").get(),
+    );
     const DEPT_ORDER: Record<string, number> = { planning: 1, dev: 2, design: 3, qa: 4, devsecops: 5, operations: 6 };
 
     const insertDeptIfMissing = db.prepare(
       "INSERT OR IGNORE INTO departments (id, name, name_ko, icon, color, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
     );
-    insertDeptIfMissing.run("qa", "QA/QC", "품질관리팀", "🔍", "#ef4444", 4);
-    insertDeptIfMissing.run("devsecops", "DevSecOps", "인프라보안팀", "🛡️", "#f97316", 5);
-
     const updateOrder = db.prepare("UPDATE departments SET sort_order = ? WHERE id = ?");
-    for (const [id, order] of Object.entries(DEPT_ORDER)) {
-      updateOrder.run(order, id);
+    if (!hasNotionManagedDevelopmentRoster) {
+      insertDeptIfMissing.run("qa", "QA/QC", "품질관리팀", "🔍", "#ef4444", 4);
+      insertDeptIfMissing.run("devsecops", "DevSecOps", "인프라보안팀", "🛡️", "#f97316", 5);
+
+      for (const [id, order] of Object.entries(DEPT_ORDER)) {
+        updateOrder.run(order, id);
+      }
+
+      const allDepartments = db
+        .prepare("SELECT id, sort_order FROM departments ORDER BY sort_order ASC, id ASC")
+        .all() as Array<{ id: string; sort_order: number }>;
+      const existingDeptIds = new Set(allDepartments.map((row) => row.id));
+      const usedOrders = new Set<number>();
+      for (const [id, order] of Object.entries(DEPT_ORDER)) {
+        if (!existingDeptIds.has(id)) continue;
+        usedOrders.add(order);
+      }
+
+      let nextOrder = 1;
+      for (const row of allDepartments) {
+        if (Object.prototype.hasOwnProperty.call(DEPT_ORDER, row.id)) continue;
+        while (usedOrders.has(nextOrder)) nextOrder += 1;
+        updateOrder.run(nextOrder, row.id);
+        usedOrders.add(nextOrder);
+        nextOrder += 1;
+      }
     }
 
-    const allDepartments = db
-      .prepare("SELECT id, sort_order FROM departments ORDER BY sort_order ASC, id ASC")
-      .all() as Array<{ id: string; sort_order: number }>;
-    const existingDeptIds = new Set(allDepartments.map((row) => row.id));
-    const usedOrders = new Set<number>();
-    for (const [id, order] of Object.entries(DEPT_ORDER)) {
-      if (!existingDeptIds.has(id)) continue;
-      usedOrders.add(order);
-    }
-
-    let nextOrder = 1;
-    for (const row of allDepartments) {
-      if (Object.prototype.hasOwnProperty.call(DEPT_ORDER, row.id)) continue;
-      while (usedOrders.has(nextOrder)) nextOrder += 1;
-      updateOrder.run(nextOrder, row.id);
-      usedOrders.add(nextOrder);
-      nextOrder += 1;
-    }
+    const existingDeptIds = new Set(
+      (db.prepare("SELECT id FROM departments").all() as Array<{ id: string }>).map((row) => row.id),
+    );
 
     try {
       db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_departments_sort_order ON departments(sort_order)");
@@ -249,17 +265,19 @@ export function applyDefaultSeeds(db: DbLike): void {
     ];
 
     let added = 0;
-    for (const [name, nameKo, dept, role, provider, emoji, personality] of newAgents) {
-      if (!existingNames.has(name)) {
-        if (!existingDeptIds.has(dept)) {
-          console.warn(`[Claw-Empire] Skip adding agent "${name}": missing department "${dept}"`);
-          continue;
-        }
-        try {
-          insertAgentIfMissing.run(randomUUID(), name, nameKo, dept, role, provider, emoji, personality);
-          added++;
-        } catch (err) {
-          console.warn(`[Claw-Empire] Skip adding agent "${name}":`, err);
+    if (!hasHermesLinkedRoster) {
+      for (const [name, nameKo, dept, role, provider, emoji, personality] of newAgents) {
+        if (!existingNames.has(name)) {
+          if (!existingDeptIds.has(dept)) {
+            console.warn(`[Claw-Empire] Skip adding agent "${name}": missing department "${dept}"`);
+            continue;
+          }
+          try {
+            insertAgentIfMissing.run(randomUUID(), name, nameKo, dept, role, provider, emoji, personality);
+            added++;
+          } catch (err) {
+            console.warn(`[Claw-Empire] Skip adding agent "${name}":`, err);
+          }
         }
       }
     }

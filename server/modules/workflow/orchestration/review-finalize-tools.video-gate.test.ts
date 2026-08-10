@@ -17,6 +17,7 @@ function createDb(): DatabaseSync {
       project_id TEXT,
       workflow_pack_key TEXT,
       project_path TEXT,
+      workflow_meta_json TEXT,
       created_at INTEGER DEFAULT 0,
       updated_at INTEGER DEFAULT 0
     );
@@ -35,6 +36,44 @@ function createDb(): DatabaseSync {
 }
 
 describe("review finalize video gate", () => {
+  it("Hermes task waits for a persisted workspace release receipt", () => {
+    const db = createDb();
+    try {
+      const taskId = "task-hermes-release";
+      db.prepare(
+        `
+          INSERT INTO tasks (
+            id, title, status, department_id, source_task_id, project_id,
+            workflow_pack_key, project_path, workflow_meta_json, created_at, updated_at
+          ) VALUES (?, ?, 'review', 'development', NULL, NULL, 'development', ?, ?, 1, 1)
+        `,
+      ).run(
+        taskId,
+        "Hermes unattended development",
+        "/tmp/hermes-ticket-worktree",
+        JSON.stringify({ hermes_execution: { contract: "hermes-claw-execution/v2" } }),
+      );
+      const appendTaskLog = vi.fn();
+      const tools = createReviewFinalizeTools({
+        db,
+        resolveLang: () => "en",
+        appendTaskLog,
+      } as any);
+
+      tools.finishReview(taskId, "Hermes unattended development");
+
+      const updated = db.prepare("SELECT status FROM tasks WHERE id = ?").get(taskId) as { status: string };
+      expect(updated.status).toBe("review");
+      expect(appendTaskLog).toHaveBeenCalledWith(
+        taskId,
+        "system",
+        "Review hold: waiting for Hermes result storage and workspace release receipt",
+      );
+    } finally {
+      db.close();
+    }
+  });
+
   it("video_preprod task는 final.mp4 확인 전 승인/머지를 진행하지 않는다", () => {
     const db = createDb();
     try {

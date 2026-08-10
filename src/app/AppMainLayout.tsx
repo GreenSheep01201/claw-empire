@@ -285,8 +285,9 @@ export default function AppMainLayout({
         globalDepartments: departments,
         packDepartments: packProfileDepartments,
         preferPackProfile: !isHydratedOfficePack,
+        visibleAgents: agents,
       }),
-    [departments, isHydratedOfficePack, officePackKey, packProfileDepartments],
+    [agents, departments, isHydratedOfficePack, officePackKey, packProfileDepartments],
   );
 
   const { scopedAgents: officeScopedAgents, mergedAgents: displayAgents } = useMemo(
@@ -301,20 +302,26 @@ export default function AppMainLayout({
 
   const managerDepartments =
     officePackKey === "development"
-      ? departments
+      ? displayDepartments
       : isHydratedOfficePack
         ? displayDepartments
         : (activePackProfile?.departments ?? generatedOfficePresentation.departments);
 
   const managerAgents =
     officePackKey === "development"
-      ? agents
+      ? displayAgents
       : isHydratedOfficePack
         ? officeScopedAgents
         : (activePackProfile?.agents ?? seededPackAgents);
 
   const officePresentation = useMemo(() => {
-    if (officePackKey === "development") return generatedOfficePresentation;
+    if (officePackKey === "development") {
+      return {
+        departments: displayDepartments,
+        agents: officeScopedAgents,
+        roomThemes: generatedOfficePresentation.roomThemes,
+      };
+    }
     return {
       departments: displayDepartments,
       agents: officeScopedAgents,
@@ -493,8 +500,8 @@ export default function AppMainLayout({
             {view === "dashboard" && (
               <Dashboard
                 stats={stats}
-                agents={agents}
-                tasks={tasks}
+                agents={officeScopedAgents}
+                tasks={tasksForActivePack}
                 companyName={settings.companyName}
                 onPrimaryCtaClick={() => setView("tasks")}
               />

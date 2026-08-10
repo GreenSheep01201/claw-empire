@@ -15,6 +15,7 @@ function makeAgent(input: Partial<Agent> & { id: string; name: string; name_ko: 
     avatar_emoji: input.avatar_emoji ?? "A",
     sprite_number: input.sprite_number ?? null,
     personality: input.personality ?? null,
+    workflow_pack_key: input.workflow_pack_key,
     status: input.status ?? "idle",
     current_task_id: input.current_task_id ?? null,
     stats_tasks_done: input.stats_tasks_done ?? 0,
@@ -163,5 +164,118 @@ describe("office pack display helpers", () => {
     expect(mergedAgents.some((agent) => agent.id === "novel-seed-1")).toBe(true);
     expect(mergedAgents.some((agent) => agent.id === "report-seed-1")).toBe(false);
     expect(mergedAgents.some((agent) => agent.id === "dev-leader")).toBe(true);
+  });
+
+  it("shows only Notion-linked agents and their department in the development pack", () => {
+    const linkedAthena = makeAgent({
+      id: "athena",
+      name: "Athena",
+      name_ko: "Athena",
+      name_ja: "アテナ",
+      department_id: "dev",
+      personality: `hermes-member:${"a".repeat(64)}\n\n正式所属: 🎨 開発部門`,
+    });
+    const linkedIris = makeAgent({
+      id: "iris",
+      name: "Iris",
+      name_ko: "Iris",
+      name_ja: "アイリス",
+      department_id: "dev",
+      personality: `hermes-member:${"b".repeat(64)}\n\n正式所属: 🎨 開発部門`,
+    });
+    const linkedHermes = makeAgent({
+      id: "hermes",
+      name: "Hermes",
+      name_ko: "Hermes",
+      name_ja: "エルメス",
+      department_id: "secretariat",
+      personality: `hermes-member:${"e".repeat(64)}\n\n正式所属: 🧑‍💼 秘書室`,
+    });
+    const defaultAgent = makeAgent({
+      id: "default-sage",
+      name: "Sage",
+      name_ko: "Sage",
+      department_id: "planning",
+      personality: "Default planning agent",
+    });
+    const foreignPackLinkedAgent = makeAgent({
+      id: "foreign-linked",
+      name: "Foreign Linked",
+      name_ko: "Foreign Linked",
+      department_id: "qa",
+      workflow_pack_key: "report",
+      personality: `hermes-member:${"c".repeat(64)}\n\n正式所属: 別部門`,
+    });
+    const departments = [
+      makeDepartment({ id: "planning", name: "Planning", name_ko: "Planning", name_ja: "企画チーム" }),
+      makeDepartment({ id: "representative", name: "代表", name_ko: "代表", name_ja: "代表", icon: "👤" }),
+      makeDepartment({ id: "secretariat", name: "秘書室", name_ko: "秘書室", name_ja: "秘書室", icon: "🧑‍💼" }),
+      makeDepartment({ id: "marketing", name: "マーケティング部門", name_ko: "マーケティング部門", name_ja: "マーケティング部門", icon: "📊" }),
+      makeDepartment({ id: "social", name: "SNS運用部門", name_ko: "SNS運用部門", name_ja: "SNS運用部門", icon: "🌏" }),
+      makeDepartment({ id: "sales", name: "営業部門", name_ko: "営業部門", name_ja: "営業部門", icon: "💸" }),
+      makeDepartment({ id: "dev", name: "開発部門", name_ko: "開発部門", name_ja: "開発部門", icon: "🎨" }),
+      makeDepartment({ id: "backoffice", name: "バックオフィス部門", name_ko: "バックオフィス部門", name_ja: "バックオフィス部門", icon: "⚙️" }),
+      makeDepartment({ id: "qa", name: "QA", name_ko: "QA", name_ja: "品質管理チーム" }),
+    ];
+
+    const { scopedAgents, mergedAgents } = resolvePackAgentViews({
+      packKey: "development",
+      globalAgents: [defaultAgent, linkedAthena, linkedIris, linkedHermes, foreignPackLinkedAgent],
+    });
+    const visibleDepartments = resolvePackDepartmentsForDisplay({
+      packKey: "development",
+      globalDepartments: departments,
+      visibleAgents: mergedAgents,
+    });
+
+    expect(scopedAgents.map((agent) => agent.id)).toEqual(["athena", "iris", "hermes"]);
+    expect(mergedAgents.map((agent) => agent.id)).toEqual(["athena", "iris", "hermes"]);
+    expect(visibleDepartments.map((department) => department.id)).toEqual([
+      "representative",
+      "secretariat",
+      "marketing",
+      "social",
+      "sales",
+      "dev",
+      "backoffice",
+    ]);
+    expect(visibleDepartments.map(({ name_ja, icon }) => [name_ja, icon])).toEqual([
+      ["代表", "👤"],
+      ["秘書室", "🧑‍💼"],
+      ["マーケティング部門", "📊"],
+      ["SNS運用部門", "🌏"],
+      ["営業部門", "💸"],
+      ["開発部門", "🎨"],
+      ["バックオフィス部門", "⚙️"],
+    ]);
+  });
+
+  it("keeps the normal development roster when no Notion-linked agent exists", () => {
+    const agent = makeAgent({ id: "default", name: "Default", name_ko: "Default", department_id: "planning" });
+    const foreignPackLinkedAgent = makeAgent({
+      id: "foreign-linked",
+      name: "Foreign Linked",
+      name_ko: "Foreign Linked",
+      department_id: "dev",
+      workflow_pack_key: "report",
+      personality: `hermes-member:${"d".repeat(64)}\n\n正式所属: 別部門`,
+    });
+    const departments = [
+      makeDepartment({ id: "planning", name: "Planning", name_ko: "Planning" }),
+      makeDepartment({ id: "dev", name: "Development", name_ko: "Development" }),
+    ];
+
+    const { mergedAgents } = resolvePackAgentViews({
+      packKey: "development",
+      globalAgents: [agent, foreignPackLinkedAgent],
+    });
+    const visibleDepartments = resolvePackDepartmentsForDisplay({
+      packKey: "development",
+      globalDepartments: departments,
+      visibleAgents: mergedAgents,
+    });
+
+    expect(mergedAgents).toEqual([agent]);
+    expect(visibleDepartments).toEqual(departments);
   });
 });
