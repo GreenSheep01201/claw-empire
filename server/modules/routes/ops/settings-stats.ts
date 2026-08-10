@@ -4,6 +4,7 @@ import {
   encryptMessengerChannelsForStorage,
 } from "../../../messenger/token-crypto.ts";
 import { syncOfficePackAgentsForPack } from "../collab/office-pack-agent-hydration.ts";
+import { readNotionManagedDevelopmentScope } from "../../workflow/packs/notion-managed-development.ts";
 
 const MESSENGER_SETTINGS_KEY = "messengerChannels";
 const OFFICE_PACK_PROFILES_KEY = "officePackProfiles";
@@ -168,6 +169,20 @@ export function registerOpsSettingsStatsRoutes(ctx: RuntimeContext): void {
   });
 
   app.get("/api/stats", (_req, res) => {
+    const activePackRow = db.prepare("SELECT value FROM settings WHERE key = 'officeWorkflowPack' LIMIT 1").get() as
+      | { value?: unknown }
+      | undefined;
+    const activePack = normalizePackKey(activePackRow?.value) ?? "development";
+    const managedDevelopmentScope = activePack === "development"
+      ? readNotionManagedDevelopmentScope(db as any)
+      : null;
+    const managedAgentWhere = managedDevelopmentScope
+      ? `WHERE id IN (${managedDevelopmentScope.agentIds.map(() => "?").join(", ")})`
+      : "";
+    const managedAgentAnd = managedDevelopmentScope
+      ? `AND id IN (${managedDevelopmentScope.agentIds.map(() => "?").join(", ")})`
+      : "";
+    const managedAgentParams = managedDevelopmentScope?.agentIds ?? [];
     const totalTasks = (db.prepare("SELECT COUNT(*) as cnt FROM tasks").get() as { cnt: number }).cnt;
     const doneTasks = (db.prepare("SELECT COUNT(*) as cnt FROM tasks WHERE status = 'done'").get() as { cnt: number })
       .cnt;
@@ -197,14 +212,16 @@ export function registerOpsSettingsStatsRoutes(ctx: RuntimeContext): void {
       }
     ).cnt;
 
-    const totalAgents = (db.prepare("SELECT COUNT(*) as cnt FROM agents").get() as { cnt: number }).cnt;
+    const totalAgents = (
+      db.prepare(`SELECT COUNT(*) as cnt FROM agents ${managedAgentWhere}`).get(...managedAgentParams) as { cnt: number }
+    ).cnt;
     const workingAgents = (
-      db.prepare("SELECT COUNT(*) as cnt FROM agents WHERE status = 'working'").get() as {
+      db.prepare(`SELECT COUNT(*) as cnt FROM agents WHERE status = 'working' ${managedAgentAnd}`).get(...managedAgentParams) as {
         cnt: number;
       }
     ).cnt;
     const idleAgents = (
-      db.prepare("SELECT COUNT(*) as cnt FROM agents WHERE status = 'idle'").get() as {
+      db.prepare(`SELECT COUNT(*) as cnt FROM agents WHERE status = 'idle' ${managedAgentAnd}`).get(...managedAgentParams) as {
         cnt: number;
       }
     ).cnt;
@@ -212,13 +229,8 @@ export function registerOpsSettingsStatsRoutes(ctx: RuntimeContext): void {
     const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
     const topAgents = db
-      .prepare("SELECT id, name, avatar_emoji, stats_tasks_done, stats_xp FROM agents ORDER BY stats_xp DESC LIMIT 5")
-      .all();
-
-    const activePackRow = db.prepare("SELECT value FROM settings WHERE key = 'officeWorkflowPack' LIMIT 1").get() as
-      | { value?: unknown }
-      | undefined;
-    const activePack = normalizePackKey(activePackRow?.value) ?? "development";
+      .prepare(`SELECT id, name, avatar_emoji, stats_tasks_done, stats_xp FROM agents ${managedAgentWhere} ORDER BY stats_xp DESC LIMIT 5`)
+      .all(...managedAgentParams);
 
     let tasksByDept: unknown[];
     if (activePack !== "development") {
@@ -251,6 +263,10 @@ export function registerOpsSettingsStatsRoutes(ctx: RuntimeContext): void {
     }
 
     if (!Array.isArray(tasksByDept) || tasksByDept.length <= 0) {
+      const managedDepartmentIds = managedDevelopmentScope?.departmentIds ?? null;
+      const managedDepartmentClause = managedDepartmentIds
+        ? `WHERE d.id IN (${managedDepartmentIds.map(() => "?").join(", ")})`
+        : "";
       tasksByDept = db
         .prepare(
           `
@@ -261,11 +277,12 @@ export function registerOpsSettingsStatsRoutes(ctx: RuntimeContext): void {
       LEFT JOIN tasks t
         ON t.department_id = d.id
        AND COALESCE(t.workflow_pack_key, 'development') = 'development'
+      ${managedDepartmentClause}
       GROUP BY d.id
       ORDER BY d.sort_order ASC, d.id ASC
     `,
         )
-        .all();
+        .all(...(managedDepartmentIds ?? []));
     }
 
     const recentActivity = db
