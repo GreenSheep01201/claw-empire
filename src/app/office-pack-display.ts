@@ -9,6 +9,16 @@ function parseSeedPackKey(agentId: string): string | null {
 
 const HERMES_MEMBER_MARKER = /^hermes-member:[a-f0-9]{64}(?:\n|$)/u;
 
+const NOTION_MANAGED_DEVELOPMENT_DEPARTMENT_IDS = [
+  "representative",
+  "secretariat",
+  "marketing",
+  "social",
+  "sales",
+  "dev",
+  "backoffice",
+] as const;
+
 function isDevelopmentPackAgent(agent: Agent): boolean {
   return (agent.workflow_pack_key ?? "development") === "development";
 }
@@ -49,8 +59,10 @@ export function resolvePackDepartmentsForDisplay(params: {
   if (packKey === "development") {
     const notionManagedAgents = (visibleAgents ?? []).filter(isNotionManagedDevelopmentAgent);
     if (notionManagedAgents.length > 0) {
-      const visibleDepartmentIds = new Set(notionManagedAgents.map((agent) => agent.department_id));
-      return globalDepartments.filter((department) => visibleDepartmentIds.has(department.id));
+      const departmentsById = new Map(globalDepartments.map((department) => [department.id, department]));
+      return NOTION_MANAGED_DEVELOPMENT_DEPARTMENT_IDS
+        .map((departmentId) => departmentsById.get(departmentId))
+        .filter((department): department is Department => Boolean(department));
     }
     return globalDepartments;
   }

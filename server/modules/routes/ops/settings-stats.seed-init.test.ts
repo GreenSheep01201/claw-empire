@@ -115,12 +115,22 @@ function createHarness(db: DatabaseSync) {
 }
 
 describe("ops settings seed init guard", () => {
-  it("GET /api/stats reports exactly the seven Notion-managed agents and their two departments", () => {
+  it("GET /api/stats reports exactly the seven Notion-managed agents and complete department catalog", () => {
     const db = setupDb();
     try {
-      for (const [id, order] of [["planning", 1], ["dev", 2], ["secretariat", 3], ["qa", 4]] as const) {
+      for (const [id, name, order] of [
+        ["planning", "Planning", 1],
+        ["representative", "代表", 101],
+        ["secretariat", "秘書室", 102],
+        ["marketing", "マーケティング部門", 103],
+        ["social", "SNS運用部門", 104],
+        ["sales", "営業部門", 105],
+        ["dev", "開発部門", 106],
+        ["backoffice", "バックオフィス部門", 107],
+        ["qa", "QA", 4],
+      ] as const) {
         db.prepare("INSERT INTO departments (id, name, name_ja, sort_order) VALUES (?, ?, ?, ?)")
-          .run(id, id, id === "dev" ? "🎨 開発部門" : id === "secretariat" ? "🧑‍💼 秘書室" : id, order);
+          .run(id, name, name, order);
       }
       const marker = (hex: string) => `hermes-member:${hex.repeat(64)}\n\nprofile`;
       for (const [index, name] of ["アポロン", "アイリス", "メティス", "ダイダロス", "アルゴス", "アテナ"].entries()) {
@@ -147,7 +157,15 @@ describe("ops settings seed init guard", () => {
       }).stats;
       expect(stats.agents).toEqual({ total: 7, working: 1, idle: 6 });
       expect(stats.top_agents.map(({ id }) => id)).toEqual(["hermes", "dev-6", "dev-5", "dev-4", "dev-3"]);
-      expect(stats.tasks_by_department.map(({ id }) => id)).toEqual(["dev", "secretariat"]);
+      expect(stats.tasks_by_department.map(({ id }) => id)).toEqual([
+        "representative",
+        "secretariat",
+        "marketing",
+        "social",
+        "sales",
+        "dev",
+        "backoffice",
+      ]);
     } finally {
       db.close();
     }

@@ -16,6 +16,16 @@ export type NotionManagedDevelopmentScope = {
   departmentIds: string[];
 };
 
+export const NOTION_MANAGED_DEVELOPMENT_DEPARTMENT_IDS = [
+  "representative",
+  "secretariat",
+  "marketing",
+  "social",
+  "sales",
+  "dev",
+  "backoffice",
+] as const;
+
 export function readNotionManagedDevelopmentScope(db: ReadDatabase): NotionManagedDevelopmentScope | null {
   let hasWorkflowPackColumn = false;
   try {
@@ -40,10 +50,9 @@ export function readNotionManagedDevelopmentScope(db: ReadDatabase): NotionManag
     const agentIds = rows
       .map(({ id }) => String(id ?? "").trim())
       .filter(Boolean);
-    const departmentIds = [...new Set(rows
-      .map(({ department_id }) => String(department_id ?? "").trim())
-      .filter(Boolean))].sort();
-    return agentIds.length > 0 && departmentIds.length > 0 ? { agentIds, departmentIds } : null;
+    return agentIds.length > 0
+      ? { agentIds, departmentIds: [...NOTION_MANAGED_DEVELOPMENT_DEPARTMENT_IDS] }
+      : null;
   } catch {
     return null;
   }
