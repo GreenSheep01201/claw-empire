@@ -11,6 +11,19 @@ import { reconcileVideoRenderDelegationState } from "./video-render-delegation-s
 
 type CreateReviewFinalizeToolsDeps = Record<string, any>;
 
+function requiresHermesWorkspaceRelease(workflowMetaJson: unknown): boolean {
+  if (typeof workflowMetaJson !== "string" || !workflowMetaJson.trim()) return false;
+  try {
+    const root = JSON.parse(workflowMetaJson) as { hermes_execution?: { contract?: unknown } };
+    return (
+      root.hermes_execution?.contract === "hermes-claw-execution/v1" ||
+      root.hermes_execution?.contract === "hermes-claw-execution/v2"
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function createReviewFinalizeTools(deps: CreateReviewFinalizeToolsDeps) {
   const {
     db,
@@ -131,11 +144,7 @@ export function createReviewFinalizeTools(deps: CreateReviewFinalizeToolsDeps) {
     options?: { bypassProjectDecisionGate?: boolean; trigger?: string },
   ): void {
     const lang = resolveLang(taskTitle);
-    const currentTask = db
-      .prepare(
-        "SELECT status, department_id, source_task_id, project_id, workflow_pack_key, project_path FROM tasks WHERE id = ?",
-      )
-      .get(taskId) as
+    const currentTask = db.prepare("SELECT * FROM tasks WHERE id = ?").get(taskId) as
       | {
           status: string;
           department_id: string | null;
@@ -143,9 +152,15 @@ export function createReviewFinalizeTools(deps: CreateReviewFinalizeToolsDeps) {
           project_id: string | null;
           workflow_pack_key: string | null;
           project_path: string | null;
+          workflow_meta_json?: string | null;
         }
       | undefined;
     if (!currentTask || currentTask.status !== "review") return; // Already moved or cancelled
+
+    if (requiresHermesWorkspaceRelease(currentTask.workflow_meta_json)) {
+      appendTaskLog(taskId, "system", "Review hold: waiting for Hermes result storage and workspace release receipt");
+      return;
+    }
 
     if (!options?.bypassProjectDecisionGate && !currentTask.source_task_id && currentTask.project_id) {
       const gateSnapshot = getProjectReviewGateSnapshot(currentTask.project_id);
