@@ -25,7 +25,7 @@ export default function VirtualPadOverlay({
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-3 left-1/2 z-50 -translate-x-1/2">
+      <div className="qg-above-tabbar pointer-events-none fixed bottom-3 left-1/2 z-30 -translate-x-1/2">
         <button
           type="button"
           aria-label="Interact"
@@ -38,7 +38,7 @@ export default function VirtualPadOverlay({
         </button>
       </div>
 
-      <div className="pointer-events-none fixed bottom-3 right-3 z-50">
+      <div className="qg-above-tabbar pointer-events-none fixed bottom-3 right-3 z-30">
         <div className="grid grid-cols-3 gap-1">
           <div />
           <button

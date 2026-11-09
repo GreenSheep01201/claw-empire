@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type * as api from "../api";
 import { normalizeLanguage, pickLang, type LangText } from "../i18n";
 import type { AppHeaderLabels } from "./AppHeaderBar";
+import type { MobileTabBarLabels } from "./MobileTabBar";
 import type { CompanySettings, Department } from "../types";
 import type { RuntimeOs, View } from "./types";
 
@@ -50,6 +51,14 @@ export function useAppLabels({
     settings: { ko: "설정", en: "Settings", ja: "設定", zh: "设置", fr: "Réglages" },
   };
   const viewTitle = pickLang(uiLanguage, viewTitles[view]);
+  const tabBarLabels: MobileTabBarLabels = {
+    tabs: pickLang(uiLanguage, { ko: "모바일 메뉴", en: "Mobile navigation", fr: "Navigation mobile" }),
+    office: pickLang(uiLanguage, viewTitles.office),
+    tasks: pickLang(uiLanguage, viewTitles.tasks),
+    announce: pickLang(uiLanguage, { ko: "공지", en: "Announce", ja: "告知", zh: "公告", fr: "Annoncer" }),
+    decisions: pickLang(uiLanguage, { ko: "의사결정", en: "To approve", ja: "意思決定", zh: "决策", fr: "À valider" }),
+    menu: pickLang(uiLanguage, { ko: "메뉴", en: "Menu", ja: "メニュー", zh: "菜单", fr: "Menu" }),
+  };
   const headerLabels: AppHeaderLabels = {
     openNavigation: pickLang(uiLanguage, { ko: "메뉴 열기", en: "Open navigation", fr: "Ouvrir la navigation" }),
     decisions: pickLang(uiLanguage, {
@@ -213,6 +222,7 @@ export function useAppLabels({
     loadingSubtitle,
     viewTitle,
     headerLabels,
+    tabBarLabels,
     roomManagerDepartments,
     effectiveUpdateStatus,
     updateBannerVisible,

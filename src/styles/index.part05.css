@@ -2,14 +2,20 @@
   background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.2), transparent);
 }
 
+/* Reduced motion: stop movement, keep state feedback (colour/opacity changes, loading spinners). */
 @media (prefers-reduced-motion: reduce) {
-  *,
+  *:not(.animate-spin),
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, opacity, outline-color !important;
   }
 }
 

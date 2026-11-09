@@ -24,6 +24,7 @@ import type {
 import type { UpdateStatus } from "../api";
 import type { OAuthCallbackResult, RoomThemeMap, View } from "./types";
 import AppHeaderBar, { type AppHeaderLabels } from "./AppHeaderBar";
+import MobileTabBar, { type MobileTabBarLabels } from "./MobileTabBar";
 import {
   buildOfficePackStarterAgents,
   buildOfficePackPresentation,
@@ -39,6 +40,7 @@ interface AppMainLayoutLabels {
   uiLanguage: string;
   viewTitle: string;
   headerLabels: AppHeaderLabels;
+  tabBarLabels: MobileTabBarLabels;
   roomManagerDepartments: { id: string; name: string }[];
   autoUpdateNoticeVisible: boolean;
   autoUpdateNoticeTitle: string;
@@ -366,7 +368,7 @@ export default function AppMainLayout({
           />
         </div>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
+        <main className="qg-main flex-1 overflow-y-auto overflow-x-hidden min-w-0">
           <AppHeaderBar
             connected={connected}
             viewTitle={labels.viewTitle}
@@ -544,6 +546,16 @@ export default function AppMainLayout({
             )}
           </div>
         </main>
+
+        <MobileTabBar
+          currentView={view}
+          labels={labels.tabBarLabels}
+          decisionCount={decisionInboxCount}
+          onChangeView={setView}
+          onOpenAnnouncement={onOpenAnnouncement}
+          onOpenDecisionInbox={onOpenDecisionInbox}
+          onOpenMenu={() => setMobileNavOpen(true)}
+        />
 
         {children}
       </div>

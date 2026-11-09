@@ -115,7 +115,7 @@ export default function AppHeaderBar({
         <button
           onClick={onOpenDecisionInbox}
           disabled={decisionInboxLoading}
-          className={`qg-btn qg-btn--pin${hasPending ? " is-pending" : ""}`}
+          className={`qg-btn qg-btn--pin qg-header__wide-only${hasPending ? " is-pending" : ""}`}
           aria-label={hasPending ? `${labels.decisions} (${decisionInboxCount})` : labels.decisions}
         >
           {decisionInboxLoading ? (
@@ -131,7 +131,11 @@ export default function AppHeaderBar({
           )}
         </button>
 
-        <button onClick={onOpenAnnouncement} className="qg-btn qg-btn--primary" aria-label={labels.announcement}>
+        <button
+          onClick={onOpenAnnouncement}
+          className="qg-btn qg-btn--primary qg-header__wide-only"
+          aria-label={labels.announcement}
+        >
           <Megaphone size={ICON_SIZE} aria-hidden />
           <span className="qg-btn__label">{labels.announcement}</span>
         </button>
