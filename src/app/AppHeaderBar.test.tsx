@@ -6,41 +6,84 @@ import AppHeaderBar from "./AppHeaderBar";
 
 function createBaseProps(): ComponentProps<typeof AppHeaderBar> {
   return {
-    currentView: "office" as const,
     connected: true,
-    viewTitle: "Office",
-    tasksPrimaryLabel: "Tasks",
-    decisionLabel: "Decisions",
+    viewTitle: "Bureau",
+    labels: {
+      openNavigation: "Ouvrir la navigation",
+      decisions: "À valider",
+      announcement: "Annoncer à l'équipe",
+      more: "Plus",
+      agentStatus: "État des agents",
+      reports: "Rapports",
+      roomManager: "Aménager le bureau",
+      themeToLight: "Passer en mode jour",
+      themeToDark: "Passer en mode nuit",
+      live: "En ligne",
+      offline: "Hors ligne",
+    },
     decisionInboxLoading: false,
     decisionInboxCount: 0,
-    agentStatusLabel: "Agent Status",
-    reportLabel: "Reports",
-    announcementLabel: "Announcement",
-    roomManagerLabel: "Room Manager",
     officePackControl: null,
-    theme: "dark" as const,
-    mobileHeaderMenuOpen: true,
+    theme: "light" as const,
+    menuOpen: false,
     onOpenMobileNav: vi.fn(),
-    onOpenTasks: vi.fn(),
     onOpenDecisionInbox: vi.fn(),
     onOpenAgentStatus: vi.fn(),
     onOpenReportHistory: vi.fn(),
     onOpenAnnouncement: vi.fn(),
     onOpenRoomManager: vi.fn(),
     onToggleTheme: vi.fn(),
-    onToggleMobileHeaderMenu: vi.fn(),
-    onCloseMobileHeaderMenu: vi.fn(),
+    onToggleMenu: vi.fn(),
+    onCloseMenu: vi.fn(),
   };
 }
 
-describe("AppHeaderBar mobile office pack selector", () => {
-  it("모바일 더보기 메뉴에서 오피스팩을 변경할 수 있다", async () => {
+describe("AppHeaderBar", () => {
+  it("annonce le nombre de validations en attente et ouvre la boîte À valider", async () => {
+    const user = userEvent.setup();
+    const props = createBaseProps();
+    props.decisionInboxCount = 3;
+    render(<AppHeaderBar {...props} />);
+
+    const button = screen.getByRole("button", { name: /À valider.*3/ });
+    await user.click(button);
+
+    expect(props.onOpenDecisionInbox).toHaveBeenCalled();
+  });
+
+  it("le menu Plus expose son état et ses actions secondaires", async () => {
+    const user = userEvent.setup();
+    const props = createBaseProps();
+    const { rerender } = render(<AppHeaderBar {...props} />);
+
+    const trigger = screen.getByRole("button", { name: "Plus" });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+    rerender(<AppHeaderBar {...props} menuOpen />);
+    expect(screen.getByRole("button", { name: "Plus" })).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByRole("menuitem", { name: "Rapports" }));
+    expect(props.onOpenReportHistory).toHaveBeenCalled();
+    expect(props.onCloseMenu).toHaveBeenCalled();
+  });
+
+  it("Échap ferme le menu Plus", async () => {
+    const user = userEvent.setup();
+    const props = createBaseProps();
+    render(<AppHeaderBar {...props} menuOpen />);
+
+    await user.keyboard("{Escape}");
+
+    expect(props.onCloseMenu).toHaveBeenCalled();
+  });
+
+  it("change le pack de bureau depuis le menu Plus", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const onCloseMobileHeaderMenu = vi.fn();
     const props = createBaseProps();
     props.officePackControl = {
-      label: "Office Pack",
+      label: "Pack de bureau",
       value: "development",
       onChange,
       options: [
@@ -48,23 +91,17 @@ describe("AppHeaderBar mobile office pack selector", () => {
         { key: "report", label: "Report", summary: "", slug: "REP", accent: 1 },
       ],
     };
-    props.onCloseMobileHeaderMenu = onCloseMobileHeaderMenu;
+    render(<AppHeaderBar {...props} menuOpen />);
 
-    render(<AppHeaderBar {...props} />);
-
-    const selector = document.getElementById("mobile-office-pack-selector") as HTMLSelectElement | null;
-    expect(selector).not.toBeNull();
-    if (!selector) return;
-    await user.selectOptions(selector, "report");
+    await user.selectOptions(screen.getByLabelText("Pack de bureau"), "report");
 
     expect(onChange).toHaveBeenCalledWith("report");
-    expect(onCloseMobileHeaderMenu).toHaveBeenCalled();
+    expect(props.onCloseMenu).toHaveBeenCalled();
   });
 
-  it("오피스팩 컨트롤이 없으면 모바일 메뉴에 셀렉터를 표시하지 않는다", () => {
-    const props = createBaseProps();
-    render(<AppHeaderBar {...props} />);
+  it("n'affiche pas de sélecteur de pack sans contrôle de pack", () => {
+    render(<AppHeaderBar {...createBaseProps()} menuOpen />);
 
-    expect(screen.queryByLabelText("Office Pack")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Pack de bureau")).not.toBeInTheDocument();
   });
 });

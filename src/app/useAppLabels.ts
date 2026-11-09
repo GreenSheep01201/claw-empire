@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type * as api from "../api";
-import { normalizeLanguage, pickLang } from "../i18n";
+import { normalizeLanguage, pickLang, type LangText } from "../i18n";
+import type { AppHeaderLabels } from "./AppHeaderBar";
 import type { CompanySettings, Department } from "../types";
 import type { RuntimeOs, View } from "./types";
 
@@ -27,77 +28,65 @@ export function useAppLabels({
 }: UseAppLabelsParams) {
   const uiLanguage = normalizeLanguage(settings.language);
   const loadingTitle = pickLang(uiLanguage, {
-    ko: "Claw-Empire 로딩 중...",
-    en: "Loading Claw-Empire...",
-    ja: "Claw-Empireを読み込み中...",
-    zh: "Claw-Empire 加载中...",
+    ko: "QG 로딩 중...",
+    en: "Loading QG...",
+    ja: "QGを読み込み中...",
+    zh: "QG 加载中...",
+    fr: "Chargement de QG…",
   });
   const loadingSubtitle = pickLang(uiLanguage, {
     ko: "AI 에이전트 제국을 준비하고 있습니다",
     en: "Preparing your AI agent empire",
     ja: "AIエージェント帝国を準備しています",
     zh: "正在准备你的 AI 代理帝国",
+    fr: "On prépare ton entreprise d'agents IA",
   });
-  const viewTitle = (() => {
-    switch (view) {
-      case "office":
-        return `🏢 ${pickLang(uiLanguage, {
-          ko: "오피스",
-          en: "Office",
-          ja: "オフィス",
-          zh: "办公室",
-        })}`;
-      case "dashboard":
-        return `📊 ${pickLang(uiLanguage, {
-          ko: "대시보드",
-          en: "Dashboard",
-          ja: "ダッシュボード",
-          zh: "仪表盘",
-        })}`;
-      case "tasks":
-        return `📋 ${pickLang(uiLanguage, {
-          ko: "업무 관리",
-          en: "Tasks",
-          ja: "タスク管理",
-          zh: "任务管理",
-        })}`;
-      case "agents":
-        return `${pickLang(uiLanguage, {
-          ko: "직원관리",
-          en: "Agents",
-          ja: "社員管理",
-          zh: "员工管理",
-        })}`;
-      case "skills":
-        return `📚 ${pickLang(uiLanguage, {
-          ko: "문서고",
-          en: "Skills",
-          ja: "スキル資料室",
-          zh: "技能库",
-        })}`;
-      case "settings":
-        return `⚙️ ${pickLang(uiLanguage, {
-          ko: "설정",
-          en: "Settings",
-          ja: "設定",
-          zh: "设置",
-        })}`;
-      default:
-        return "";
-    }
-  })();
-  const announcementLabel = `📢 ${pickLang(uiLanguage, {
-    ko: "전사 공지",
-    en: "Announcement",
-    ja: "全社告知",
-    zh: "全员公告",
-  })}`;
-  const roomManagerLabel = `🏢 ${pickLang(uiLanguage, {
-    ko: "사무실 관리",
-    en: "Office Manager",
-    ja: "オフィス管理",
-    zh: "办公室管理",
-  })}`;
+  const viewTitles: Record<View, LangText> = {
+    office: { ko: "오피스", en: "Office", ja: "オフィス", zh: "办公室", fr: "Bureau" },
+    dashboard: { ko: "대시보드", en: "Dashboard", ja: "ダッシュボード", zh: "仪表盘", fr: "Tableau de bord" },
+    tasks: { ko: "업무 관리", en: "Tasks", ja: "タスク管理", zh: "任务管理", fr: "Tâches" },
+    agents: { ko: "직원관리", en: "Team", ja: "社員管理", zh: "员工管理", fr: "Équipe" },
+    skills: { ko: "문서고", en: "Skills", ja: "スキル資料室", zh: "技能库", fr: "Compétences" },
+    settings: { ko: "설정", en: "Settings", ja: "設定", zh: "设置", fr: "Réglages" },
+  };
+  const viewTitle = pickLang(uiLanguage, viewTitles[view]);
+  const headerLabels: AppHeaderLabels = {
+    openNavigation: pickLang(uiLanguage, { ko: "메뉴 열기", en: "Open navigation", fr: "Ouvrir la navigation" }),
+    decisions: pickLang(uiLanguage, {
+      ko: "의사결정",
+      en: "To approve",
+      ja: "意思決定",
+      zh: "决策",
+      fr: "À valider",
+    }),
+    announcement: pickLang(uiLanguage, {
+      ko: "전사 공지",
+      en: "Announce to team",
+      ja: "全社告知",
+      zh: "全员公告",
+      fr: "Annoncer à l'équipe",
+    }),
+    more: pickLang(uiLanguage, { ko: "더보기", en: "More", ja: "その他", zh: "更多", fr: "Plus" }),
+    agentStatus: pickLang(uiLanguage, {
+      ko: "에이전트 상태",
+      en: "Agent status",
+      ja: "エージェント状況",
+      zh: "代理状态",
+      fr: "État des agents",
+    }),
+    reports: pickLang(uiLanguage, { ko: "보고서", en: "Reports", ja: "レポート", zh: "报告", fr: "Rapports" }),
+    roomManager: pickLang(uiLanguage, {
+      ko: "사무실 관리",
+      en: "Arrange the office",
+      ja: "オフィス管理",
+      zh: "办公室管理",
+      fr: "Aménager le bureau",
+    }),
+    themeToLight: pickLang(uiLanguage, { ko: "라이트 모드", en: "Day mode", fr: "Passer en mode jour" }),
+    themeToDark: pickLang(uiLanguage, { ko: "다크 모드", en: "Night mode", fr: "Passer en mode nuit" }),
+    live: pickLang(uiLanguage, { ko: "연결됨", en: "Online", fr: "En ligne" }),
+    offline: pickLang(uiLanguage, { ko: "연결 끊김", en: "Offline", fr: "Hors ligne" }),
+  };
   const roomManagerDepartments = useMemo(
     () => [
       {
@@ -105,6 +94,7 @@ export function useAppLabels({
         name: pickLang(uiLanguage, {
           ko: "CEO 오피스",
           en: "CEO Office",
+          fr: "Bureau du CEO",
           ja: "CEOオフィス",
           zh: "CEO办公室",
         }),
@@ -115,6 +105,7 @@ export function useAppLabels({
         name: pickLang(uiLanguage, {
           ko: "휴게실",
           en: "Break Room",
+          fr: "Salle de pause",
           ja: "休憩室",
           zh: "休息室",
         }),
@@ -122,30 +113,6 @@ export function useAppLabels({
     ],
     [departments, uiLanguage],
   );
-  const reportLabel = `📋 ${pickLang(uiLanguage, {
-    ko: "보고서",
-    en: "Reports",
-    ja: "レポート",
-    zh: "报告",
-  })}`;
-  const tasksPrimaryLabel = pickLang(uiLanguage, {
-    ko: "업무",
-    en: "Tasks",
-    ja: "タスク",
-    zh: "任务",
-  });
-  const agentStatusLabel = pickLang(uiLanguage, {
-    ko: "에이전트",
-    en: "Agents",
-    ja: "エージェント",
-    zh: "代理",
-  });
-  const decisionLabel = pickLang(uiLanguage, {
-    ko: "의사결정",
-    en: "Decisions",
-    ja: "意思決定",
-    zh: "决策",
-  });
   const effectiveUpdateStatus = forceUpdateBanner
     ? {
         current_version: updateStatus?.current_version ?? "1.1.0",
@@ -245,13 +212,8 @@ export function useAppLabels({
     loadingTitle,
     loadingSubtitle,
     viewTitle,
-    announcementLabel,
-    roomManagerLabel,
+    headerLabels,
     roomManagerDepartments,
-    reportLabel,
-    tasksPrimaryLabel,
-    agentStatusLabel,
-    decisionLabel,
     effectiveUpdateStatus,
     updateBannerVisible,
     updateReleaseUrl,

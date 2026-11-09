@@ -1,8 +1,9 @@
 import { useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import { BookOpen, Building2, LayoutDashboard, ListChecks, PanelLeft, Settings, Users } from "lucide-react";
 import type { Department, Agent, CompanySettings } from "../types";
-import { useI18n, localeName } from "../i18n";
-
-type View = "office" | "agents" | "dashboard" | "tasks" | "skills" | "settings";
+import type { View } from "../app/types";
+import { useI18n, localeName, type LangText } from "../i18n";
 
 interface SidebarProps {
   currentView: View;
@@ -13,135 +14,142 @@ interface SidebarProps {
   connected: boolean;
 }
 
-const NAV_ITEMS: { view: View; icon: string; sprite?: string }[] = [
-  { view: "office", icon: "🏢" },
-  { view: "agents", icon: "👥", sprite: "/sprites/3-D-1.png" },
-  { view: "skills", icon: "📚" },
-  { view: "dashboard", icon: "📊" },
-  { view: "tasks", icon: "📋" },
-  { view: "settings", icon: "⚙️" },
+type NavItem = { view: View; icon: LucideIcon; label: LangText };
+
+const MAIN_NAV: NavItem[] = [
+  {
+    view: "office",
+    icon: Building2,
+    label: { ko: "오피스", en: "Office", ja: "オフィス", zh: "办公室", fr: "Bureau" },
+  },
+  {
+    view: "tasks",
+    icon: ListChecks,
+    label: { ko: "업무 관리", en: "Tasks", ja: "タスク管理", zh: "任务管理", fr: "Tâches" },
+  },
+  { view: "agents", icon: Users, label: { ko: "직원관리", en: "Team", ja: "社員管理", zh: "员工管理", fr: "Équipe" } },
+  {
+    view: "dashboard",
+    icon: LayoutDashboard,
+    label: { ko: "대시보드", en: "Dashboard", ja: "ダッシュボード", zh: "仪表盘", fr: "Tableau de bord" },
+  },
+  {
+    view: "skills",
+    icon: BookOpen,
+    label: { ko: "문서고", en: "Skills", ja: "ライブラリ", zh: "文档库", fr: "Compétences" },
+  },
 ];
+
+const SETTINGS_NAV: NavItem = {
+  view: "settings",
+  icon: Settings,
+  label: { ko: "설정", en: "Settings", ja: "設定", zh: "设置", fr: "Réglages" },
+};
 
 export default function Sidebar({ currentView, onChangeView, departments, agents, settings, connected }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { t, locale } = useI18n();
-  const workingCount = agents.filter((a) => a.status === "working").length;
-  const totalAgents = agents.length;
 
-  const tr = (ko: string, en: string, ja = en, zh = en) => t({ ko, en, ja, zh });
-
-  const navLabels: Record<View, string> = {
-    office: tr("오피스", "Office", "オフィス", "办公室"),
-    agents: tr("직원관리", "Agents", "社員管理", "员工管理"),
-    skills: tr("문서고", "Library", "ライブラリ", "文档库"),
-    dashboard: tr("대시보드", "Dashboard", "ダッシュボード", "仪表盘"),
-    tasks: tr("업무 관리", "Tasks", "タスク管理", "任务管理"),
-    settings: tr("설정", "Settings", "設定", "设置"),
+  const renderNavItem = ({ view, icon: Icon, label }: NavItem) => {
+    const text = t(label);
+    return (
+      <button
+        key={view}
+        onClick={() => onChangeView(view)}
+        className="qg-nav__item"
+        aria-current={currentView === view ? "page" : undefined}
+        aria-label={collapsed ? text : undefined}
+        title={collapsed ? text : undefined}
+      >
+        <Icon size={18} aria-hidden />
+        {!collapsed && <span>{text}</span>}
+      </button>
+    );
   };
 
+  const workingTotal = agents.filter((a) => a.status === "working").length;
+  const polesLabel = t({ ko: "부서", en: "Poles", ja: "部門", zh: "部门", fr: "Pôles" });
+
   return (
-    <aside
-      className={`flex h-full flex-col backdrop-blur-sm transition-all duration-300 ${collapsed ? "w-16" : "w-48"}`}
-      style={{ background: "var(--th-bg-sidebar)", borderRight: "1px solid var(--th-border)" }}
-    >
-      {/* Logo */}
-      <div
-        className="flex items-center gap-2 px-3 py-4"
-        style={{ borderBottom: "1px solid var(--th-border)", boxShadow: "0 4px 12px rgba(59, 130, 246, 0.06)" }}
-      >
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-        >
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 relative overflow-visible">
-            <img
-              src="/sprites/ceo-lobster.png"
-              alt={tr("CEO", "CEO")}
-              className="w-8 h-8 object-contain"
-              style={{ imageRendering: "pixelated" }}
-            />
-            <span className="absolute -top-0.5 left-1/2 -translate-x-1/2 text-[10px] leading-none drop-shadow">👑</span>
-          </div>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <div className="text-sm font-bold truncate" style={{ color: "var(--th-text-heading)" }}>
-                {settings.companyName}
-              </div>
-              <div className="text-[10px]" style={{ color: "var(--th-text-muted)" }}>
-                👑 {settings.ceoName}
-              </div>
+    <aside className={`qg-sidebar${collapsed ? " is-collapsed" : ""}`}>
+      <div className="qg-sidebar__brand">
+        <span className="qg-wordmark" aria-hidden>
+          QG
+        </span>
+        {!collapsed && (
+          <div className="min-w-0">
+            <div className="qg-sidebar__company">{settings.companyName}</div>
+            <div className="qg-sidebar__ceo">
+              {t({ ko: "CEO", en: "CEO", fr: "CEO" })} · {settings.ceoName}
             </div>
-          )}
-        </button>
+          </div>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-2 space-y-0.5 px-2">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.view}
-            onClick={() => onChangeView(item.view)}
-            className={`sidebar-nav-item ${
-              currentView === item.view ? "active font-semibold shadow-sm shadow-blue-500/10" : ""
-            }`}
-          >
-            <span className="text-base shrink-0">
-              {item.sprite ? (
-                <img
-                  src={item.sprite}
-                  alt=""
-                  className="w-5 h-5 object-cover rounded-full"
-                  style={{ imageRendering: "pixelated" }}
-                />
-              ) : (
-                item.icon
-              )}
-            </span>
-            {!collapsed && <span>{navLabels[item.view]}</span>}
-          </button>
-        ))}
+      <nav
+        className="qg-nav"
+        aria-label={t({
+          ko: "주 메뉴",
+          en: "Main navigation",
+          ja: "メインメニュー",
+          zh: "主导航",
+          fr: "Navigation principale",
+        })}
+      >
+        {MAIN_NAV.map(renderNavItem)}
       </nav>
 
-      {/* Department quick stats */}
-      {!collapsed && (
-        <div className="px-3 py-2" style={{ borderTop: "1px solid var(--th-border)" }}>
-          <div
-            className="text-[10px] uppercase font-semibold mb-1.5 tracking-wider"
-            style={{ color: "var(--th-text-muted)" }}
-          >
-            {tr("부서 현황", "Department Status", "部門状況", "部门状态")}
-          </div>
-          {departments.map((d) => {
-            const deptAgents = agents.filter((a) => a.department_id === d.id);
-            const working = deptAgents.filter((a) => a.status === "working").length;
-            return (
-              <div
-                key={d.id}
-                className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs hover:bg-[var(--th-bg-surface-hover)] transition-colors"
-                style={{ color: "var(--th-text-secondary)" }}
-              >
-                <span>{d.icon}</span>
-                <span className="flex-1 truncate">{localeName(locale, d)}</span>
-                <span className={working > 0 ? "text-blue-400 font-medium" : ""}>
-                  {working}/{deptAgents.length}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+      {!collapsed && departments.length > 0 && (
+        <section className="qg-poles">
+          <h2 className="qg-poles__title">{polesLabel}</h2>
+          <ul className="qg-poles__list" aria-label={polesLabel}>
+            {departments.map((d) => {
+              const members = agents.filter((a) => a.department_id === d.id);
+              const working = members.filter((a) => a.status === "working").length;
+              const activity = t({
+                ko: `활성 ${working}/${members.length}`,
+                en: `${working} of ${members.length} agents active`,
+                fr: `${working} agent${working > 1 ? "s" : ""} actif${working > 1 ? "s" : ""} sur ${members.length}`,
+              });
+              return (
+                <li key={d.id} className="qg-pole">
+                  <span className="qg-pole__tape" style={{ background: d.color }} aria-hidden />
+                  <span className="qg-pole__name">{localeName(locale, d)}</span>
+                  <span className={`qg-pole__count${working > 0 ? " is-active" : ""}`} aria-label={activity}>
+                    <span className="qg-mark" aria-hidden />
+                    {working}/{members.length}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
-      {/* Status bar */}
-      <div className="px-3 py-2.5" style={{ borderTop: "1px solid var(--th-border)" }}>
-        <div className="flex items-center gap-2">
-          <div className={`w-2.5 h-2.5 rounded-full ${connected ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
+      <div className="qg-sidebar__footer">
+        {renderNavItem(SETTINGS_NAV)}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="qg-nav__item"
+          aria-expanded={!collapsed}
+          aria-label={
+            collapsed
+              ? t({ ko: "메뉴 펼치기", en: "Expand menu", fr: "Déplier le menu" })
+              : t({ ko: "메뉴 접기", en: "Collapse menu", fr: "Replier le menu" })
+          }
+        >
+          <PanelLeft size={18} aria-hidden />
+          {!collapsed && <span>{t({ ko: "메뉴 접기", en: "Collapse", fr: "Replier" })}</span>}
+        </button>
+        <div className={`qg-status${connected ? " is-live" : ""}`} role="status">
+          <span className="qg-status__mark" aria-hidden />
           {!collapsed && (
-            <div className="text-[10px]" style={{ color: "var(--th-text-muted)" }}>
+            <span className="qg-status__label">
               {connected
-                ? tr("연결됨", "Connected", "接続中", "已连接")
-                : tr("연결 끊김", "Disconnected", "接続なし", "已断开")}{" "}
-              · {workingCount}/{totalAgents} {tr("근무중", "working", "稼働中", "工作中")}
-            </div>
+                ? t({ ko: "연결됨", en: "Online", fr: "En ligne" })
+                : t({ ko: "연결 끊김", en: "Offline", fr: "Hors ligne" })}{" "}
+              · {workingTotal}/{agents.length} {t({ ko: "근무중", en: "working", fr: "au travail" })}
+            </span>
           )}
         </div>
       </div>
