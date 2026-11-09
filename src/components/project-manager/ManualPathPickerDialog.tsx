@@ -1,7 +1,7 @@
+import { ArrowUp, Folder, RefreshCw } from "lucide-react";
 import Dialog from "../ui/Dialog";
 import type { ManualPathEntry, ProjectI18nTranslate } from "./types";
 
-// Kept outside the call so the fr entry passes ProjectI18nTranslate's ko/en/ja/zh map.
 const TITLE = {
   ko: "앱 내 폴더 탐색",
   en: "In-App Folder Browser",
@@ -49,30 +49,32 @@ export default function ManualPathPickerDialog({
       title={t(TITLE)}
       footer={
         <>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800"
-          >
-            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消" })}
+          <button type="button" onClick={onClose} className="qg-btn qg-btn--ghost">
+            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消", fr: "Annuler" })}
           </button>
           <button
             type="button"
             disabled={!manualPathCurrent}
             onClick={onSelectCurrent}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="qg-btn qg-btn--primary"
           >
-            {t({ ko: "현재 폴더 선택", en: "Select Current Folder", ja: "現在フォルダを選択", zh: "选择当前文件夹" })}
+            {t({
+              ko: "현재 폴더 선택",
+              en: "Select Current Folder",
+              ja: "現在フォルダを選択",
+              zh: "选择当前文件夹",
+              fr: "Choisir ce dossier",
+            })}
           </button>
         </>
       }
     >
       <div className="space-y-3">
-        <div className="rounded-lg border border-slate-700 bg-slate-800/70 px-3 py-2">
-          <p className="text-[11px] text-slate-400">
-            {t({ ko: "현재 위치", en: "Current Location", ja: "現在位置", zh: "当前位置" })}
+        <div className="qg-card">
+          <p className="qg-field__label">
+            {t({ ko: "현재 위치", en: "Current Location", ja: "現在位置", zh: "当前位置", fr: "Emplacement actuel" })}
           </p>
-          <p className="break-all text-xs text-slate-200">{manualPathCurrent || "-"}</p>
+          <p className="mt-1 break-all font-mono text-[13px]">{manualPathCurrent || "-"}</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -82,38 +84,44 @@ export default function ManualPathPickerDialog({
               if (!manualPathParent) return;
               void onLoadEntries(manualPathParent);
             }}
-            className="rounded-md border border-slate-600 px-2.5 py-1 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="qg-btn qg-btn--sm"
           >
-            {t({ ko: "상위 폴더", en: "Up", ja: "上位フォルダ", zh: "上级目录" })}
+            <ArrowUp size={16} aria-hidden />
+            {t({ ko: "상위 폴더", en: "Up", ja: "上位フォルダ", zh: "上级目录", fr: "Dossier parent" })}
           </button>
           <button
             type="button"
             disabled={manualPathLoading}
             onClick={() => void onLoadEntries(manualPathCurrent || undefined)}
-            className="rounded-md border border-slate-600 px-2.5 py-1 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+            className="qg-btn qg-btn--sm"
           >
-            {t({ ko: "새로고침", en: "Refresh", ja: "更新", zh: "刷新" })}
+            <RefreshCw size={16} aria-hidden />
+            {t({ ko: "새로고침", en: "Refresh", ja: "更新", zh: "刷新", fr: "Actualiser" })}
           </button>
         </div>
-        <div className="max-h-[45dvh] overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/50">
+        <div className="qg-card max-h-[45dvh] overflow-y-auto !p-0">
           {manualPathLoading ? (
-            <p className="px-3 py-2 text-xs text-slate-400">
+            <p className="qg-text-muted px-3 py-2 text-[13px]">
               {t({
                 ko: "폴더 목록을 불러오는 중...",
                 en: "Loading directories...",
                 ja: "フォルダ一覧を読み込み中...",
                 zh: "正在加载目录...",
+                fr: "Chargement des dossiers…",
               })}
             </p>
           ) : manualPathError ? (
-            <p className="px-3 py-2 text-xs text-rose-300">{manualPathError}</p>
+            <p role="alert" className="qg-text-secondary px-3 py-2 text-[13px]">
+              {manualPathError}
+            </p>
           ) : manualPathEntries.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-slate-400">
+            <p className="qg-text-muted px-3 py-2 text-[13px]">
               {t({
                 ko: "선택 가능한 하위 폴더가 없습니다.",
                 en: "No selectable subdirectories.",
                 ja: "選択可能なサブディレクトリがありません。",
                 zh: "没有可选的子目录。",
+                fr: "Aucun sous-dossier disponible.",
               })}
             </p>
           ) : (
@@ -122,21 +130,25 @@ export default function ManualPathPickerDialog({
                 key={entry.path}
                 type="button"
                 onClick={() => void onLoadEntries(entry.path)}
-                className="w-full border-b border-slate-700/70 px-3 py-2 text-left transition hover:bg-slate-700/60"
+                className="flex w-full items-start gap-2 border-b border-[var(--th-border)] px-3 py-2 text-left transition hover:bg-[var(--th-bg-surface-hover)]"
               >
-                <p className="text-xs font-semibold text-slate-100">{entry.name}</p>
-                <p className="truncate text-[11px] text-slate-400">{entry.path}</p>
+                <Folder size={16} aria-hidden className="qg-text-muted mt-0.5 shrink-0" />
+                <span className="min-w-0">
+                  <span className="block text-[13px] font-semibold">{entry.name}</span>
+                  <span className="qg-text-muted block truncate text-xs">{entry.path}</span>
+                </span>
               </button>
             ))
           )}
         </div>
         {manualPathTruncated && (
-          <p className="text-[11px] text-slate-400">
+          <p className="qg-field__hint">
             {t({
               ko: "항목이 많아 상위 300개 폴더만 표시했습니다.",
               en: "Only the first 300 directories are shown.",
               ja: "項目数が多いため先頭300件のみ表示しています。",
               zh: "目录过多，仅显示前300个。",
+              fr: "Seuls les 300 premiers dossiers sont affichés.",
             })}
           </p>
         )}

@@ -1,3 +1,4 @@
+import { LoaderCircle } from "lucide-react";
 import type { SkillHistoryProvider, SkillLearnProvider } from "../../api";
 import type { Agent } from "../../types";
 import AgentAvatar from "../AgentAvatar";
@@ -88,18 +89,11 @@ export default function LearningModal({
       }
       footer={
         <>
-          <button
-            onClick={onClose}
-            disabled={learnInProgress}
-            className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${
-              learnInProgress
-                ? "cursor-not-allowed border-slate-700 text-slate-600"
-                : "border-slate-600 text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消" })}
+          <button type="button" onClick={onClose} disabled={learnInProgress} className="qg-btn">
+            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消", fr: "Annuler" })}
           </button>
           <button
+            type="button"
             onClick={onStartLearning}
             disabled={
               selectedProviders.length === 0 ||
@@ -107,44 +101,52 @@ export default function LearningModal({
               learnInProgress ||
               defaultSelectedProviders.length === 0
             }
-            className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${
-              selectedProviders.length === 0 || learnInProgress || defaultSelectedProviders.length === 0
-                ? "cursor-not-allowed border-slate-700 text-slate-600"
-                : "border-emerald-500/50 bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
-            }`}
+            className="qg-btn qg-btn--primary"
           >
-            {learnSubmitting || learnInProgress
-              ? t({ ko: "학습중...", en: "Learning...", ja: "学習中...", zh: "学习中..." })
-              : t({ ko: "학습 시작", en: "Start Learning", ja: "学習開始", zh: "开始学习" })}
+            {learnSubmitting || learnInProgress ? (
+              <>
+                <LoaderCircle size={16} aria-hidden="true" className="animate-spin" />
+                {t({ ko: "학습중...", en: "Learning...", ja: "学習中...", zh: "学习中...", fr: "Apprentissage…" })}
+              </>
+            ) : (
+              t({ ko: "학습 시작", en: "Start Learning", ja: "学習開始", zh: "开始学习", fr: "Lancer l'apprentissage" })
+            )}
           </button>
         </>
       }
     >
       <div className="space-y-4">
-        <div className="text-xs text-slate-400">
+        <div className="text-sm qg-text-secondary">
           {learningSkill.name} · {learningSkill.repo}
         </div>
-        <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/8 px-3 py-2">
-          <div className="text-[11px] text-emerald-200">
-            {t({ ko: "실행 명령", en: "Install command", ja: "実行コマンド", zh: "执行命令" })}
+        <div className="qg-card">
+          <div className="text-[13px] font-semibold qg-text-muted">
+            {t({
+              ko: "실행 명령",
+              en: "Install command",
+              ja: "実行コマンド",
+              zh: "执行命令",
+              fr: "Commande d'installation",
+            })}
           </div>
-          <div className="mt-1 text-[11px] font-mono text-emerald-300 break-all">
+          <div className="mt-1 text-[13px] font-mono qg-text-secondary break-all">
             npx skills add {learningSkill.repo}
           </div>
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <div className="text-xs text-slate-400">
+          <div className="text-sm qg-text-secondary">
             {t({
               ko: "CLI 대표자를 선택하세요 (복수 선택 가능)",
               en: "Select CLI representatives (multi-select)",
               ja: "CLI代表を選択してください（複数選択可）",
               zh: "选择 CLI 代表（可多选）",
+              fr: "Choisissez les agents à former (plusieurs possibles)",
             })}
           </div>
-          <div className="text-[11px] text-slate-500">
+          <div className="text-[13px] qg-text-muted">
             {selectedProviders.length}
-            {t({ ko: "명 선택됨", en: " selected", ja: "名を選択", zh: " 已选择" })}
+            {t({ ko: "명 선택됨", en: " selected", ja: "名を選択", zh: " 已选择", fr: " sélectionné(s)" })}
           </div>
         </div>
 
@@ -161,7 +163,13 @@ export default function LearningModal({
               ? preferKoreanName
                 ? row.agent.name_ko || row.agent.name
                 : row.agent.name || row.agent.name_ko
-              : t({ ko: "배치된 인원 없음", en: "No assigned member", ja: "担当メンバーなし", zh: "暂无成员" });
+              : t({
+                  ko: "배치된 인원 없음",
+                  en: "No assigned member",
+                  ja: "担当メンバーなし",
+                  zh: "暂无成员",
+                  fr: "Aucun agent affecté",
+                });
 
             return (
               <div
@@ -182,13 +190,15 @@ export default function LearningModal({
                   }
                 }}
                 aria-disabled={!hasAgent || learnInProgress}
-                className={`relative overflow-hidden rounded-xl border p-3 text-left transition-all ${
+                aria-pressed={hasAgent ? isSelected : undefined}
+                className="qg-choice relative overflow-hidden"
+                style={
                   !hasAgent
-                    ? "cursor-not-allowed border-slate-700/80 bg-slate-800/40 opacity-60"
-                    : isSelected
-                      ? "border-emerald-500/50 bg-emerald-500/10"
-                      : "border-slate-700/70 bg-slate-800/60 hover:border-slate-500/80 hover:bg-slate-800/80"
-                }`}
+                    ? { cursor: "not-allowed", opacity: 0.6, padding: 12 }
+                    : learnInProgress
+                      ? { cursor: "default", padding: 12 }
+                      : { padding: 12 }
+                }
               >
                 {isAnimating && (
                   <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -204,7 +214,7 @@ export default function LearningModal({
                   </div>
                 )}
 
-                <div className="relative z-10 flex items-center gap-3">
+                <div className="relative z-10 flex w-full items-center gap-3">
                   <div
                     className={`relative ${isAnimating ? "learn-avatar-reading" : ""} ${isHitAnimating ? "unlearn-avatar-hit" : ""}`}
                   >
@@ -213,36 +223,30 @@ export default function LearningModal({
                     {unlearnEffect === "pot" && <span className="unlearn-pot-drop">🪴</span>}
                     {unlearnEffect === "hammer" && <span className="unlearn-hammer-swing">🔨</span>}
                     {isHitAnimating && (
-                      <span className="unlearn-hit-text">{t({ ko: "깡~", en: "Bonk!", ja: "ゴン!", zh: "咣~" })}</span>
+                      <span className="unlearn-hit-text">
+                        {t({ ko: "깡~", en: "Bonk!", ja: "ゴン!", zh: "咣~", fr: "Bonk !" })}
+                      </span>
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="text-[11px] text-slate-400">{providerLabel(row.provider)}</div>
-                    <div className="text-sm font-medium text-white truncate">{displayName}</div>
-                    <div className="text-[11px] text-slate-500">
+                    <div className="text-[13px] qg-text-muted font-normal">{providerLabel(row.provider)}</div>
+                    <div className="text-sm font-medium truncate">{displayName}</div>
+                    <div className="text-[13px] qg-text-muted font-normal">
                       {row.agent
                         ? roleLabel(row.agent.role, t)
-                        : t({ ko: "사용 불가", en: "Unavailable", ja: "利用不可", zh: "不可用" })}
+                        : t({ ko: "사용 불가", en: "Unavailable", ja: "利用不可", zh: "不可用", fr: "Indisponible" })}
                     </div>
                   </div>
 
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    <div
-                      className={`text-[11px] px-2 py-0.5 rounded-full border ${
-                        isAlreadyLearned
-                          ? "border-emerald-400/50 text-emerald-300 bg-emerald-500/15"
-                          : isSelected
-                            ? "border-blue-400/50 text-blue-300 bg-blue-500/15"
-                            : "border-slate-600 text-slate-400 bg-slate-700/40"
-                      }`}
-                    >
+                    <span className={`qg-badge ${isAlreadyLearned || isSelected ? "qg-badge--accent" : ""}`}>
                       {isAlreadyLearned
-                        ? t({ ko: "학습됨", en: "Learned", ja: "学習済み", zh: "已学习" })
+                        ? t({ ko: "학습됨", en: "Learned", ja: "学習済み", zh: "已学习", fr: "Acquise" })
                         : isSelected
-                          ? t({ ko: "선택됨", en: "Selected", ja: "選択", zh: "已选" })
-                          : t({ ko: "대기", en: "Idle", ja: "待機", zh: "待命" })}
-                    </div>
+                          ? t({ ko: "선택됨", en: "Selected", ja: "選択", zh: "已选", fr: "Sélectionné" })
+                          : t({ ko: "대기", en: "Idle", ja: "待機", zh: "待命", fr: "Disponible" })}
+                    </span>
                     {isAlreadyLearned && (
                       <button
                         type="button"
@@ -251,15 +255,17 @@ export default function LearningModal({
                           onUnlearnProvider(row.provider);
                         }}
                         disabled={learnInProgress || isUnlearning}
-                        className={`skill-unlearn-btn rounded-md border px-2 py-0.5 text-[10px] transition-all ${
-                          learnInProgress || isUnlearning
-                            ? "cursor-not-allowed border-slate-700 text-slate-600"
-                            : "border-rose-500/35 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
-                        }`}
+                        className="qg-btn qg-btn--sm qg-btn--danger"
                       >
                         {isUnlearning
-                          ? t({ ko: "취소중...", en: "Unlearning...", ja: "取消中...", zh: "取消中..." })
-                          : t({ ko: "학습 취소", en: "Unlearn", ja: "学習取消", zh: "取消学习" })}
+                          ? t({
+                              ko: "취소중...",
+                              en: "Unlearning...",
+                              ja: "取消中...",
+                              zh: "取消中...",
+                              fr: "Retrait…",
+                            })
+                          : t({ ko: "학습 취소", en: "Unlearn", ja: "学習取消", zh: "取消学习", fr: "Retirer" })}
                       </button>
                     )}
                   </div>
@@ -269,19 +275,20 @@ export default function LearningModal({
           })}
         </div>
 
-        <div className="rounded-xl border border-slate-700/70 bg-slate-800/55 p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-            <div className="text-slate-300">
-              {t({ ko: "작업 상태", en: "Job status", ja: "ジョブ状態", zh: "任务状态" })}:{" "}
+        <div className="qg-card">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <div className="qg-text-secondary">
+              {t({ ko: "작업 상태", en: "Job status", ja: "ジョブ状態", zh: "任务状态", fr: "État" })}
+              {" : "}
               <span
-                className={`font-medium ${
-                  learnJob?.status === "succeeded"
-                    ? "text-emerald-300"
-                    : learnJob?.status === "failed"
-                      ? "text-rose-300"
-                      : learnJob?.status === "running" || learnJob?.status === "queued"
-                        ? "text-amber-300"
-                        : "text-slate-500"
+                className={`qg-badge ${
+                  learnJob?.status === "failed"
+                    ? "qg-badge--pin"
+                    : learnJob?.status === "succeeded" ||
+                        learnJob?.status === "running" ||
+                        learnJob?.status === "queued"
+                      ? "qg-badge--accent"
+                      : ""
                 }`}
               >
                 {learningStatusLabel(learnJob?.status ?? null, t)}
@@ -289,7 +296,7 @@ export default function LearningModal({
             </div>
 
             {learnJob?.completedAt && (
-              <div className="text-[11px] text-slate-500">
+              <div className="text-[13px] qg-text-muted">
                 {new Intl.DateTimeFormat(localeTag, {
                   hour: "2-digit",
                   minute: "2-digit",
@@ -299,18 +306,35 @@ export default function LearningModal({
             )}
           </div>
 
-          {learnError && <div className="mt-2 text-[11px] text-rose-300">{learnError}</div>}
-          {unlearnError && <div className="mt-2 text-[11px] text-rose-300">{unlearnError}</div>}
-          {learnJob?.error && <div className="mt-2 text-[11px] text-rose-300">{learnJob.error}</div>}
+          {learnError && (
+            <div className="qg-field__error mt-2" role="alert">
+              {learnError}
+            </div>
+          )}
+          {unlearnError && (
+            <div className="qg-field__error mt-2" role="alert">
+              {unlearnError}
+            </div>
+          )}
+          {learnJob?.error && <div className="qg-field__error mt-2">{learnJob.error}</div>}
 
           {learnJob && (
-            <div className="mt-2 rounded-lg border border-slate-700 bg-slate-900/70 p-2 font-mono text-[10px] text-slate-300 max-h-32 overflow-y-auto space-y-1">
-              <div className="text-slate-500">$ {learnJob.command}</div>
+            <div
+              className="mt-2 rounded-md border p-2 font-mono text-[13px] qg-text-secondary max-h-32 overflow-y-auto space-y-1"
+              style={{ borderColor: "var(--th-border)", background: "var(--th-bg-surface-hover)" }}
+            >
+              <div className="qg-text-muted">$ {learnJob.command}</div>
               {learnJob.logTail.length > 0 ? (
                 learnJob.logTail.slice(-10).map((line, idx) => <div key={`${learnJob.id}-log-${idx}`}>{line}</div>)
               ) : (
-                <div className="text-slate-600">
-                  {t({ ko: "로그가 아직 없습니다", en: "No logs yet", ja: "ログはまだありません", zh: "暂无日志" })}
+                <div className="qg-text-muted">
+                  {t({
+                    ko: "로그가 아직 없습니다",
+                    en: "No logs yet",
+                    ja: "ログはまだありません",
+                    zh: "暂无日志",
+                    fr: "Aucun journal pour l'instant",
+                  })}
                 </div>
               )}
             </div>

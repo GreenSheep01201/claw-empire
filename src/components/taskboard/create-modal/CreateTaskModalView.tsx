@@ -1,4 +1,4 @@
-import type { ComponentProps, FormEventHandler } from "react";
+import { useId, type ComponentProps, type FormEventHandler } from "react";
 import type { Agent, Department, TaskType } from "../../../types";
 import { TASK_TYPE_OPTIONS, taskTypeLabel, type FormFeedback, type TFunction } from "../constants";
 import { FileClock } from "lucide-react";
@@ -62,6 +62,12 @@ export default function CreateTaskModalView({
   onPriorityChange,
   onAssignAgentChange,
 }: CreateTaskModalViewProps) {
+  const fieldId = useId();
+  const titleId = `${fieldId}-title`;
+  const descriptionId = `${fieldId}-description`;
+  const departmentFieldId = `${fieldId}-department`;
+  const taskTypeId = `${fieldId}-type`;
+
   return (
     <>
       <Dialog
@@ -99,11 +105,13 @@ export default function CreateTaskModalView({
         <form onSubmit={onSubmit} className="flex flex-col">
           <div className={createNewProjectMode ? "lg:grid lg:grid-cols-2 lg:gap-5" : undefined}>
             <div className="min-w-0 space-y-4">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">
-                  {t({ ko: "제목", en: "Title", ja: "タイトル", zh: "标题" })} <span className="text-red-400">*</span>
+              <div className="qg-field">
+                <label htmlFor={titleId} className="qg-field__label">
+                  {t({ ko: "제목", en: "Title", ja: "タイトル", zh: "标题", fr: "Titre" })}{" "}
+                  <span aria-hidden="true">*</span>
                 </label>
                 <input
+                  id={titleId}
                   type="text"
                   value={title}
                   onChange={(event) => onTitleChange(event.target.value)}
@@ -112,17 +120,19 @@ export default function CreateTaskModalView({
                     en: "Enter a task title",
                     ja: "タスクのタイトルを入力してください",
                     zh: "请输入任务标题",
+                    fr: "Saisir un titre de tâche",
                   })}
                   required
-                  className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="qg-input"
                 />
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-300">
-                  {t({ ko: "설명", en: "Description", ja: "説明", zh: "说明" })}
+              <div className="qg-field">
+                <label htmlFor={descriptionId} className="qg-field__label">
+                  {t({ ko: "설명", en: "Description", ja: "説明", zh: "说明", fr: "Description" })}
                 </label>
                 <textarea
+                  id={descriptionId}
                   value={description}
                   onChange={(event) => onDescriptionChange(event.target.value)}
                   placeholder={t({
@@ -130,24 +140,32 @@ export default function CreateTaskModalView({
                     en: "Enter a detailed description",
                     ja: "タスクの詳細説明を入力してください",
                     zh: "请输入任务详细说明",
+                    fr: "Décrire la tâche en détail",
                   })}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="qg-textarea"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-300">
-                    {t({ ko: "부서", en: "Department", ja: "部署", zh: "部门" })}
+                <div className="qg-field">
+                  <label htmlFor={departmentFieldId} className="qg-field__label">
+                    {t({ ko: "부서", en: "Department", ja: "部署", zh: "部门", fr: "Pôle" })}
                   </label>
                   <select
+                    id={departmentFieldId}
                     value={departmentId}
                     onChange={(event) => onDepartmentChange(event.target.value)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="qg-select w-full"
                   >
                     <option value="">
-                      {t({ ko: "-- 전체 --", en: "-- All --", ja: "-- 全体 --", zh: "-- 全部 --" })}
+                      {t({
+                        ko: "-- 전체 --",
+                        en: "-- All --",
+                        ja: "-- 全体 --",
+                        zh: "-- 全部 --",
+                        fr: "Tous les pôles",
+                      })}
                     </option>
                     {departments.map((department) => (
                       <option key={department.id} value={department.id}>
@@ -157,14 +175,15 @@ export default function CreateTaskModalView({
                   </select>
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-slate-300">
-                    {t({ ko: "업무 유형", en: "Task Type", ja: "タスク種別", zh: "任务类型" })}
+                <div className="qg-field">
+                  <label htmlFor={taskTypeId} className="qg-field__label">
+                    {t({ ko: "업무 유형", en: "Task Type", ja: "タスク種別", zh: "任务类型", fr: "Type de tâche" })}
                   </label>
                   <select
+                    id={taskTypeId}
                     value={taskType}
                     onChange={(event) => onTaskTypeChange(event.target.value as TaskType)}
-                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="qg-select w-full"
                   >
                     {TASK_TYPE_OPTIONS.map((typeOption) => (
                       <option key={typeOption.value} value={typeOption.value}>
@@ -201,7 +220,7 @@ export default function CreateTaskModalView({
 
             {createNewProjectMode && (
               <aside className="hidden min-w-0 lg:block lg:transition-all lg:duration-300 lg:ease-out">
-                <div className="space-y-4 rounded-xl border border-slate-700/80 bg-slate-900/80 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
+                <div className="qg-card space-y-4">
                   <PrioritySection priority={priority} t={t} onPriorityChange={onPriorityChange} />
                   <AssigneeSection
                     agents={filteredAgents}
@@ -218,34 +237,22 @@ export default function CreateTaskModalView({
 
           {formFeedback && (
             <div className="pt-4">
-              <div
-                className={`rounded-lg border px-3 py-2 text-xs ${
-                  formFeedback.tone === "error"
-                    ? "border-rose-500/60 bg-rose-500/10 text-rose-200"
-                    : "border-cyan-500/50 bg-cyan-500/10 text-cyan-100"
-                }`}
-              >
-                {formFeedback.message}
+              <div className="qg-card text-sm" role={formFeedback.tone === "error" ? "alert" : "status"}>
+                <span className={formFeedback.tone === "error" ? "qg-field__error" : "qg-text-secondary"}>
+                  {formFeedback.message}
+                </span>
               </div>
             </div>
           )}
 
-          <div className="mt-4 flex justify-end gap-3 border-t border-slate-700 pt-4">
-            <button
-              type="button"
-              onClick={onRequestClose}
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800"
-            >
-              {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消" })}
+          <div className="mt-4 flex justify-end gap-3 border-t border-[var(--th-border)] pt-4">
+            <button type="button" onClick={onRequestClose} className="qg-btn qg-btn--ghost">
+              {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消", fr: "Annuler" })}
             </button>
-            <button
-              type="submit"
-              disabled={!title.trim() || submitBusy}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <button type="submit" disabled={!title.trim() || submitBusy} className="qg-btn qg-btn--primary">
               {submitBusy
-                ? t({ ko: "생성 중...", en: "Creating...", ja: "作成中...", zh: "创建中..." })
-                : t({ ko: "업무 만들기", en: "Create Task", ja: "タスク作成", zh: "创建任务" })}
+                ? t({ ko: "생성 중...", en: "Creating...", ja: "作成中...", zh: "创建中...", fr: "Création…" })
+                : t({ ko: "업무 만들기", en: "Create Task", ja: "タスク作成", zh: "创建任务", fr: "Créer la tâche" })}
             </button>
           </div>
         </form>

@@ -1,6 +1,5 @@
-import type { LangText } from "../../i18n";
 import type { SkillEntry, SkillHistoryProvider, SkillLearnJob, SkillLearnProvider } from "../../api";
-import type { UiLanguage } from "../../i18n";
+import type { LangText, UiLanguage } from "../../i18n";
 import type { Agent, AgentRole } from "../../types";
 
 export interface CategorizedSkill extends SkillEntry {
@@ -282,7 +281,7 @@ export function localizeAuditStatus(status: string, t: TFunction): string {
   if (normalized === "pass") return t({ ko: "통과", en: "Pass", ja: "合格", zh: "通过" });
   if (normalized === "warn") return t({ ko: "경고", en: "Warn", ja: "警告", zh: "警告" });
   if (normalized === "pending") return t({ ko: "대기", en: "Pending", ja: "保留", zh: "待处理" });
-  if (normalized === "fail") return t({ ko: "실패", en: "Fail", ja: "失敗", zh: "失败" });
+  if (normalized === "fail") return t({ ko: "실패", en: "Fail", ja: "失敗", zh: "失败", fr: "Échec" });
   return status;
 }
 
@@ -307,10 +306,11 @@ const ROLE_ORDER: Record<AgentRole, number> = {
 };
 
 export function roleLabel(role: AgentRole, t: TFunction): string {
-  if (role === "team_leader") return t({ ko: "팀장", en: "Team Lead", ja: "チームリード", zh: "团队负责人" });
-  if (role === "senior") return t({ ko: "시니어", en: "Senior", ja: "シニア", zh: "资深" });
-  if (role === "junior") return t({ ko: "주니어", en: "Junior", ja: "ジュニア", zh: "初级" });
-  return t({ ko: "인턴", en: "Intern", ja: "インターン", zh: "实习生" });
+  if (role === "team_leader")
+    return t({ ko: "팀장", en: "Team Lead", ja: "チームリード", zh: "团队负责人", fr: "Responsable" });
+  if (role === "senior") return t({ ko: "시니어", en: "Senior", ja: "シニア", zh: "资深", fr: "Senior" });
+  if (role === "junior") return t({ ko: "주니어", en: "Junior", ja: "ジュニア", zh: "初级", fr: "Junior" });
+  return t({ ko: "인턴", en: "Intern", ja: "インターン", zh: "实习生", fr: "Stagiaire" });
 }
 
 export function providerLabel(provider: SkillLearnProvider): string {
@@ -386,9 +386,9 @@ export function cliProviderIcon(provider: SkillHistoryProvider) {
 }
 
 export function learningStatusLabel(status: SkillLearnJob["status"] | null, t: TFunction): string {
-  if (status === "queued") return t({ ko: "대기중", en: "Queued", ja: "待機中", zh: "排队中" });
-  if (status === "running") return t({ ko: "학습중", en: "Running", ja: "学習中", zh: "学习中" });
-  if (status === "succeeded") return t({ ko: "완료", en: "Succeeded", ja: "完了", zh: "完成" });
+  if (status === "queued") return t({ ko: "대기중", en: "Queued", ja: "待機中", zh: "排队中", fr: "En attente" });
+  if (status === "running") return t({ ko: "학습중", en: "Running", ja: "学習中", zh: "学习中", fr: "En cours" });
+  if (status === "succeeded") return t({ ko: "완료", en: "Succeeded", ja: "完了", zh: "完成", fr: "Terminé" });
   if (status === "failed") return t({ ko: "실패", en: "Failed", ja: "失敗", zh: "失败" });
   return "-";
 }

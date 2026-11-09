@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check } from "lucide-react";
 import type { Department, WorkflowPackKey } from "../../types";
 import { useI18n } from "../../i18n";
 import * as api from "../../api";
@@ -9,7 +10,6 @@ import Dialog from "../ui/Dialog";
 
 export default function DepartmentFormModal({
   locale,
-  tr,
   department,
   departments,
   onSave,
@@ -43,6 +43,7 @@ export default function DepartmentFormModal({
   workflowPackKey?: WorkflowPackKey;
 }) {
   const { t } = useI18n();
+  const tr = (ko: string, en: string, fr?: string) => t({ ko, en, ja: en, zh: en, fr });
   const isEdit = !!department;
   const [form, setForm] = useState<DeptForm>(() => {
     if (department) {
@@ -144,12 +145,15 @@ export default function DepartmentFormModal({
     } catch (e: any) {
       console.error("Dept save failed:", e);
       if (api.isApiRequestError(e) && e.code === "department_id_exists") {
-        alert(tr("이미 존재하는 부서 ID입니다.", "Department ID already exists."));
+        alert(
+          tr("이미 존재하는 부서 ID입니다.", "Department ID already exists.", "Cet identifiant de pôle existe déjà."),
+        );
       } else if (api.isApiRequestError(e) && e.code === "sort_order_conflict") {
         alert(
           tr(
             "부서 정렬 순서가 충돌합니다. 잠시 후 다시 시도해주세요.",
             "Department sort order conflict. Please retry.",
+            "Conflit d'ordre entre les pôles. Réessayez dans un instant.",
           ),
         );
       }
@@ -171,23 +175,33 @@ export default function DepartmentFormModal({
     } catch (e: any) {
       console.error("Dept delete failed:", e);
       if (api.isApiRequestError(e) && e.code === "department_has_agents") {
-        alert(tr("소속 직원이 있어 삭제할 수 없습니다.", "Cannot delete: department has agents."));
+        alert(
+          tr(
+            "소속 직원이 있어 삭제할 수 없습니다.",
+            "Cannot delete: department has agents.",
+            "Suppression impossible : ce pôle contient des agents.",
+          ),
+        );
       } else if (api.isApiRequestError(e) && e.code === "department_has_tasks") {
-        alert(tr("연결된 업무(Task)가 있어 삭제할 수 없습니다.", "Cannot delete: department has tasks."));
+        alert(
+          tr(
+            "연결된 업무(Task)가 있어 삭제할 수 없습니다.",
+            "Cannot delete: department has tasks.",
+            "Suppression impossible : des tâches sont liées à ce pôle.",
+          ),
+        );
       } else if (api.isApiRequestError(e) && e.code === "department_protected") {
-        alert(tr("기본 시스템 부서는 삭제할 수 없습니다.", "Cannot delete: protected system department."));
+        alert(
+          tr(
+            "기본 시스템 부서는 삭제할 수 없습니다.",
+            "Cannot delete: protected system department.",
+            "Suppression impossible : pôle système protégé.",
+          ),
+        );
       }
     } finally {
       setSaving(false);
     }
-  };
-
-  const inputCls =
-    "w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors";
-  const inputStyle = {
-    background: "var(--th-input-bg)",
-    borderColor: "var(--th-input-border)",
-    color: "var(--th-text-primary)",
   };
 
   return (
@@ -198,189 +212,185 @@ export default function DepartmentFormModal({
       closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
       title={
         isEdit
-          ? t({ ko: "부서 정보 수정", en: "Edit Department", fr: "Modifier le département" })
-          : t({ ko: "신규 부서 추가", en: "Add Department", fr: "Ajouter un département" })
+          ? t({ ko: "부서 정보 수정", en: "Edit Department", fr: "Modifier le pôle" })
+          : t({ ko: "신규 부서 추가", en: "Add Department", fr: "Ajouter un pôle" })
       }
     >
       <div className="space-y-4">
         {/* 아이콘 + 영문이름 */}
         <div className="flex items-start gap-3">
-          <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {tr("아이콘", "Icon")}
-            </label>
+          <div className="qg-field">
+            <span className="qg-field__label">{tr("아이콘", "Icon", "Icône")}</span>
             <EmojiPicker tr={tr} value={form.icon} onChange={(emoji) => setForm({ ...form, icon: emoji })} />
           </div>
-          <div className="flex-1">
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {tr("영문 이름", "Name")} <span className="text-red-400">*</span>
+          <div className="qg-field flex-1">
+            <label className="qg-field__label" htmlFor="dept-form-name">
+              {tr("영문 이름", "Name", "Nom")} <span aria-hidden="true">*</span>
             </label>
             <input
+              id="dept-form-name"
               type="text"
+              required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Development"
-              className={inputCls}
-              style={inputStyle}
+              className="qg-input"
             />
           </div>
         </div>
 
         {/* 색상 선택 */}
-        <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-            {tr("테마 색상", "Theme Color")}
-          </label>
-          <div className="flex gap-2">
+        <div className="qg-field">
+          <span className="qg-field__label" id="dept-form-color-label">
+            {tr("테마 색상", "Theme Color", "Couleur")}
+          </span>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="dept-form-color-label">
             {DEPT_COLORS.map((c) => (
               <button
                 key={c}
                 type="button"
+                aria-pressed={form.color === c}
+                aria-label={c}
                 onClick={() => setForm({ ...form, color: c })}
-                className="w-7 h-7 rounded-full transition-all hover:scale-110"
+                className="w-7 h-7 rounded-full transition-all hover:scale-110 flex items-center justify-center"
                 style={{
                   background: c,
                   outline: form.color === c ? `2px solid ${c}` : "2px solid transparent",
                   outlineOffset: "3px",
+                  color: "#fff",
                 }}
-              />
+              >
+                {form.color === c && <Check size={16} aria-hidden="true" />}
+              </button>
             ))}
           </div>
         </div>
 
         {/* 로캘 이름 */}
         {locale.startsWith("ko") && (
-          <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {tr("한글 이름", "Korean Name")}
+          <div className="qg-field">
+            <label className="qg-field__label" htmlFor="dept-form-name-ko">
+              {tr("한글 이름", "Korean Name", "Nom en coréen")}
             </label>
             <input
+              id="dept-form-name-ko"
               type="text"
               value={form.name_ko}
               onChange={(e) => setForm({ ...form, name_ko: e.target.value })}
               placeholder="개발팀"
-              className={inputCls}
-              style={inputStyle}
+              className="qg-input"
             />
           </div>
         )}
         {locale.startsWith("ja") && (
-          <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {t({ ko: "일본어 이름", en: "Japanese Name", ja: "日本語名", zh: "日语名" })}
+          <div className="qg-field">
+            <label className="qg-field__label" htmlFor="dept-form-name-ja">
+              {t({ ko: "일본어 이름", en: "Japanese Name", ja: "日本語名", zh: "日语名", fr: "Nom en japonais" })}
             </label>
             <input
+              id="dept-form-name-ja"
               type="text"
               value={form.name_ja}
               onChange={(e) => setForm({ ...form, name_ja: e.target.value })}
               placeholder="開発チーム"
-              className={inputCls}
-              style={inputStyle}
+              className="qg-input"
             />
           </div>
         )}
         {locale.startsWith("zh") && (
-          <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {t({ ko: "중국어 이름", en: "Chinese Name", ja: "中国語名", zh: "中文名" })}
+          <div className="qg-field">
+            <label className="qg-field__label" htmlFor="dept-form-name-zh">
+              {t({ ko: "중국어 이름", en: "Chinese Name", ja: "中国語名", zh: "中文名", fr: "Nom en chinois" })}
             </label>
             <input
+              id="dept-form-name-zh"
               type="text"
               value={form.name_zh}
               onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
               placeholder="开发部"
-              className={inputCls}
-              style={inputStyle}
+              className="qg-input"
             />
           </div>
         )}
 
         {/* 설명 */}
-        <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-            {tr("부서 설명", "Description")}
+        <div className="qg-field">
+          <label className="qg-field__label" htmlFor="dept-form-description">
+            {tr("부서 설명", "Description", "Description")}
           </label>
           <input
+            id="dept-form-description"
             type="text"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder={tr("부서의 역할 간단 설명", "Brief description of the department")}
-            className={inputCls}
-            style={inputStyle}
+            placeholder={tr(
+              "부서의 역할 간단 설명",
+              "Brief description of the department",
+              "Rôle du pôle en quelques mots",
+            )}
+            className="qg-input"
           />
         </div>
 
         {/* 프롬프트 */}
-        <div>
-          <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-            {tr("부서 프롬프트", "Department Prompt")}
+        <div className="qg-field">
+          <label className="qg-field__label" htmlFor="dept-form-prompt">
+            {tr("부서 프롬프트", "Department Prompt", "Consignes du pôle")}
           </label>
           <textarea
+            id="dept-form-prompt"
+            aria-describedby="dept-form-prompt-hint"
             value={form.prompt}
             onChange={(e) => setForm({ ...form, prompt: e.target.value })}
             rows={4}
             placeholder={tr(
               "이 부서 소속 에이전트의 공통 시스템 프롬프트...",
               "Shared system prompt for agents in this department...",
+              "Consignes communes aux agents de ce pôle…",
             )}
-            className={`${inputCls} resize-none`}
-            style={inputStyle}
+            className="qg-textarea"
           />
-          <p className="text-[10px] mt-1" style={{ color: "var(--th-text-muted)" }}>
+          <p className="qg-field__hint" id="dept-form-prompt-hint">
             {tr(
               "소속 에이전트의 작업 실행 시 공통으로 적용되는 시스템 프롬프트",
               "Applied as shared system prompt when agents in this department execute tasks",
+              "Appliquées à chaque agent du pôle lorsqu'il exécute une tâche",
             )}
           </p>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2 mt-5 pt-4" style={{ borderTop: "1px solid var(--th-card-border)" }}>
+      <div className="flex items-center gap-2 mt-5 pt-4" style={{ borderTop: "1px solid var(--th-border)" }}>
         <button
+          type="button"
           onClick={handleSave}
           disabled={saving || !form.name.trim()}
-          className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white disabled:opacity-40 shadow-sm shadow-blue-600/20"
+          className="qg-btn qg-btn--primary flex-1"
         >
           {saving
-            ? tr("처리 중...", "Saving...")
+            ? tr("처리 중...", "Saving...", "Enregistrement…")
             : isEdit
-              ? tr("변경사항 저장", "Save Changes")
-              : tr("부서 추가", "Add Department")}
+              ? tr("변경사항 저장", "Save Changes", "Enregistrer")
+              : tr("부서 추가", "Add Department", "Ajouter le pôle")}
         </button>
         {isEdit &&
           (confirmDelete ? (
             <div className="flex items-center gap-1">
-              <button
-                onClick={handleDelete}
-                disabled={saving}
-                className="px-3 py-2.5 rounded-lg text-xs font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-40 transition-colors"
-              >
-                {tr("삭제 확인", "Confirm")}
+              <button type="button" onClick={handleDelete} disabled={saving} className="qg-btn qg-btn--danger">
+                {tr("삭제 확인", "Confirm", "Confirmer")}
               </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="px-2 py-2.5 rounded-lg text-xs transition-colors"
-                style={{ color: "var(--th-text-muted)" }}
-              >
-                {tr("취소", "No")}
+              <button type="button" onClick={() => setConfirmDelete(false)} className="qg-btn qg-btn--ghost">
+                {tr("취소", "No", "Non")}
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-red-500/15 hover:text-red-400"
-              style={{ border: "1px solid var(--th-input-border)", color: "var(--th-text-muted)" }}
-            >
-              {tr("삭제", "Delete")}
+            <button type="button" onClick={() => setConfirmDelete(true)} className="qg-btn qg-btn--danger">
+              {tr("삭제", "Delete", "Supprimer")}
             </button>
           ))}
-        <button
-          onClick={onClose}
-          className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[var(--th-bg-surface-hover)]"
-          style={{ border: "1px solid var(--th-input-border)", color: "var(--th-text-secondary)" }}
-        >
-          {tr("취소", "Cancel")}
+        <button type="button" onClick={onClose} className="qg-btn">
+          {tr("취소", "Cancel", "Annuler")}
         </button>
       </div>
     </Dialog>

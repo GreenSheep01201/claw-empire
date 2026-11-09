@@ -26,7 +26,7 @@ export default function EmojiPicker({
   onChange,
   size = "md",
 }: {
-  tr: (ko: string, en: string) => string;
+  tr: (ko: string, en: string, fr?: string) => string;
   value: string;
   onChange: (emoji: string) => void;
   size?: "sm" | "md";
@@ -66,23 +66,21 @@ export default function EmojiPicker({
         >
           {EMOJI_GROUPS.map((group) => (
             <div key={group.labelEn} className="mb-2 last:mb-0">
-              <div
-                className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-                style={{ color: "var(--th-text-muted)" }}
-              >
-                {tr(group.label, group.labelEn)}
+              <div className="text-[13px] font-semibold mb-1" style={{ color: "var(--th-text-muted)" }}>
+                {tr(group.label, group.labelEn, group.labelFr)}
               </div>
               <div className="grid grid-cols-8 gap-0.5">
                 {group.emojis.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
+                    aria-pressed={value === emoji}
                     onClick={() => {
                       onChange(emoji);
                       setOpen(false);
                     }}
                     className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all hover:scale-125 hover:bg-[var(--th-bg-surface-hover)] ${
-                      value === emoji ? "ring-2 ring-blue-400 bg-blue-500/15" : ""
+                      value === emoji ? "ring-2 ring-[var(--qg-accent)] bg-[var(--qg-accent-soft)]" : ""
                     }`}
                   >
                     {emoji}

@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { Check, FileText, GraduationCap, LoaderCircle, Paperclip } from "lucide-react";
 import type { SkillLearnProvider } from "../../api";
 import type { Agent } from "../../types";
 import AgentAvatar from "../AgentAvatar";
@@ -46,9 +47,10 @@ export default function CustomSkillModal({
 }: CustomSkillModalProps) {
   if (!show) return null;
 
+  const canSubmit = Boolean(customSkillName.trim() && customSkillContent.trim() && customSkillProviders.length > 0);
+
   return (
     <Dialog
-      className="custom-skill-modal-card"
       open
       size="md"
       onClose={onClose}
@@ -62,36 +64,31 @@ export default function CustomSkillModal({
       })}
       footer={
         <>
-          <button
-            onClick={onClose}
-            disabled={customSkillSubmitting}
-            className="px-3 py-1.5 rounded-lg text-xs border border-slate-600 text-slate-300 hover:bg-slate-800 transition-all"
-          >
-            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消" })}
+          <button type="button" onClick={onClose} disabled={customSkillSubmitting} className="qg-btn">
+            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消", fr: "Annuler" })}
           </button>
           <button
+            type="button"
             onClick={onSubmit}
-            disabled={
-              !customSkillName.trim() ||
-              !customSkillContent.trim() ||
-              customSkillProviders.length === 0 ||
-              customSkillSubmitting
-            }
-            className={`custom-skill-submit-btn px-4 py-1.5 rounded-lg text-xs border transition-all flex items-center gap-1.5 ${
-              !customSkillName.trim() || !customSkillContent.trim() || customSkillProviders.length === 0
-                ? "cursor-not-allowed border-slate-700 text-slate-600"
-                : "border-violet-500/50 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30"
-            }`}
+            disabled={!canSubmit || customSkillSubmitting}
+            className="qg-btn qg-btn--primary"
+            style={!canSubmit ? { cursor: "not-allowed" } : undefined}
           >
             {customSkillSubmitting ? (
               <>
-                <span className="animate-spin w-3 h-3 border border-violet-400 border-t-transparent rounded-full" />
-                {t({ ko: "등록중...", en: "Submitting...", ja: "登録中...", zh: "提交中..." })}
+                <LoaderCircle size={16} aria-hidden="true" className="animate-spin" />
+                {t({ ko: "등록중...", en: "Submitting...", ja: "登録中...", zh: "提交中...", fr: "Envoi…" })}
               </>
             ) : (
               <>
-                <span>🎓</span>
-                {t({ ko: "학습 시작", en: "Start Training", ja: "学習開始", zh: "开始培训" })}
+                <GraduationCap size={16} aria-hidden="true" />
+                {t({
+                  ko: "학습 시작",
+                  en: "Start Training",
+                  ja: "学習開始",
+                  zh: "开始培训",
+                  fr: "Lancer l'apprentissage",
+                })}
               </>
             )}
           </button>
@@ -99,51 +96,59 @@ export default function CustomSkillModal({
       }
     >
       <div className="space-y-4">
-        <div className="text-xs text-slate-400">
+        <p className="text-sm qg-text-secondary">
           {t({
             ko: "skills.md 파일을 첨부하고 CLI 대표자를 선택하세요",
             en: "Attach a skills.md file and select CLI representatives",
             ja: "skills.md ファイルを添付し、CLI代表を選択してください",
             zh: "附加 skills.md 文件并选择 CLI 代表",
+            fr: "Joignez un fichier skills.md et choisissez les agents à former",
           })}
-        </div>
-        <div>
-          <label className="block text-xs text-slate-400 mb-1.5">
-            {t({ ko: "스킬명", en: "Skill Name", ja: "スキル名", zh: "技能名称" })}
+        </p>
+        <div className="qg-field">
+          <label className="qg-field__label" htmlFor="custom-skill-name">
+            {t({ ko: "스킬명", en: "Skill Name", ja: "スキル名", zh: "技能名称", fr: "Nom de la compétence" })}
           </label>
           <input
+            id="custom-skill-name"
             type="text"
             value={customSkillName}
             onChange={(e) => setCustomSkillName(e.target.value)}
+            aria-describedby="custom-skill-name-hint"
             placeholder={t({
               ko: "예: my-custom-skill",
               en: "e.g. my-custom-skill",
               ja: "例: my-custom-skill",
               zh: "例如: my-custom-skill",
+              fr: "ex. : my-custom-skill",
             })}
-            className="w-full bg-slate-900/60 border border-slate-600/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500/50 focus:ring-1 focus:ring-violet-500/25"
+            className="qg-input"
           />
-          <div className="text-[10px] text-slate-500 mt-1">
+          <div className="qg-field__hint" id="custom-skill-name-hint">
             {t({
               ko: "영문, 숫자, 하이픈(-), 언더스코어(_)만 사용 가능",
               en: "Only alphanumeric, dash (-), underscore (_) allowed",
               ja: "英数字、ハイフン(-)、アンダースコア(_)のみ使用可能",
               zh: "仅允许字母数字、短划线(-)或下划线(_)",
+              fr: "Lettres, chiffres, tiret (-) et tiret bas (_) uniquement",
             })}
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs text-slate-400 mb-1.5">
-            {t({ ko: "skills.md 파일", en: "skills.md File", ja: "skills.md ファイル", zh: "skills.md 文件" })}
-          </label>
+        <div className="qg-field">
+          <span className="qg-field__label">
+            {t({
+              ko: "skills.md 파일",
+              en: "skills.md File",
+              ja: "skills.md ファイル",
+              zh: "skills.md 文件",
+              fr: "Fichier skills.md",
+            })}
+          </span>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => customFileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs bg-slate-800/60 border border-slate-600/50 rounded-lg text-slate-300 hover:bg-slate-700/60 transition-all"
-            >
-              <span>📎</span>
-              {t({ ko: "파일 선택", en: "Choose File", ja: "ファイル選択", zh: "选择文件" })}
+            <button type="button" onClick={() => customFileInputRef.current?.click()} className="qg-btn qg-btn--sm">
+              <Paperclip size={16} aria-hidden="true" />
+              {t({ ko: "파일 선택", en: "Choose File", ja: "ファイル選択", zh: "选择文件", fr: "Choisir un fichier" })}
             </button>
             <input
               ref={customFileInputRef}
@@ -153,12 +158,15 @@ export default function CustomSkillModal({
               className="hidden"
             />
             {customSkillFileName && (
-              <span className="text-xs text-emerald-300 truncate max-w-[200px]">📄 {customSkillFileName}</span>
+              <span className="inline-flex items-center gap-1 text-[13px] qg-text-secondary truncate max-w-[200px]">
+                <FileText size={16} aria-hidden="true" className="shrink-0" />
+                {customSkillFileName}
+              </span>
             )}
           </div>
           {customSkillContent && (
-            <div className="mt-2 rounded-lg border border-slate-700/50 bg-slate-900/60 p-2 max-h-32 overflow-y-auto">
-              <pre className="text-[10px] text-slate-400 whitespace-pre-wrap break-all">
+            <div className="qg-card mt-1 max-h-32 overflow-y-auto" style={{ padding: 8 }}>
+              <pre className="text-[13px] qg-text-secondary whitespace-pre-wrap break-all">
                 {customSkillContent.slice(0, 500)}
                 {customSkillContent.length > 500 && "..."}
               </pre>
@@ -166,16 +174,21 @@ export default function CustomSkillModal({
           )}
         </div>
 
-        <div>
-          <label className="block text-xs text-slate-400 mb-1.5">
+        <div className="qg-field">
+          <span className="qg-field__label" id="custom-skill-providers-label">
             {t({
               ko: "학습시킬 CLI 대표자",
               en: "CLI Representatives to Train",
               ja: "学習させるCLI代表",
               zh: "要培训的 CLI 代表",
+              fr: "Agents à former",
             })}
-          </label>
-          <div className="grid grid-cols-2 gap-2">
+          </span>
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 gap-2"
+            role="group"
+            aria-labelledby="custom-skill-providers-label"
+          >
             {representatives.map((row) => {
               const isSelected = customSkillProviders.includes(row.provider);
               const hasAgent = !!row.agent;
@@ -183,34 +196,32 @@ export default function CustomSkillModal({
                 ? preferKoreanName
                   ? row.agent.name_ko || row.agent.name
                   : row.agent.name || row.agent.name_ko
-                : t({ ko: "없음", en: "None", ja: "なし", zh: "无" });
+                : t({ ko: "없음", en: "None", ja: "なし", zh: "无", fr: "Aucun" });
               return (
                 <button
                   key={`custom-${row.provider}`}
+                  type="button"
+                  aria-pressed={isSelected}
                   onClick={() => hasAgent && onToggleProvider(row.provider)}
                   disabled={!hasAgent}
-                  className={`flex items-center gap-2 p-2 rounded-lg border text-left transition-all ${
-                    !hasAgent
-                      ? "cursor-not-allowed border-slate-700/60 bg-slate-800/30 opacity-50"
-                      : isSelected
-                        ? "border-violet-500/50 bg-violet-500/10"
-                        : "border-slate-700/60 bg-slate-800/50 hover:border-slate-500/70"
-                  }`}
+                  className="qg-choice"
                 >
                   <AgentAvatar agent={row.agent ?? undefined} agents={agents} size={32} rounded="xl" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[10px] text-slate-500">{providerLabel(row.provider)}</div>
-                    <div className="text-xs text-white truncate">{displayName}</div>
+                    <div className="text-[13px] qg-text-muted font-normal">{providerLabel(row.provider)}</div>
+                    <div className="text-sm truncate">{displayName}</div>
                   </div>
-                  <div
-                    className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] ${
-                      isSelected
-                        ? "border-violet-400 bg-violet-500/30 text-violet-200"
-                        : "border-slate-600 bg-slate-800/60"
-                    }`}
+                  <span
+                    aria-hidden="true"
+                    className="w-4 h-4 rounded border flex items-center justify-center shrink-0"
+                    style={{
+                      borderColor: isSelected ? "var(--qg-accent)" : "var(--th-border-strong)",
+                      background: isSelected ? "var(--qg-accent)" : "transparent",
+                      color: "var(--qg-accent-ink)",
+                    }}
                   >
-                    {isSelected && "✓"}
-                  </div>
+                    {isSelected && <Check size={12} aria-hidden="true" />}
+                  </span>
                 </button>
               );
             })}
@@ -218,7 +229,7 @@ export default function CustomSkillModal({
         </div>
 
         {customSkillError && (
-          <div className="text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+          <div className="qg-field__error" role="alert">
             {customSkillError}
           </div>
         )}

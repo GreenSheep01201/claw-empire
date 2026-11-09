@@ -1,4 +1,4 @@
-import type { LangText } from "../../i18n";
+import type { LangText, UiLanguage } from "../../i18n";
 import type { Dispatch, SetStateAction } from "react";
 import type {
   ApiProvider,
@@ -8,7 +8,6 @@ import type {
   OAuthConnectProvider,
   OAuthStatus,
 } from "../../api";
-import type { UiLanguage } from "../../i18n";
 import type {
   Agent,
   CliModelInfo,

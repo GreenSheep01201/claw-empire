@@ -1,5 +1,4 @@
-import type { LangText } from "../../i18n";
-import type { UiLanguage } from "../../i18n";
+import type { LangText, UiLanguage } from "../../i18n";
 import { LOCALE_TEXT } from "./themes-locale";
 import type { MobileMoveDirection } from "./model";
 

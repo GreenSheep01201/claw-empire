@@ -1,9 +1,9 @@
+import { Check, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
 import Dialog from "./ui/Dialog";
-import type { LangText } from "../i18n";
+import type { LangText, UiLanguage } from "../i18n";
 import { useEffect, useMemo, useState } from "react";
 import type { Agent, Department } from "../types";
 import type { TaskReportSummary, TaskReportDetail } from "../api";
-import type { UiLanguage } from "../i18n";
 import { pickLang } from "../i18n";
 import { getTaskReports, getTaskReportDetail } from "../api";
 import AgentAvatar from "./AgentAvatar";
@@ -105,6 +105,9 @@ export default function ReportHistory({ agents, departments, uiLanguage, onClose
     );
   }
 
+  const prevLabel = t({ ko: "이전", en: "Prev", ja: "前へ", zh: "上一页", fr: "Précédent" });
+  const nextLabel = t({ ko: "다음", en: "Next", ja: "次へ", zh: "下一页", fr: "Suivant" });
+
   return (
     <Dialog
       open
@@ -112,29 +115,70 @@ export default function ReportHistory({ agents, departments, uiLanguage, onClose
       onClose={onClose}
       closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
       title={t({ ko: "작업 보고서 이력", en: "Report History", ja: "レポート履歴", zh: "报告历史", fr: "Rapports" })}
+      footer={
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <span className="qg-text-muted text-[13px]">
+            {t({
+              ko: `총 ${reports.length}건`,
+              en: `${reports.length} reports`,
+              ja: `全${reports.length}件`,
+              zh: `共${reports.length}条`,
+              fr: `${reports.length} rapport(s)`,
+            })}
+          </span>
+          <div className="flex items-center gap-3">
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={currentPage <= 0}
+                  className="qg-btn qg-btn--sm"
+                >
+                  <ChevronLeft size={16} aria-hidden />
+                  {prevLabel}
+                </button>
+                <span className="qg-text-secondary text-[13px]">
+                  {currentPage + 1} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  className="qg-btn qg-btn--sm"
+                >
+                  {nextLabel}
+                  <ChevronRight size={16} aria-hidden />
+                </button>
+              </div>
+            )}
+            <button type="button" onClick={onClose} className="qg-btn">
+              {t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+            </button>
+          </div>
+        </div>
+      }
     >
-      {/* Content */}
       <div>
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-sm text-slate-500">
-              {t({ ko: "불러오는 중...", en: "Loading...", ja: "読み込み中...", zh: "加载中..." })}
-            </div>
+          <div className="qg-empty">
+            {t({ ko: "불러오는 중...", en: "Loading...", ja: "読み込み中...", zh: "加载中...", fr: "Chargement…" })}
           </div>
         ) : reports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <span className="mb-2 text-3xl opacity-40">&#x1F4ED;</span>
-            <p className="text-sm text-slate-500">
+          <div className="qg-empty flex flex-col items-center gap-2">
+            <Inbox size={16} aria-hidden />
+            <p>
               {t({
                 ko: "완료된 보고서가 없습니다",
                 en: "No completed reports",
                 ja: "完了レポートなし",
                 zh: "没有已完成的报告",
+                fr: "Aucun rapport terminé",
               })}
             </p>
           </div>
         ) : (
-          <div className="space-y-4 px-4 py-3">
+          <div className="space-y-4">
             {groupedPageReports.map(([projectName, rows]) => {
               const groupTotal = Math.max(1, Math.ceil(rows.length / GROUP_ITEMS_PER_PAGE));
               const groupCurrent = Math.min(Math.max(groupPages[projectName] ?? 0, 0), groupTotal - 1);
@@ -143,63 +187,62 @@ export default function ReportHistory({ agents, departments, uiLanguage, onClose
               const visibleRows = rows.slice(gStart, gEnd);
 
               return (
-                <div key={projectName} className="overflow-hidden rounded-xl border border-slate-700/50">
-                  <div className="flex items-center justify-between bg-slate-800/70 px-4 py-2">
-                    <p className="truncate text-xs font-semibold uppercase tracking-wider text-emerald-300">
-                      {projectName}
-                    </p>
-                    <span className="text-[11px] text-slate-500">{rows.length}</span>
+                <div key={projectName} className="qg-card overflow-hidden !p-0">
+                  <div className="flex items-center justify-between border-b border-[var(--th-border)] px-4 py-2">
+                    <p className="truncate text-[13px] font-semibold">{projectName}</p>
+                    <span className="qg-badge">{rows.length}</span>
                   </div>
-                  <div className="divide-y divide-slate-700/30">
+                  <div className="divide-y divide-[var(--th-border)]">
                     {visibleRows.map((r) => {
                       const agent = resolveReportAgent(agents, r);
                       const agentName = uiLanguage === "ko" ? r.agent_name_ko || r.agent_name : r.agent_name;
                       const deptName = uiLanguage === "ko" ? r.dept_name_ko || r.dept_name : r.dept_name;
                       return (
                         <button
+                          type="button"
                           key={r.id}
                           onClick={() => handleOpenDetail(r.id)}
-                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-slate-800/50"
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--th-bg-surface-hover)]"
                         >
                           <AgentAvatar agent={agent} agents={agents} size={34} rounded="xl" />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-white">{r.title}</p>
-                            <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-500">
-                              <span className="rounded bg-slate-700/80 px-1.5 py-0.5">{deptName}</span>
+                            <p className="truncate text-sm font-medium">{r.title}</p>
+                            <div className="qg-text-muted mt-1 flex flex-wrap items-center gap-2 text-xs">
+                              <span className="qg-badge">{deptName}</span>
                               <span>{agentName}</span>
-                              <span className="text-slate-600">&middot;</span>
+                              <span aria-hidden>&middot;</span>
                               <span>{fmtDate(r.completed_at)}</span>
                             </div>
                           </div>
-                          <span className="flex-shrink-0 text-xs text-emerald-400">&#x2713;</span>
+                          <Check size={16} aria-hidden className="qg-text-muted flex-shrink-0" />
                         </button>
                       );
                     })}
                   </div>
                   {groupTotal > 1 && (
-                    <div className="flex items-center justify-between border-t border-slate-700/40 bg-slate-900/40 px-3 py-2">
-                      <span className="text-[11px] text-slate-500">
+                    <div className="flex items-center justify-between border-t border-[var(--th-border)] px-3 py-2">
+                      <span className="qg-text-muted text-xs">
                         {gStart + 1}-{gEnd} / {rows.length}
                       </span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => handleGroupPageChange(projectName, groupCurrent - 1, groupTotal)}
                           disabled={groupCurrent <= 0}
-                          className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          className="qg-btn qg-btn--sm qg-btn--ghost"
                         >
-                          {t({ ko: "이전", en: "Prev", ja: "前へ", zh: "上一页" })}
+                          {prevLabel}
                         </button>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="qg-text-secondary text-xs">
                           {groupCurrent + 1} / {groupTotal}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleGroupPageChange(projectName, groupCurrent + 1, groupTotal)}
                           disabled={groupCurrent >= groupTotal - 1}
-                          className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                          className="qg-btn qg-btn--sm qg-btn--ghost"
                         >
-                          {t({ ko: "다음", en: "Next", ja: "次へ", zh: "下一页" })}
+                          {nextLabel}
                         </button>
                       </div>
                     </div>
@@ -209,51 +252,6 @@ export default function ReportHistory({ agents, departments, uiLanguage, onClose
             })}
           </div>
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="border-t border-slate-700/50 px-6 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-slate-500">
-            {t({
-              ko: `총 ${reports.length}건`,
-              en: `${reports.length} reports`,
-              ja: `全${reports.length}件`,
-              zh: `共${reports.length}条`,
-            })}
-          </span>
-          <div className="flex items-center gap-3">
-            {totalPages > 1 && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setPage(currentPage - 1)}
-                  disabled={currentPage <= 0}
-                  className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t({ ko: "이전", en: "Prev", ja: "前へ", zh: "上一页" })}
-                </button>
-                <span className="text-[11px] text-slate-400">
-                  {currentPage + 1} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPage(currentPage + 1)}
-                  disabled={currentPage >= totalPages - 1}
-                  className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {t({ ko: "다음", en: "Next", ja: "次へ", zh: "下一页" })}
-                </button>
-              </div>
-            )}
-            <button
-              onClick={onClose}
-              className="rounded-lg bg-slate-700 px-4 py-1.5 text-sm font-medium text-slate-300 transition hover:bg-slate-600"
-            >
-              {t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭" })}
-            </button>
-          </div>
-        </div>
       </div>
     </Dialog>
   );
