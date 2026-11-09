@@ -13,24 +13,6 @@
   }
 }
 
-/* ─── Sidebar nav item active indicator ─── */
-.sidebar-nav-active {
-  position: relative;
-}
-.sidebar-nav-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 25%;
-  height: 50%;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: #3b82f6;
-}
-[data-theme="light"] .sidebar-nav-active::before {
-  background: #2563eb;
-}
-
 /* ─── Settings toggle switch improvements ─── */
 .toggle-switch {
   transition: background-color 0.2s ease;
