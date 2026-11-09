@@ -1,5 +1,6 @@
 import type { DragEvent } from "react";
 import type { Agent, Department } from "../../types";
+import { Building2, ChevronDown, ChevronUp, GripVertical, Pencil } from "lucide-react";
 import { localeName } from "../../i18n";
 import type { Translator } from "./types";
 
@@ -47,27 +48,25 @@ export default function DepartmentsTab({
   return (
     <div className="space-y-4">
       {deptOrderDirty && (
-        <div
-          className="flex items-center gap-3 px-4 py-3 rounded-xl"
-          style={{ background: "rgba(59,130,246,0.1)", border: "1px solid rgba(59,130,246,0.3)" }}
-        >
+        <div className="qg-card flex flex-wrap items-center gap-3" style={{ borderColor: "var(--qg-accent)" }}>
           <span className="text-sm" style={{ color: "var(--th-text-primary)" }}>
-            {tr("순번이 변경되었습니다.", "Order has been changed.")}
+            {tr("순번이 변경되었습니다.", "Order has been changed.", "L'ordre des pôles a changé.")}
           </span>
-          <button
-            onClick={onSaveOrder}
-            disabled={reorderSaving}
-            className="ml-auto px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 transition-all"
-          >
-            {reorderSaving ? tr("저장 중...", "Saving...") : tr("순번 저장", "Save Order")}
-          </button>
-          <button
-            onClick={onCancelOrder}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
-            style={{ color: "var(--th-text-muted)" }}
-          >
-            {tr("취소", "Cancel")}
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button type="button" onClick={onCancelOrder} className="qg-btn qg-btn--sm qg-btn--ghost">
+              {tr("취소", "Cancel", "Annuler")}
+            </button>
+            <button
+              type="button"
+              onClick={onSaveOrder}
+              disabled={reorderSaving}
+              className="qg-btn qg-btn--sm qg-btn--primary"
+            >
+              {reorderSaving
+                ? tr("저장 중...", "Saving...", "Enregistrement…")
+                : tr("순번 저장", "Save Order", "Enregistrer l'ordre")}
+            </button>
+          </div>
         </div>
       )}
 
@@ -78,6 +77,7 @@ export default function DepartmentsTab({
           const isDragTarget = dragOverDeptId === dept.id && draggingDeptId !== dept.id;
           const showDropBefore = isDragTarget && dragOverPosition === "before";
           const showDropAfter = isDragTarget && dragOverPosition === "after";
+          const name = localeName(locale, dept);
           return (
             <div
               key={dept.id}
@@ -86,74 +86,80 @@ export default function DepartmentsTab({
               onDragOver={(e) => onDragOver(dept.id, e)}
               onDrop={(e) => onDrop(dept.id, e)}
               onDragEnd={onDragEnd}
-              className={`relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:shadow-md group ${isDragging ? "opacity-60" : ""}`}
-              style={{ background: "var(--th-card-bg)", border: "1px solid var(--th-card-border)" }}
+              className={`qg-card relative flex items-center gap-3 group ${isDragging ? "opacity-60" : ""}`}
+              style={{ borderLeft: `4px solid ${dept.color}` }}
             >
               {showDropBefore && (
-                <div className="pointer-events-none absolute left-2 right-2 top-0 h-0.5 rounded bg-blue-400" />
+                <div
+                  className="pointer-events-none absolute left-2 right-2 top-0 h-0.5 rounded"
+                  style={{ background: "var(--qg-accent)" }}
+                />
               )}
               {showDropAfter && (
-                <div className="pointer-events-none absolute left-2 right-2 bottom-0 h-0.5 rounded bg-blue-400" />
+                <div
+                  className="pointer-events-none absolute left-2 right-2 bottom-0 h-0.5 rounded"
+                  style={{ background: "var(--qg-accent)" }}
+                />
               )}
+
+              <GripVertical
+                size={16}
+                aria-hidden="true"
+                className="hidden shrink-0 cursor-grab qg-text-muted sm:block"
+              />
 
               <div className="flex flex-col gap-0.5">
                 <button
+                  type="button"
                   onClick={() => onMoveDept(index, -1)}
                   disabled={index === 0}
-                  className="w-6 h-5 flex items-center justify-center rounded text-xs transition-all hover:bg-white/10 disabled:opacity-20"
-                  style={{ color: "var(--th-text-muted)" }}
+                  className="qg-icon-btn qg-btn--ghost"
+                  style={{ width: 28, height: 24 }}
+                  aria-label={tr(`${name} 위로 이동`, `Move ${name} up`, `Monter ${name}`)}
                 >
-                  ▲
+                  <ChevronUp size={16} aria-hidden="true" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => onMoveDept(index, 1)}
                   disabled={index === deptOrder.length - 1}
-                  className="w-6 h-5 flex items-center justify-center rounded text-xs transition-all hover:bg-white/10 disabled:opacity-20"
-                  style={{ color: "var(--th-text-muted)" }}
+                  className="qg-icon-btn qg-btn--ghost"
+                  style={{ width: 28, height: 24 }}
+                  aria-label={tr(`${name} 아래로 이동`, `Move ${name} down`, `Descendre ${name}`)}
                 >
-                  ▼
+                  <ChevronDown size={16} aria-hidden="true" />
                 </button>
               </div>
 
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold"
-                style={{ background: `${dept.color}22`, color: dept.color }}
-              >
-                {index + 1}
-              </div>
+              <span className="qg-count tabular-nums">{index + 1}</span>
 
-              <span className="text-2xl">{dept.icon}</span>
+              <span className="text-2xl" aria-hidden="true">
+                {dept.icon}
+              </span>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold text-sm" style={{ color: "var(--th-text-heading)" }}>
-                    {localeName(locale, dept)}
+                    {name}
                   </span>
-                  <span className="w-3 h-3 rounded-full inline-block" style={{ background: dept.color }}></span>
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: `${dept.color}22`, color: dept.color }}
-                  >
-                    {agentCountForDept} {tr("명", "agents")}
+                  <span className="qg-badge">
+                    {agentCountForDept} {tr("명", "agents", agentCountForDept > 1 ? "agents" : "agent")}
                   </span>
                 </div>
                 {dept.description && (
-                  <div className="text-xs mt-0.5 truncate" style={{ color: "var(--th-text-muted)" }}>
-                    {dept.description}
-                  </div>
+                  <div className="text-[13px] mt-0.5 truncate qg-text-muted">{dept.description}</div>
                 )}
               </div>
 
-              <code className="text-[10px] px-2 py-0.5 rounded opacity-50" style={{ background: "var(--th-input-bg)" }}>
-                {dept.id}
-              </code>
+              <code className="hidden text-[13px] qg-text-muted sm:inline">{dept.id}</code>
 
               <button
+                type="button"
                 onClick={() => onEditDept(dept)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all opacity-0 group-hover:opacity-100 hover:bg-white/10"
-                style={{ color: "var(--th-text-muted)" }}
+                className="qg-btn qg-btn--sm qg-btn--ghost sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
               >
-                {tr("편집", "Edit")}
+                <Pencil size={16} aria-hidden="true" />
+                {tr("편집", "Edit", "Modifier")}
               </button>
             </div>
           );
@@ -161,9 +167,9 @@ export default function DepartmentsTab({
       </div>
 
       {deptOrder.length === 0 && (
-        <div className="text-center py-16" style={{ color: "var(--th-text-muted)" }}>
-          <div className="text-3xl mb-2">🏢</div>
-          {tr("등록된 부서가 없습니다.", "No departments found.")}
+        <div className="qg-empty flex flex-col items-center gap-2">
+          <Building2 size={28} aria-hidden="true" />
+          {tr("등록된 부서가 없습니다.", "No departments found.", "Aucun pôle pour le moment.")}
         </div>
       )}
     </div>

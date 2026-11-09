@@ -167,7 +167,7 @@ export function useApiProvidersState({
           [id]: result.ok
             ? {
                 ok: true,
-                msg: `${result.model_count} ${t({ ko: "개 모델 발견", en: "models found", ja: "モデル検出", zh: "个模型" })}`,
+                msg: `${result.model_count} ${t({ ko: "개 모델 발견", en: "models found", ja: "モデル検出", zh: "个模型", fr: "modèles trouvés" })}`,
               }
             : { ok: false, msg: result.error?.slice(0, 200) || `HTTP ${result.status}` },
         }));

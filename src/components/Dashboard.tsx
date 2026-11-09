@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { CircleCheck, ClipboardList, Users, Zap } from "lucide-react";
 import type { Agent, CompanyStats, Task } from "../types";
 import { localeName, useI18n } from "../i18n";
 import {
@@ -9,7 +10,7 @@ import {
   type RankedAgent,
 } from "./dashboard/HeroSections";
 import { DashboardDeptAndSquad, DashboardMissionLog, type DepartmentPerformance } from "./dashboard/OpsSections";
-import { DEPT_COLORS, useNow } from "./dashboard/model";
+import { useNow } from "./dashboard/model";
 
 interface DashboardProps {
   stats: CompanyStats | null;
@@ -39,26 +40,38 @@ export default function Dashboard({ stats, agents, tasks, companyName, onPrimary
   const activeRate = totalAgents > 0 ? Math.round((activeAgents / totalAgents) * 100) : 0;
   const reviewQueue = reviewTasks + pendingTasks;
 
-  const primaryCtaLabel = t({ ko: "미션 시작", en: "Start Mission", ja: "ミッション開始", zh: "开始任务" });
-  const primaryCtaEyebrow = t({ ko: "빠른 실행", en: "Quick Start", ja: "クイック開始", zh: "快速开始" });
+  const primaryCtaLabel = t({
+    ko: "미션 시작",
+    en: "Start Mission",
+    ja: "ミッション開始",
+    zh: "开始任务",
+    fr: "Lancer une tâche",
+  });
+  const primaryCtaEyebrow = t({
+    ko: "빠른 실행",
+    en: "Quick Start",
+    ja: "クイック開始",
+    zh: "快速开始",
+    fr: "Démarrage rapide",
+  });
   const primaryCtaDescription = t({
     ko: "핵심 업무를 바로 생성하고 실행으로 전환하세요",
     en: "Create a priority task and move execution immediately.",
     ja: "最優先タスクをすぐ作成して実行へ移行します。",
     zh: "立即创建优先任务并进入执行。",
+    fr: "Créez une tâche prioritaire et confiez-la tout de suite à vos agents.",
   });
 
   const deptData = useMemo<DepartmentPerformance[]>(() => {
     if (stats?.tasks_by_department && stats.tasks_by_department.length > 0) {
       return stats.tasks_by_department
-        .map((department, idx) => ({
+        .map((department) => ({
           id: department.id,
           name: department.name,
           icon: department.icon ?? "🏢",
           done: department.done_tasks,
           total: department.total_tasks,
           ratio: department.total_tasks > 0 ? Math.round((department.done_tasks / department.total_tasks) * 100) : 0,
-          color: DEPT_COLORS[idx % DEPT_COLORS.length],
         }))
         .sort((a, b) => b.ratio - a.ratio || b.total - a.total);
     }
@@ -83,11 +96,10 @@ export default function Dashboard({ stats, agents, tasks, companyName, onPrimary
       if (task.status === "done") entry.done += 1;
     }
     return Array.from(deptMap.entries())
-      .map(([id, value], idx) => ({
+      .map(([id, value]) => ({
         id,
         ...value,
         ratio: value.total > 0 ? Math.round((value.done / value.total) * 100) : 0,
-        color: DEPT_COLORS[idx % DEPT_COLORS.length],
       }))
       .sort((a, b) => b.ratio - a.ratio || b.total - a.total);
   }, [stats, agents, tasks, language]);
@@ -132,49 +144,44 @@ export default function Dashboard({ stats, agents, tasks, companyName, onPrimary
   const hudStats: HudStat[] = [
     {
       id: "total",
-      label: t({ ko: "미션", en: "MISSIONS", ja: "ミッション", zh: "任务" }),
+      label: t({ ko: "미션", en: "Tasks", ja: "ミッション", zh: "任务", fr: "Tâches" }),
       value: totalTasks,
-      sub: t({ ko: "누적 태스크", en: "Total tasks", ja: "累積タスク", zh: "累计任务" }),
-      color: "#3b82f6",
-      icon: "📋",
+      sub: t({ ko: "누적 태스크", en: "Total tasks", ja: "累積タスク", zh: "累计任务", fr: "au total" }),
+      icon: ClipboardList,
     },
     {
       id: "clear",
-      label: t({ ko: "완료율", en: "CLEAR RATE", ja: "クリア率", zh: "完成率" }),
+      label: t({ ko: "완료율", en: "Completion rate", ja: "クリア率", zh: "完成率", fr: "Taux de réussite" }),
       value: `${completionRate}%`,
-      sub: `${numberFormatter.format(completedTasks)} ${t({ ko: "클리어", en: "cleared", ja: "クリア", zh: "完成" })}`,
-      color: "#10b981",
-      icon: "✅",
+      sub: `${numberFormatter.format(completedTasks)} ${t({ ko: "클리어", en: "done", ja: "クリア", zh: "完成", fr: "terminées" })}`,
+      icon: CircleCheck,
     },
     {
       id: "squad",
-      label: t({ ko: "스쿼드", en: "SQUAD", ja: "スクワッド", zh: "小队" }),
+      label: t({ ko: "스쿼드", en: "Team", ja: "スクワッド", zh: "小队", fr: "Agents au travail" }),
       value: `${activeAgents}/${totalAgents}`,
-      sub: `${t({ ko: "가동률", en: "uptime", ja: "稼働率", zh: "运行率" })} ${activeRate}%`,
-      color: "#00f0ff",
-      icon: "🤖",
+      sub: `${t({ ko: "가동률", en: "uptime", ja: "稼働率", zh: "运行率", fr: "activité" })} ${activeRate}%`,
+      icon: Users,
     },
     {
       id: "active",
-      label: t({ ko: "진행중", en: "IN PROGRESS", ja: "進行中", zh: "进行中" }),
+      label: t({ ko: "진행중", en: "In progress", ja: "進行中", zh: "进行中", fr: "En cours" }),
       value: inProgressTasks,
-      sub: `${t({ ko: "계획", en: "planned", ja: "計画", zh: "计划" })} ${numberFormatter.format(plannedTasks)}${t({
-        ko: "건",
-        en: "",
-        ja: "件",
-        zh: "项",
-      })}`,
-      color: "#f59e0b",
-      icon: "⚡",
+      sub: `${t({ ko: "계획", en: "planned", ja: "計画", zh: "计划", fr: "planifiées :" })} ${numberFormatter.format(plannedTasks)}${t(
+        {
+          ko: "건",
+          en: "",
+          ja: "件",
+          zh: "项",
+          fr: "",
+        },
+      )}`,
+      icon: Zap,
     },
   ];
 
   return (
-    <section className="relative isolate space-y-4" style={{ color: "var(--th-text-primary)" }}>
-      <div className="pointer-events-none absolute -left-40 -top-32 h-96 w-96 rounded-full bg-violet-600/10 blur-[100px] animate-drift-slow" />
-      <div className="pointer-events-none absolute -right-32 top-20 h-80 w-80 rounded-full bg-cyan-500/10 blur-[100px] animate-drift-slow-rev" />
-      <div className="pointer-events-none absolute left-1/3 bottom-32 h-72 w-72 rounded-full bg-amber-500/[0.05] blur-[80px]" />
-
+    <section className="space-y-4" style={{ color: "var(--th-text-primary)" }}>
       <DashboardHeroHeader
         companyName={companyName}
         time={time}

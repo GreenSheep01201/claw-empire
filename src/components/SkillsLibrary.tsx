@@ -1,3 +1,4 @@
+import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { useI18n } from "../i18n";
 import type { Agent } from "../types";
 import ClassroomOverlay from "./skills-library/ClassroomOverlay";
@@ -20,43 +21,36 @@ export default function SkillsLibrary({ agents }: SkillsLibraryProps) {
 
   if (vm.loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-          <div className="text-slate-400 text-sm">
-            {t({
-              ko: "skills.sh 데이터 로딩중...",
-              en: "Loading skills.sh data...",
-              ja: "skills.sh データを読み込み中...",
-              zh: "正在加载 skills.sh 数据...",
-            })}
-          </div>
-        </div>
+      <div className="qg-empty flex flex-col items-center gap-3" role="status">
+        <LoaderCircle size={28} className="animate-spin" aria-hidden="true" />
+        {t({
+          ko: "skills.sh 데이터 로딩중...",
+          en: "Loading skills.sh data...",
+          ja: "skills.sh データを読み込み中...",
+          zh: "正在加载 skills.sh 数据...",
+          fr: "Chargement de la bibliothèque…",
+        })}
       </div>
     );
   }
 
   if (vm.error && vm.skills.length === 0) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="text-center">
-          <div className="text-4xl mb-3">⚠️</div>
-          <div className="text-slate-400 text-sm">
-            {t({
-              ko: "스킬 데이터를 불러올 수 없습니다",
-              en: "Unable to load skills data",
-              ja: "スキルデータを読み込めません",
-              zh: "无法加载技能数据",
-            })}
-          </div>
-          <div className="text-slate-500 text-xs mt-1">{vm.error}</div>
-          <button
-            onClick={vm.loadSkills}
-            className="mt-4 px-4 py-2 text-sm bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-lg hover:bg-blue-600/30 transition-all"
-          >
-            {t({ ko: "다시 시도", en: "Retry", ja: "再試行", zh: "重试" })}
-          </button>
+      <div className="qg-empty flex flex-col items-center gap-2" role="alert">
+        <TriangleAlert size={28} aria-hidden="true" />
+        <div className="qg-text-secondary">
+          {t({
+            ko: "스킬 데이터를 불러올 수 없습니다",
+            en: "Unable to load skills data",
+            ja: "スキルデータを読み込めません",
+            zh: "无法加载技能数据",
+            fr: "Impossible de charger les compétences",
+          })}
         </div>
+        <div className="text-[13px]">{vm.error}</div>
+        <button type="button" onClick={vm.loadSkills} className="qg-btn mt-2">
+          {t({ ko: "다시 시도", en: "Retry", ja: "再試行", zh: "重试", fr: "Réessayer" })}
+        </button>
       </div>
     );
   }
@@ -174,12 +168,13 @@ export default function SkillsLibrary({ agents }: SkillsLibraryProps) {
         }}
       />
 
-      <div className="text-center text-xs text-slate-600 py-4">
+      <div className="py-4 text-center text-[13px] qg-text-muted">
         {t({
           ko: "데이터 출처: skills.sh · 설치: npx skills add <owner/repo>",
           en: "Source: skills.sh · Install: npx skills add <owner/repo>",
           ja: "データソース: skills.sh · インストール: npx skills add <owner/repo>",
           zh: "数据来源: skills.sh · 安装: npx skills add <owner/repo>",
+          fr: "Source : skills.sh · Installation : npx skills add <owner/repo>",
         })}
       </div>
     </div>

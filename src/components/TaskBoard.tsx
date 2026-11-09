@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { Eye, EyeOff, FolderKanban, Plus, RotateCcw } from "lucide-react";
 import { bulkHideTasks } from "../api";
 import { useI18n } from "../i18n";
 import type { Agent, Department, SubTask, Task, WorkflowPackKey } from "../types";
@@ -130,44 +131,62 @@ export function TaskBoard({
     return count;
   }, [tasks, hiddenTaskIds]);
 
+  const taskCount = filteredTasks.length;
+  const plural = (n: number) => (n > 1 ? "s" : "");
+
   return (
-    <div className="taskboard-shell flex h-full flex-col gap-4 bg-slate-950 p-3 sm:p-4">
+    <div className="flex h-full flex-col gap-4 p-3 sm:p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-bold text-white">
-          {t({ ko: "업무 보드", en: "Task Board", ja: "タスクボード", zh: "任务看板" })}
+        <h1
+          className="text-xl font-semibold text-[var(--th-text-heading)]"
+          style={{ fontFamily: "var(--th-font-display)" }}
+        >
+          {t({ ko: "업무 보드", en: "Task Board", ja: "タスクボード", zh: "任务看板", fr: "Tâches" })}
         </h1>
-        <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs text-slate-400">
-          {t({ ko: "총", en: "Total", ja: "合計", zh: "总计" })} {filteredTasks.length}
-          {t({ ko: "개", en: "", ja: "件", zh: "项" })}
+        <span className="qg-text-muted text-[13px]">
+          {t({
+            ko: `총 ${taskCount}개`,
+            en: `Total ${taskCount}`,
+            ja: `合計 ${taskCount}件`,
+            zh: `总计 ${taskCount}项`,
+            fr: `${taskCount} tâche${plural(taskCount)}`,
+          })}
           {activeFilterCount > 0 &&
-            ` (${t({ ko: "필터", en: "filters", ja: "フィルター", zh: "筛选器" })} ${activeFilterCount}${t({
-              ko: "개 적용",
-              en: " applied",
-              ja: "件適用",
-              zh: "个已应用",
-            })})`}
+            t({
+              ko: ` (필터 ${activeFilterCount}개 적용)`,
+              en: ` (filters ${activeFilterCount} applied)`,
+              ja: ` (フィルター ${activeFilterCount}件適用)`,
+              zh: ` (筛选器 ${activeFilterCount}个已应用)`,
+              fr: ` · ${activeFilterCount} filtre${plural(activeFilterCount)} actif${plural(activeFilterCount)}`,
+            })}
         </span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           {activeFilterCount > 0 && (
             <button
+              type="button"
               onClick={() => {
                 setFilterDept("");
                 setFilterAgent("");
                 setFilterType("");
                 setSearch("");
               }}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className="qg-btn qg-btn--ghost"
             >
-              {t({ ko: "필터 초기화", en: "Reset Filters", ja: "フィルターをリセット", zh: "重置筛选" })}
+              <RotateCcw size={16} aria-hidden />
+              {t({
+                ko: "필터 초기화",
+                en: "Reset Filters",
+                ja: "フィルターをリセット",
+                zh: "重置筛选",
+                fr: "Réinitialiser les filtres",
+              })}
             </button>
           )}
           <button
+            type="button"
             onClick={() => setShowAllTasks((prev) => !prev)}
-            className={`rounded-lg border px-3 py-1.5 text-xs transition ${
-              showAllTasks
-                ? "border-cyan-600 bg-cyan-900/40 text-cyan-100 hover:bg-cyan-900/60"
-                : "border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
+            aria-pressed={showAllTasks}
+            className="qg-btn"
             title={
               showAllTasks
                 ? t({
@@ -175,49 +194,62 @@ export function TaskBoard({
                     en: "Switch to active view (exclude hidden)",
                     ja: "進行中表示へ切替（非表示を除外）",
                     zh: "切换到进行中视图（排除隐藏）",
+                    fr: "Afficher seulement les tâches actives (sans les tâches masquées)",
                   })
                 : t({
                     ko: "모두보기로 전환 (숨김 포함)",
                     en: "Switch to all view (include hidden)",
                     ja: "全体表示へ切替（非表示を含む）",
                     zh: "切换到全部视图（包含隐藏）",
+                    fr: "Afficher toutes les tâches (y compris les tâches masquées)",
                   })
             }
           >
-            <span className={showAllTasks ? "text-slate-400" : "text-emerald-200"}>
-              {t({ ko: "진행중", en: "Active", ja: "進行中", zh: "进行中" })}
+            <Eye size={16} aria-hidden />
+            <span className={showAllTasks ? "qg-text-muted font-normal" : "underline underline-offset-4"}>
+              {t({ ko: "진행중", en: "Active", ja: "進行中", zh: "进行中", fr: "Actives" })}
             </span>
-            <span className="mx-1 text-slate-500">/</span>
-            <span className={showAllTasks ? "text-cyan-100" : "text-slate-500"}>
-              {t({ ko: "모두보기", en: "All", ja: "すべて", zh: "全部" })}
+            <span className="qg-text-muted" aria-hidden>
+              /
             </span>
-            <span className="ml-1 rounded-full bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300">
+            <span className={showAllTasks ? "underline underline-offset-4" : "qg-text-muted font-normal"}>
+              {t({ ko: "모두보기", en: "All", ja: "すべて", zh: "全部", fr: "Toutes" })}
+            </span>
+            <span
+              className="qg-count"
+              title={t({
+                ko: "숨긴 업무",
+                en: "Hidden tasks",
+                ja: "非表示タスク",
+                zh: "隐藏任务",
+                fr: "Tâches masquées",
+              })}
+            >
               {hiddenTaskCount}
             </span>
           </button>
           <button
+            type="button"
             onClick={() => setShowBulkHideModal(true)}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-slate-800 hover:text-white"
+            className="qg-btn"
             title={t({
               ko: "완료/보류/취소 상태 업무 숨기기",
               en: "Hide done/pending/cancelled tasks",
               ja: "完了/保留/キャンセル状態を非表示",
               zh: "隐藏完成/待处理/已取消任务",
+              fr: "Masquer les tâches terminées, en attente ou annulées",
             })}
           >
-            🙈 {t({ ko: "숨김", en: "Hide", ja: "非表示", zh: "隐藏" })}
+            <EyeOff size={16} aria-hidden />
+            {t({ ko: "숨김", en: "Hide", ja: "非表示", zh: "隐藏", fr: "Masquer" })}
           </button>
-          <button
-            onClick={() => setShowProjectManager(true)}
-            className="taskboard-project-manage-btn rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
-          >
-            🗂 {t({ ko: "프로젝트 관리", en: "Project Manager", ja: "プロジェクト管理", zh: "项目管理" })}
+          <button type="button" onClick={() => setShowProjectManager(true)} className="qg-btn">
+            <FolderKanban size={16} aria-hidden />
+            {t({ ko: "프로젝트 관리", en: "Project Manager", ja: "プロジェクト管理", zh: "项目管理", fr: "Projets" })}
           </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white shadow transition hover:bg-blue-500 active:scale-95"
-          >
-            + {t({ ko: "새 업무", en: "New Task", ja: "新規タスク", zh: "新建任务" })}
+          <button type="button" onClick={() => setShowCreate(true)} className="qg-btn qg-btn--primary">
+            <Plus size={16} aria-hidden />
+            {t({ ko: "새 업무", en: "New Task", ja: "新規タスク", zh: "新建任务", fr: "Nouvelle tâche" })}
           </button>
         </div>
       </div>
@@ -239,27 +271,29 @@ export function TaskBoard({
         {COLUMNS.map((column) => {
           const columnTasks = tasksByStatus[column.status] ?? [];
           return (
-            <div
+            <section
               key={column.status}
-              className={`taskboard-column flex w-full flex-col rounded-xl border sm:w-72 sm:flex-shrink-0 ${column.borderColor} bg-slate-900`}
+              aria-labelledby={`taskboard-column-${column.status}`}
+              className="flex w-full flex-col rounded-[var(--qg-radius)] border border-[var(--th-border)] bg-[var(--th-bg-surface)] sm:w-72 sm:flex-shrink-0"
             >
-              <div className={`flex items-center justify-between rounded-t-xl ${column.headerBg} px-3.5 py-2.5`}>
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 flex-shrink-0 rounded-full ${column.dotColor}`} />
-                  <span className="text-sm font-semibold text-white">
-                    {column.icon} {taskStatusLabel(column.status, t)}
-                  </span>
+              <div className="flex items-center justify-between gap-2 border-b border-[var(--th-border)] px-3.5 py-2.5">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span aria-hidden className={`h-2 w-2 flex-shrink-0 rounded-full ${column.dotColor}`} />
+                  <h2
+                    id={`taskboard-column-${column.status}`}
+                    className="truncate text-sm font-semibold text-[var(--th-text-heading)]"
+                  >
+                    {taskStatusLabel(column.status, t)}
+                  </h2>
                 </div>
-                <span className="rounded-full bg-black/30 px-2 py-0.5 text-xs font-bold text-white/80">
-                  {columnTasks.length}
-                </span>
+                <span className="qg-count">{columnTasks.length}</span>
               </div>
 
               <div className="flex flex-col gap-2.5 p-2.5 sm:flex-1 sm:overflow-y-auto">
                 {columnTasks.length === 0 ? (
-                  <div className="flex min-h-24 items-center justify-center py-8 text-xs text-slate-600 sm:flex-1">
-                    {t({ ko: "업무 없음", en: "No tasks", ja: "タスクなし", zh: "暂无任务" })}
-                  </div>
+                  <p className="qg-empty sm:flex-1">
+                    {t({ ko: "업무 없음", en: "No tasks", ja: "タスクなし", zh: "暂无任务", fr: "Aucune tâche" })}
+                  </p>
                 ) : (
                   columnTasks.map((task) => (
                     <TaskCard
@@ -286,7 +320,7 @@ export function TaskBoard({
                   ))
                 )}
               </div>
-            </div>
+            </section>
           );
         })}
       </div>

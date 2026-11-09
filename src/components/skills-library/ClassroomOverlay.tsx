@@ -16,7 +16,12 @@ export default function ClassroomOverlay({ t, show, skillName, providers, agents
   if (!show) return null;
 
   return createPortal(
-    <div className="classroom-overlay fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center p-4 animate-in fade-in duration-300"
+      style={{ background: "var(--th-modal-overlay)" }}
+      role="status"
+      aria-live="polite"
+    >
       <div className="w-full max-w-2xl">
         <div className="classroom-scene">
           <div className="classroom-blackboard">
@@ -24,7 +29,7 @@ export default function ClassroomOverlay({ t, show, skillName, providers, agents
           </div>
 
           <div className="classroom-claw-teacher">
-            <img src="/claw-empire.png" alt="Teacher" />
+            <img src="/claw-empire.png" alt="" />
             <span className="classroom-chalk-pointer">✏️</span>
           </div>
 
@@ -35,8 +40,8 @@ export default function ClassroomOverlay({ t, show, skillName, providers, agents
           </div>
 
           <div className="absolute top-[125px] left-1/2 -translate-x-1/2 z-20">
-            <div className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-400/30 text-violet-200 text-xs font-medium animate-in slide-in-from-top-2 duration-500">
-              📝 {skillName}
+            <div className="qg-badge qg-badge--accent animate-in slide-in-from-top-2 duration-500">
+              <span aria-hidden="true">📝</span> {skillName}
             </div>
           </div>
 
@@ -77,20 +82,22 @@ export default function ClassroomOverlay({ t, show, skillName, providers, agents
         </div>
 
         <div className="mt-3 text-center">
-          <div className="text-sm text-emerald-300 font-medium animate-pulse">
+          <div className="text-sm font-semibold motion-safe:animate-pulse" style={{ color: "var(--th-text-heading)" }}>
             {t({
               ko: `"${skillName}" 스킬 교육 진행중...`,
               en: `Training "${skillName}" skill...`,
               ja: `「${skillName}」スキル教育中...`,
               zh: `"${skillName}" 技能培训中...`,
+              fr: `Apprentissage de « ${skillName} » en cours…`,
             })}
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">
+          <div className="mt-1 text-[13px] qg-text-secondary">
             {t({
               ko: "CLI 대표자들이 열심히 학습하고 있습니다 📖",
               en: "CLI representatives are studying hard 📖",
               ja: "CLI代表が一生懸命学習しています 📖",
               zh: "CLI代表们正在努力学习 📖",
+              fr: "Vos agents sont en train d'apprendre 📖",
             })}
           </div>
         </div>

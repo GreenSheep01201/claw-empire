@@ -20,18 +20,27 @@ export const ROLE_LABEL: Record<string, { ko: string; en: string; fr: string }> 
   intern: { ko: "인턴", en: "Intern", fr: "Stagiaire" },
 };
 
+/** Classes de badge (qg-badge) par rôle : seul le responsable ressort en vert. */
 export const ROLE_BADGE: Record<string, string> = {
-  team_leader: "bg-amber-500/15 text-amber-400 border-amber-500/25",
-  senior: "bg-sky-500/15 text-sky-400 border-sky-500/25",
-  junior: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
-  intern: "bg-slate-500/15 text-slate-400 border-slate-500/25",
+  team_leader: "qg-badge qg-badge--accent",
+  senior: "qg-badge",
+  junior: "qg-badge",
+  intern: "qg-badge",
 };
 
+/** Petit repère coloré d'état, toujours accompagné d'un libellé (STATUS_LABEL). */
 export const STATUS_DOT: Record<string, string> = {
-  working: "bg-emerald-400 shadow-emerald-400/50 shadow-sm",
-  break: "bg-amber-400",
-  offline: "bg-red-400",
-  idle: "bg-slate-500",
+  working: "bg-[var(--qg-accent)]",
+  break: "bg-[var(--th-text-secondary)]",
+  offline: "bg-transparent border border-[var(--th-text-muted)]",
+  idle: "bg-[var(--th-border-strong)]",
+};
+
+export const STATUS_LABEL: Record<string, { ko: string; en: string; fr: string }> = {
+  working: { ko: "근무 중", en: "Working", fr: "Au travail" },
+  break: { ko: "휴식 중", en: "On break", fr: "En pause" },
+  offline: { ko: "오프라인", en: "Offline", fr: "Hors ligne" },
+  idle: { ko: "대기 중", en: "Idle", fr: "Disponible" },
 };
 
 export const ICON_SPRITE_POOL = Array.from({ length: 13 }, (_, i) => i + 1);

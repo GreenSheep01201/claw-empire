@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Plus } from "lucide-react";
 import * as api from "../../api";
 import AgentAvatar, { useSpriteMap } from "../AgentAvatar";
 import {
@@ -52,6 +53,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
   const [discordChannelOptions, setDiscordChannelOptions] = useState<api.DiscordDiscoverableChannel[]>([]);
   const [discordChannelsError, setDiscordChannelsError] = useState<string | null>(null);
   const discordLookupSeq = useRef(0);
+  const fieldId = useId();
 
   const chatRows = useMemo<ChatRow[]>(() => {
     return MESSENGER_CHANNELS.flatMap((channel) => {
@@ -126,6 +128,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
             en: "Please enter a Discord token.",
             ja: "Discordトークンを入力してください。",
             zh: "请输入 Discord 令牌。",
+            fr: "Veuillez saisir un jeton Discord.",
           });
         }
         if (code === "discord_auth_failed") {
@@ -134,6 +137,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
             en: "Discord authentication failed. Check your bot token and permissions.",
             ja: "Discord認証に失敗しました。Botトークンと権限を確認してください。",
             zh: "Discord 认证失败，请检查 Bot 令牌和权限。",
+            fr: "Échec de l'authentification Discord. Vérifiez le jeton du bot et ses permissions.",
           });
         }
         if (code === "discord_rate_limited") {
@@ -142,6 +146,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
             en: "Discord API is rate-limited. Please try again shortly.",
             ja: "Discord API のレート制限に達しました。しばらくしてから再試行してください。",
             zh: "Discord API 已触发限流，请稍后重试。",
+            fr: "L'API Discord limite les requêtes. Réessayez dans un instant.",
           });
         }
         if (code === "discord_channel_lookup_failed") {
@@ -150,6 +155,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
             en: "Failed to load Discord channels. Check network connectivity and permissions.",
             ja: "Discordチャネルの取得に失敗しました。ネットワークと権限を確認してください。",
             zh: "Discord 频道加载失败，请检查网络和权限状态。",
+            fr: "Impossible de charger les salons Discord. Vérifiez la connexion réseau et les permissions.",
           });
         }
       }
@@ -158,6 +164,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
         en: "An error occurred while loading Discord channels.",
         ja: "Discordチャネルの取得中にエラーが発生しました。",
         zh: "加载 Discord 频道时发生错误。",
+        fr: "Une erreur est survenue lors du chargement des salons Discord.",
       });
     },
     [t],
@@ -180,6 +187,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
             en: "Channel settings saved",
             ja: "チャネル設定を保存しました",
             zh: "频道设置已保存",
+            fr: "Réglages de la messagerie enregistrés",
           }),
       });
       setTimeout(() => setSaved(null), 2500);
@@ -205,6 +213,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
         en: "Chat deleted",
         ja: "チャットを削除しました",
         zh: "聊天已删除",
+        fr: "Conversation supprimée",
       }),
     );
     setSendStatus(null);
@@ -254,6 +263,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           en: "Please enter a token.",
           ja: "トークンを入力してください。",
           zh: "请输入令牌。",
+          fr: "Veuillez saisir un jeton.",
         }),
       );
       return;
@@ -265,6 +275,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           en: "Please enter a chat name.",
           ja: "チャット名を入力してください。",
           zh: "请输入聊天名称。",
+          fr: "Veuillez saisir un nom de conversation.",
         }),
       );
       return;
@@ -276,6 +287,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           en: "Please enter a channel/target ID.",
           ja: "チャンネル/対象 ID を入力してください。",
           zh: "请输入频道/目标 ID。",
+          fr: "Veuillez saisir l'identifiant du salon ou du destinataire.",
         }),
       );
       return;
@@ -331,6 +343,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
         en: "Chat saved",
         ja: "チャット設定を保存しました",
         zh: "聊天设置已保存",
+        fr: "Conversation enregistrée",
       }),
     );
     if (!savedOk) {
@@ -340,6 +353,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           en: "Failed to save chat. Please try again.",
           ja: "チャット保存に失敗しました。再試行してください。",
           zh: "聊天保存失败，请重试。",
+          fr: "Impossible d'enregistrer la conversation. Veuillez réessayer.",
         }),
       );
       return;
@@ -371,6 +385,7 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           en: "Message sent",
           ja: "メッセージを送信しました",
           zh: "消息已发送",
+          fr: "Message envoyé",
         }),
       });
       setSendText("");
@@ -484,43 +499,62 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
   const selectedChatTransportReady = selectedChat ? CHANNEL_META[selectedChat.channel].transportReady : false;
 
   return (
-    <section className="space-y-4 rounded-xl border border-slate-700/50 bg-slate-800/60 p-4 sm:p-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
-          {t({ ko: "채널 메시지 설정", en: "Channel Messaging", ja: "チャネルメッセージ設定", zh: "频道消息设置" })}
+    <section className="qg-card space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-base font-semibold" style={{ color: "var(--th-text-heading)" }}>
+          {t({
+            ko: "채널 메시지 설정",
+            en: "Channel Messaging",
+            ja: "チャネルメッセージ設定",
+            zh: "频道消息设置",
+            fr: "Messageries",
+          })}
         </h3>
-        {saved && <span className={`text-xs ${saved.ok ? "text-emerald-400" : "text-red-400"}`}>{saved.msg}</span>}
+        {saved && (
+          <span role="status" className={saved.ok ? "qg-badge qg-badge--accent" : "qg-badge qg-badge--pin"}>
+            {saved.msg}
+          </span>
+        )}
       </div>
 
-      <p className="text-xs text-slate-400">
+      <p className="qg-field__hint">
         {t({
           ko: "이 탭에서 메신저 채널을 직접 설정할 수 있습니다. '새 채팅 추가'로 메신저/토큰/대상 ID/대화 Agent를 등록하세요.",
           en: "You can configure messenger channels directly in this tab. Use 'Add Chat' to register messenger/token/target ID/conversation agent.",
           ja: "このタブでメッセンジャーチャネルを直接設定できます。'チャット追加'からメッセンジャー/トークン/対象ID/担当Agentを登録してください。",
           zh: "可在此标签页直接配置消息渠道。通过“新增聊天”注册消息渠道/令牌/目标ID/对话 Agent。",
+          fr: "Configurez ici vos messageries. Avec « Ajouter une conversation », indiquez la messagerie, le jeton, l'identifiant du destinataire et l'agent qui répond.",
         })}
       </p>
 
-      <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3 space-y-3">
+      <div
+        className="space-y-3 rounded-[var(--qg-radius)] p-3"
+        style={{ border: "1px solid var(--th-border)", background: "var(--th-bg-surface)" }}
+      >
         <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-200">
-            {t({ ko: "채팅 세션", en: "Chat Sessions", ja: "チャットセッション", zh: "聊天会话" })}
-          </div>
-          <button
-            onClick={openCreateModal}
-            className="text-xs px-3 py-1 rounded-md bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/40"
-          >
-            + {t({ ko: "새 채팅 추가", en: "Add Chat", ja: "チャット追加", zh: "新增聊天" })}
+          <h4 className="text-sm font-semibold" style={{ color: "var(--th-text-heading)" }}>
+            {t({ ko: "채팅 세션", en: "Chat Sessions", ja: "チャットセッション", zh: "聊天会话", fr: "Conversations" })}
+          </h4>
+          <button type="button" onClick={openCreateModal} className="qg-btn qg-btn--primary qg-btn--sm">
+            <Plus size={16} aria-hidden="true" />
+            {t({
+              ko: "새 채팅 추가",
+              en: "Add Chat",
+              ja: "チャット追加",
+              zh: "新增聊天",
+              fr: "Ajouter une conversation",
+            })}
           </button>
         </div>
 
         {chatRows.length === 0 ? (
-          <div className="text-xs text-slate-500 py-2">
+          <div className="py-2 text-[13px] qg-text-muted">
             {t({
               ko: "등록된 채팅이 없습니다. '새 채팅 추가'로 메신저/토큰/채널을 등록하세요.",
               en: "No chats yet. Use 'Add Chat' to register messenger/token/channel.",
               ja: "チャットがありません。'チャット追加'でメッセンジャー/トークン/チャネルを登録してください。",
               zh: "暂无聊天。请通过“新增聊天”注册消息渠道/令牌/频道。",
+              fr: "Aucune conversation pour l'instant. Utilisez « Ajouter une conversation » pour indiquer la messagerie, le jeton et le salon.",
             })}
           </div>
         ) : (
@@ -538,35 +572,45 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
                 workflowPackNameByKey.get(workflowPackKey) ?? defaultWorkflowPackLabel(t, workflowPackKey);
               const tokenReady = row.token.trim().length > 0;
               return (
-                <div key={row.key} className="rounded-md border border-slate-700/70 bg-slate-800/50 px-3 py-2">
+                <div
+                  key={row.key}
+                  className="rounded-[var(--qg-radius)] px-3 py-2"
+                  style={{ border: "1px solid var(--th-border)", background: "var(--th-bg-primary)" }}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-100">{row.session.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 text-slate-300 uppercase">
-                          {meta.label}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold" style={{ color: "var(--th-text-heading)" }}>
+                          {row.session.name}
                         </span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded ${meta.transportReady ? "bg-emerald-600/20 text-emerald-300" : "bg-amber-600/20 text-amber-300"}`}
-                        >
+                        <span className="qg-badge">{meta.label}</span>
+                        <span className={meta.transportReady ? "qg-badge qg-badge--accent" : "qg-badge"}>
                           {meta.transportReady
-                            ? t({ ko: "직접연동", en: "Native", ja: "直接連携", zh: "直连" })
-                            : t({ ko: "호환설정", en: "Compat", ja: "互換設定", zh: "兼容配置" })}
+                            ? t({ ko: "직접연동", en: "Native", ja: "直接連携", zh: "直连", fr: "Natif" })
+                            : t({ ko: "호환설정", en: "Compat", ja: "互換設定", zh: "兼容配置", fr: "Compatible" })}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600/20 text-indigo-300">
-                          {workflowPackLabel}
-                        </span>
+                        <span className="qg-badge">{workflowPackLabel}</span>
                         {!tokenReady && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-600/20 text-red-300">
-                            {t({ ko: "토큰 없음", en: "No token", ja: "トークンなし", zh: "无令牌" })}
+                          <span className="qg-badge qg-badge--pin">
+                            {t({
+                              ko: "토큰 없음",
+                              en: "No token",
+                              ja: "トークンなし",
+                              zh: "无令牌",
+                              fr: "Aucun jeton",
+                            })}
                           </span>
                         )}
                       </div>
-                      <div className="mt-1 text-[11px] text-slate-400 font-mono break-all">{row.session.targetId}</div>
-                      <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1.5">
+                      <div className="mt-1 break-all font-mono text-[13px] qg-text-secondary">
+                        {row.session.targetId}
+                      </div>
+                      <div className="mt-1 flex items-center gap-1.5 text-[13px] qg-text-muted">
                         {assignedAgentName ? (
                           <>
-                            <span>{t({ ko: "대화 Agent", en: "Agent", ja: "担当Agent", zh: "对话 Agent" })}:</span>
+                            <span>
+                              {t({ ko: "대화 Agent", en: "Agent", ja: "担当Agent", zh: "对话 Agent", fr: "Agent" })}:
+                            </span>
                             {assignedAgent && (
                               <AgentAvatar agent={assignedAgent} spriteMap={spriteMap} size={14} rounded="xl" />
                             )}
@@ -579,23 +623,22 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
                               en: "No agent assigned",
                               ja: "Agent未指定",
                               zh: "未指定 Agent",
+                              fr: "Aucun agent attribué",
                             })}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => openEditModal(row)}
-                        className="px-2 py-1 rounded text-[11px] bg-slate-700/70 border border-slate-600 text-slate-200 hover:bg-slate-700"
-                      >
-                        {t({ ko: "편집", en: "Edit", ja: "編集", zh: "编辑" })}
+                      <button type="button" onClick={() => openEditModal(row)} className="qg-btn qg-btn--sm">
+                        {t({ ko: "편집", en: "Edit", ja: "編集", zh: "编辑", fr: "Modifier" })}
                       </button>
                       <button
+                        type="button"
                         onClick={() => removeChat(row)}
-                        className="px-2 py-1 rounded text-[11px] bg-red-600/20 border border-red-500/30 text-red-300 hover:bg-red-600/30"
+                        className="qg-btn qg-btn--danger qg-btn--sm"
                       >
-                        {t({ ko: "삭제", en: "Delete", ja: "削除", zh: "删除" })}
+                        {t({ ko: "삭제", en: "Delete", ja: "削除", zh: "删除", fr: "Supprimer" })}
                       </button>
                     </div>
                   </div>
@@ -605,93 +648,143 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           </div>
         )}
 
-        <div className="text-[11px] text-slate-500">
+        <div className="qg-field__hint">
           {t({
             ko: "$로 시작하면 전사공지, 일반 메시지는 선택된 Agent에게 1:1 대화로 전달됩니다.",
             en: "Messages starting with $ become company directives; normal messages go 1:1 to the selected agent.",
             ja: "$ で始まると全社通知、通常メッセージは選択 Agent との 1:1 会話になります。",
             zh: "以 $ 开头为公司指令，普通消息会进入所选 Agent 的 1:1 对话。",
+            fr: "Les messages qui commencent par $ deviennent des consignes pour toute l'entreprise ; les autres vont directement à l'agent choisi.",
           })}
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-700/60 bg-slate-900/40 p-3 space-y-3">
+      <div
+        className="space-y-3 rounded-[var(--qg-radius)] p-3"
+        style={{ border: "1px solid var(--th-border)", background: "var(--th-bg-surface)" }}
+      >
         <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold text-slate-200">
-            {t({ ko: "세션 테스트 전송", en: "Test Send", ja: "送信テスト", zh: "发送测试" })}
-          </div>
+          <h4 className="text-sm font-semibold" style={{ color: "var(--th-text-heading)" }}>
+            {t({ ko: "세션 테스트 전송", en: "Test Send", ja: "送信テスト", zh: "发送测试", fr: "Envoi de test" })}
+          </h4>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => void loadMessengerReceiverStatus()}
               disabled={receiverLoading}
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-60"
+              className="qg-btn qg-btn--ghost qg-btn--sm"
             >
-              {t({ ko: "수신상태", en: "Receiver", ja: "受信状態", zh: "接收状态" })}
+              {t({ ko: "수신상태", en: "Receiver", ja: "受信状態", zh: "接收状态", fr: "Réception" })}
             </button>
             <button
+              type="button"
               onClick={() => void loadRuntimeSessions()}
               disabled={runtimeLoading}
-              className="text-xs text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-60"
+              className="qg-btn qg-btn--ghost qg-btn--sm"
             >
-              {t({ ko: "실행중 세션", en: "Runtime", ja: "実行セッション", zh: "运行会话" })}
+              {t({ ko: "실행중 세션", en: "Runtime", ja: "実行セッション", zh: "运行会话", fr: "Fonctionnement" })}
             </button>
           </div>
         </div>
 
         {telegramReceiverStatus && (
-          <div className="rounded-md border border-slate-700/60 bg-slate-800/60 px-3 py-2 text-xs text-slate-300 space-y-1">
+          <div
+            className="space-y-1 rounded-[var(--qg-radius)] px-3 py-2 text-[13px] qg-text-secondary"
+            style={{ border: "1px solid var(--th-border)", background: "var(--th-bg-primary)" }}
+          >
             <div>
-              {t({ ko: "텔레그램 수신기", en: "Telegram Receiver", ja: "Telegram 受信機", zh: "Telegram 接收器" })}:{" "}
-              <span className={telegramReceiverStatus.enabled ? "text-emerald-400" : "text-amber-300"}>
+              {t({
+                ko: "텔레그램 수신기",
+                en: "Telegram Receiver",
+                ja: "Telegram 受信機",
+                zh: "Telegram 接收器",
+                fr: "Réception Telegram",
+              })}
+              :{" "}
+              <span className={telegramReceiverStatus.enabled ? "qg-badge qg-badge--accent" : "qg-badge"}>
                 {telegramReceiverStatus.enabled
-                  ? t({ ko: "활성", en: "active", ja: "有効", zh: "已启用" })
-                  : t({ ko: "비활성", en: "inactive", ja: "無効", zh: "未启用" })}
+                  ? t({ ko: "활성", en: "active", ja: "有効", zh: "已启用", fr: "actif" })
+                  : t({ ko: "비활성", en: "inactive", ja: "無効", zh: "未启用", fr: "inactif" })}
               </span>
             </div>
             <div>
-              {t({ ko: "허용 chat 수", en: "Allowed chats", ja: "許可チャット数", zh: "允许聊天数" })}:{" "}
-              {telegramReceiverStatus.allowedChatCount}
+              {t({
+                ko: "허용 chat 수",
+                en: "Allowed chats",
+                ja: "許可チャット数",
+                zh: "允许聊天数",
+                fr: "Conversations autorisées",
+              })}
+              : {telegramReceiverStatus.allowedChatCount}
             </div>
-            {telegramReceiverStatus.lastError && <div className="text-red-400">{telegramReceiverStatus.lastError}</div>}
+            {telegramReceiverStatus.lastError && (
+              <div className="qg-field__error">{telegramReceiverStatus.lastError}</div>
+            )}
           </div>
         )}
 
         {discordReceiverStatus && (
-          <div className="rounded-md border border-slate-700/60 bg-slate-800/60 px-3 py-2 text-xs text-slate-300 space-y-1">
+          <div
+            className="space-y-1 rounded-[var(--qg-radius)] px-3 py-2 text-[13px] qg-text-secondary"
+            style={{ border: "1px solid var(--th-border)", background: "var(--th-bg-primary)" }}
+          >
             <div>
-              {t({ ko: "디스코드 수신기", en: "Discord Receiver", ja: "Discord 受信機", zh: "Discord 接收器" })}:{" "}
-              <span className={discordReceiverStatus.enabled ? "text-emerald-400" : "text-amber-300"}>
+              {t({
+                ko: "디스코드 수신기",
+                en: "Discord Receiver",
+                ja: "Discord 受信機",
+                zh: "Discord 接收器",
+                fr: "Réception Discord",
+              })}
+              :{" "}
+              <span className={discordReceiverStatus.enabled ? "qg-badge qg-badge--accent" : "qg-badge"}>
                 {discordReceiverStatus.enabled
-                  ? t({ ko: "활성", en: "active", ja: "有効", zh: "已启用" })
-                  : t({ ko: "비활성", en: "inactive", ja: "無効", zh: "未启用" })}
+                  ? t({ ko: "활성", en: "active", ja: "有効", zh: "已启用", fr: "actif" })
+                  : t({ ko: "비활성", en: "inactive", ja: "無効", zh: "未启用", fr: "inactif" })}
               </span>
             </div>
             <div>
-              {t({ ko: "폴링 채널 수", en: "Polled channels", ja: "ポーリングチャネル数", zh: "轮询频道数" })}:{" "}
-              {discordReceiverStatus.routeCount}
+              {t({
+                ko: "폴링 채널 수",
+                en: "Polled channels",
+                ja: "ポーリングチャネル数",
+                zh: "轮询频道数",
+                fr: "Salons surveillés",
+              })}
+              : {discordReceiverStatus.routeCount}
             </div>
-            {discordReceiverStatus.lastError && <div className="text-red-400">{discordReceiverStatus.lastError}</div>}
+            {discordReceiverStatus.lastError && (
+              <div className="qg-field__error">{discordReceiverStatus.lastError}</div>
+            )}
           </div>
         )}
 
-        <div>
-          <label className="block text-xs text-slate-400 mb-1">
-            {t({ ko: "전송 대상 세션", en: "Target Session", ja: "送信先セッション", zh: "目标会话" })}
+        <div className="qg-field">
+          <label className="qg-field__label" htmlFor={`${fieldId}-target`}>
+            {t({
+              ko: "전송 대상 세션",
+              en: "Target Session",
+              ja: "送信先セッション",
+              zh: "目标会话",
+              fr: "Conversation cible",
+            })}
           </label>
           {chatRows.length === 0 ? (
-            <div className="text-xs text-slate-500 py-1">
+            <div className="py-1 text-[13px] qg-text-muted">
               {t({
                 ko: "저장된 세션이 없습니다. 먼저 채팅을 등록하세요.",
                 en: "No saved session. Add a chat first.",
                 ja: "保存済みセッションがありません。先にチャットを追加してください。",
                 zh: "没有已保存会话，请先添加聊天。",
+                fr: "Aucune conversation enregistrée. Ajoutez d'abord une conversation.",
               })}
             </div>
           ) : (
             <select
+              id={`${fieldId}-target`}
               value={selectedChat?.key ?? ""}
               onChange={(e) => setSelectedChatKey(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+              className="qg-select w-full"
             >
               {chatRows.map((row) => (
                 <option key={row.key} value={row.key}>
@@ -702,7 +795,17 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
           )}
         </div>
 
+        <label className="sr-only" htmlFor={`${fieldId}-message`}>
+          {t({
+            ko: "테스트 메시지",
+            en: "Test message",
+            ja: "テストメッセージ",
+            zh: "测试消息",
+            fr: "Message de test",
+          })}
+        </label>
         <textarea
+          id={`${fieldId}-message`}
           value={sendText}
           onChange={(e) => setSendText(e.target.value)}
           rows={3}
@@ -711,38 +814,38 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
             en: "Type a test message...",
             ja: "テストメッセージを入力...",
             zh: "输入测试消息...",
+            fr: "Saisissez un message de test…",
           })}
-          className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500 resize-y"
+          className="qg-textarea"
         />
 
         {!selectedChatTransportReady && selectedChat && (
-          <div className="text-xs px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300">
+          <div className="qg-field__hint">
             {t({
               ko: "이 채널은 현재 설정 저장/매핑은 가능하지만, 직접 전송 런타임은 아직 준비되지 않았습니다.",
               en: "This channel can be configured and mapped, but direct transport runtime is not ready yet.",
               ja: "このチャネルは設定/マッピングは可能ですが、直接送信ランタイムは未対応です。",
               zh: "该渠道可配置和映射，但直连发送运行时暂未就绪。",
+              fr: "Cette messagerie peut être configurée et reliée, mais l'envoi direct n'est pas encore disponible.",
             })}
           </div>
         )}
 
         <button
+          type="button"
           onClick={() => void handleSendMessage()}
           disabled={sending || !selectedChat || !sendText.trim() || !selectedChatTransportReady}
-          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="qg-btn qg-btn--primary"
         >
           {sending
-            ? t({ ko: "전송 중...", en: "Sending...", ja: "送信中...", zh: "发送中..." })
-            : t({ ko: "메시지 전송", en: "Send", ja: "送信", zh: "发送" })}
+            ? t({ ko: "전송 중...", en: "Sending...", ja: "送信中...", zh: "发送中...", fr: "Envoi…" })
+            : t({ ko: "메시지 전송", en: "Send", ja: "送信", zh: "发送", fr: "Envoyer" })}
         </button>
 
         {sendStatus && (
           <div
-            className={`text-xs px-3 py-2 rounded-lg ${
-              sendStatus.ok
-                ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                : "bg-red-500/10 text-red-400 border border-red-500/20"
-            }`}
+            role={sendStatus.ok ? "status" : "alert"}
+            className={sendStatus.ok ? "qg-field__hint" : "qg-field__error"}
           >
             {sendStatus.msg}
           </div>
@@ -750,14 +853,24 @@ export default function GatewaySettingsTab({ t, form, setForm, persistSettings }
 
         {runtimeSessions.length > 0 && (
           <div className="pt-1">
-            <div className="text-xs text-slate-400 mb-1">
-              {t({ ko: "런타임 세션", en: "Runtime Sessions", ja: "実行中セッション", zh: "运行时会话" })}
+            <div className="qg-field__label mb-1">
+              {t({
+                ko: "런타임 세션",
+                en: "Runtime Sessions",
+                ja: "実行中セッション",
+                zh: "运行时会话",
+                fr: "Conversations actives",
+              })}
             </div>
-            <div className="max-h-44 overflow-auto rounded-md border border-slate-700/60">
+            <div
+              className="max-h-44 overflow-auto rounded-[var(--qg-radius)]"
+              style={{ border: "1px solid var(--th-border)" }}
+            >
               {runtimeSessions.map((session) => (
                 <div
                   key={session.sessionKey}
-                  className="px-2.5 py-2 text-[11px] border-b last:border-b-0 border-slate-700/60 text-slate-300"
+                  className="px-2.5 py-2 text-[13px] qg-text-secondary"
+                  style={{ borderBottom: "1px solid var(--th-border)" }}
                 >
                   <span className="font-semibold">{session.channel}</span> · {session.displayName} · {session.targetId}
                 </div>

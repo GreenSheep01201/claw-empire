@@ -16,13 +16,25 @@ export default function SkillsMemorySection({
   onRefreshHistory,
 }: SkillsMemorySectionProps) {
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="text-sm font-semibold text-slate-100">
-          {t({ ko: "학습 메모리", en: "Learning Memory", ja: "学習メモリ", zh: "学习记忆" })}
-        </div>
-        <div className="text-[11px] text-slate-500">
-          {t({ ko: "CLI별 스킬 이력", en: "Per-CLI skill history", ja: "CLI別スキル履歴", zh: "按 CLI 的技能记录" })}
+    <section className="qg-card" style={{ padding: 12 }}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold" style={{ color: "var(--th-text-heading)" }}>
+          {t({
+            ko: "학습 메모리",
+            en: "Learning Memory",
+            ja: "学習メモリ",
+            zh: "学习记忆",
+            fr: "Mémoire des apprentissages",
+          })}
+        </h3>
+        <div className="text-[13px] qg-text-muted">
+          {t({
+            ko: "CLI별 스킬 이력",
+            en: "Per-CLI skill history",
+            ja: "CLI別スキル履歴",
+            zh: "按 CLI 的技能记录",
+            fr: "Compétences apprises par outil",
+          })}
         </div>
       </div>
       <SkillHistoryPanel
@@ -31,6 +43,6 @@ export default function SkillsMemorySection({
         onLearningDataChanged={onRefreshHistory}
         className="h-[380px]"
       />
-    </div>
+    </section>
   );
 }

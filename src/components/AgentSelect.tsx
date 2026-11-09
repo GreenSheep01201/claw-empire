@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { Check, ChevronDown } from "lucide-react";
 import type { Agent, Department } from "../types";
 import AgentAvatar, { useSpriteMap } from "./AgentAvatar";
 import { useI18n, localeName } from "../i18n";
@@ -15,10 +16,10 @@ interface AgentSelectProps {
 }
 
 const ROLE_LABELS: Record<string, LangText> = {
-  team_leader: { ko: "팀장", en: "Team Leader", ja: "チームリーダー", zh: "组长" },
-  senior: { ko: "시니어", en: "Senior", ja: "シニア", zh: "高级" },
-  junior: { ko: "주니어", en: "Junior", ja: "ジュニア", zh: "初级" },
-  intern: { ko: "인턴", en: "Intern", ja: "インターン", zh: "实习生" },
+  team_leader: { ko: "팀장", en: "Team Leader", ja: "チームリーダー", zh: "组长", fr: "Chef d'équipe" },
+  senior: { ko: "시니어", en: "Senior", ja: "シニア", zh: "高级", fr: "Senior" },
+  junior: { ko: "주니어", en: "Junior", ja: "ジュニア", zh: "初级", fr: "Junior" },
+  intern: { ko: "인턴", en: "Intern", ja: "インターン", zh: "实习生", fr: "Stagiaire" },
 };
 
 export default function AgentSelect({
@@ -43,11 +44,9 @@ export default function AgentSelect({
     return map;
   }, [departments]);
 
-  const textSize = size === "md" ? "text-sm" : "text-xs";
-  const padY = size === "md" ? "py-2" : "py-1";
+  const textSize = size === "md" ? "text-sm" : "text-[13px]";
+  const minHeight = size === "md" ? "min-h-10" : "min-h-9";
   const avatarSize = size === "md" ? 22 : 18;
-
-  const tr = (ko: string, en: string, ja = en, zh = en) => t({ ko, en, ja, zh });
 
   const getAgentName = (agent: Agent) => localeName(locale, agent);
 
@@ -63,7 +62,15 @@ export default function AgentSelect({
   };
 
   const effectivePlaceholder =
-    placeholder ?? tr("-- 담당자 없음 --", "-- Unassigned --", "-- 担当者なし --", "-- 无负责人 --");
+    placeholder ??
+    t({
+      ko: "-- 담당자 없음 --",
+      en: "-- Unassigned --",
+      ja: "-- 担当者なし --",
+      zh: "-- 无负责人 --",
+      fr: "Aucun responsable",
+    });
+  const workingLabel = t({ ko: "작업 중", en: "Working", ja: "作業中", zh: "工作中", fr: "En activité" });
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -73,40 +80,45 @@ export default function AgentSelect({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  const optionClass = `flex w-full items-center gap-2 px-3 ${minHeight} ${textSize} text-left text-[var(--th-text-primary)] transition-colors hover:bg-[var(--qg-accent-soft)] focus-visible:bg-[var(--qg-accent-soft)] focus-visible:outline-none`;
+
   return (
-    <div ref={ref} className={`relative ${className}`}>
+    <div
+      ref={ref}
+      className={`relative ${className}`}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && open) {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen(false);
+        }
+      }}
+    >
       {/* Trigger */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`w-full flex items-center gap-2 px-2 ${padY} rounded-lg border border-slate-600 bg-slate-700 ${textSize} text-slate-300 outline-none transition hover:border-slate-500 focus:border-blue-500`}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-2 rounded-[4px] border border-[var(--th-input-border)] bg-[var(--th-input-bg)] px-2.5 ${minHeight} ${textSize} text-left text-[var(--th-text-primary)] transition-colors focus-visible:border-[var(--th-focus-ring)] focus-visible:outline-2 focus-visible:outline-[var(--th-focus-ring-shadow)]`}
       >
         {selected ? (
           <>
             <AgentAvatar agent={selected} spriteMap={spriteMap} size={avatarSize} />
             <span className="truncate">{getAgentName(selected)}</span>
-            <span className="text-slate-500 text-[10px]">({getRoleLabel(selected.role)})</span>
+            <span className="qg-text-muted shrink-0 text-[13px]">({getRoleLabel(selected.role)})</span>
             {getDepartmentLabel(selected) && (
-              <span className="text-slate-500 text-[10px]">· {getDepartmentLabel(selected)}</span>
+              <span className="qg-text-muted truncate text-[13px]">· {getDepartmentLabel(selected)}</span>
             )}
           </>
         ) : (
-          <span className="text-slate-500">{effectivePlaceholder}</span>
+          <span className="qg-text-muted truncate">{effectivePlaceholder}</span>
         )}
-        <svg
-          className="ml-auto w-3 h-3 text-slate-500 flex-shrink-0"
-          viewBox="0 0 12 12"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M3 5l3 3 3-3" />
-        </svg>
+        <ChevronDown size={16} aria-hidden className="qg-text-muted ml-auto flex-shrink-0" />
       </button>
 
       {/* Dropdown */}
       {open && (
-        <div className="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-slate-600 bg-slate-800 shadow-xl">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-[var(--qg-radius)] border border-[var(--th-border-strong)] bg-[var(--th-bg-surface)] py-1 shadow-[var(--qg-lift-high)]">
           {/* None option */}
           <button
             type="button"
@@ -114,32 +126,45 @@ export default function AgentSelect({
               onChange("");
               setOpen(false);
             }}
-            className={`w-full flex items-center gap-2 px-2 ${padY} ${textSize} text-slate-500 hover:bg-slate-700 transition-colors`}
+            aria-pressed={value === ""}
+            className={optionClass}
           >
-            {effectivePlaceholder}
+            <span className="qg-text-muted truncate">{effectivePlaceholder}</span>
           </button>
 
-          {agents.map((a) => (
-            <button
-              key={a.id}
-              type="button"
-              onClick={() => {
-                onChange(a.id);
-                setOpen(false);
-              }}
-              className={`w-full flex items-center gap-2 px-2 ${padY} ${textSize} transition-colors ${
-                a.id === value ? "bg-blue-600/20 text-blue-300" : "text-slate-300 hover:bg-slate-700"
-              }`}
-            >
-              <AgentAvatar agent={a} spriteMap={spriteMap} size={avatarSize} />
-              <span className="truncate">{getAgentName(a)}</span>
-              <span className="text-slate-500 text-[10px]">({getRoleLabel(a.role)})</span>
-              {getDepartmentLabel(a) && <span className="text-slate-500 text-[10px]">· {getDepartmentLabel(a)}</span>}
-              {a.status === "working" && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
-              )}
-            </button>
-          ))}
+          {agents.map((a) => {
+            const isSelected = a.id === value;
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => {
+                  onChange(a.id);
+                  setOpen(false);
+                }}
+                aria-pressed={isSelected}
+                className={`${optionClass} ${isSelected ? "bg-[var(--qg-accent-soft)] font-semibold" : ""}`}
+              >
+                <AgentAvatar agent={a} spriteMap={spriteMap} size={avatarSize} />
+                <span className="truncate">{getAgentName(a)}</span>
+                <span className="qg-text-muted shrink-0 text-[13px] font-normal">({getRoleLabel(a.role)})</span>
+                {getDepartmentLabel(a) && (
+                  <span className="qg-text-muted truncate text-[13px] font-normal">· {getDepartmentLabel(a)}</span>
+                )}
+                <span className="ml-auto flex flex-shrink-0 items-center gap-1.5">
+                  {a.status === "working" && (
+                    <span
+                      className="h-2 w-2 rounded-full bg-[var(--qg-accent)]"
+                      role="img"
+                      aria-label={workingLabel}
+                      title={workingLabel}
+                    />
+                  )}
+                  {isSelected && <Check size={16} aria-hidden className="text-[var(--qg-accent)]" />}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
