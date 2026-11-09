@@ -177,6 +177,7 @@ export default function GeneralSettingsTab({ t, form, setForm, saved, onSave }: 
               color: "var(--th-text-primary)",
             }}
           >
+            <option value="fr">Français</option>
             <option value="ko">{t({ ko: "한국어", en: "Korean", ja: "韓国語", zh: "韩语" })}</option>
             <option value="en">{t({ ko: "영어", en: "English", ja: "英語", zh: "英语" })}</option>
             <option value="ja">{t({ ko: "일본어", en: "Japanese", ja: "日本語", zh: "日语" })}</option>

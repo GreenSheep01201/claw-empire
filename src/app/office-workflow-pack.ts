@@ -1,6 +1,14 @@
+import type { UiLanguage } from "../i18n";
 import type { Agent, AgentRole, CliProvider, Department, RoomTheme, WorkflowPackKey } from "../types";
 
-export type UiLanguageLike = "ko" | "en" | "ja" | "zh";
+/** Any UI language the app accepts. */
+export type UiLanguageLike = UiLanguage;
+/** Languages the pack content is authored in; other UI languages fall back to English. */
+type PackLocale = "ko" | "en" | "ja" | "zh";
+
+function toPackLocale(language: UiLanguageLike): PackLocale {
+  return language === "fr" ? "en" : language;
+}
 
 type Localized = { ko: string; en: string; ja: string; zh: string };
 type DeptPreset = {
@@ -459,7 +467,7 @@ export function normalizeOfficeWorkflowPack(value: unknown): WorkflowPackKey {
   return value in PACK_PRESETS ? (value as WorkflowPackKey) : "development";
 }
 
-function pickText(locale: UiLanguageLike, text: Localized): string {
+function pickText(locale: PackLocale, text: Localized): string {
   switch (locale) {
     case "ko":
       return text.ko;
@@ -474,7 +482,7 @@ function pickText(locale: UiLanguageLike, text: Localized): string {
 }
 
 function localizedNumberedName(
-  locale: UiLanguageLike,
+  locale: PackLocale,
   prefix: Localized,
   order: number,
 ): { name: string; name_ko: string; name_ja: string; name_zh: string } {
@@ -538,7 +546,7 @@ function buildSeedPersonality(params: {
   packKey: WorkflowPackKey;
   deptId: string;
   role: AgentRole;
-  locale: UiLanguageLike;
+  locale: PackLocale;
   defaultPrefix: Localized;
   departmentName: { ko: string; en: string; ja: string; zh: string };
 }): string | null {
@@ -546,7 +554,7 @@ function buildSeedPersonality(params: {
   const tone = PACK_SEED_PROFILE[params.packKey]?.tone;
   if (!tone) return null;
   const locale = params.locale;
-  const roleLabelMap: Record<UiLanguageLike, Record<AgentRole, string>> = {
+  const roleLabelMap: Record<PackLocale, Record<AgentRole, string>> = {
     ko: {
       team_leader: "팀 리드",
       senior: "시니어",
@@ -572,7 +580,7 @@ function buildSeedPersonality(params: {
       intern: "实习成员",
     },
   };
-  const focusByLocale: Record<UiLanguageLike, string> = {
+  const focusByLocale: Record<PackLocale, string> = {
     ko: params.defaultPrefix.ko?.trim() || `${params.departmentName.ko} 담당`,
     en: params.defaultPrefix.en?.trim() || `${params.departmentName.en} coverage`,
     ja: params.defaultPrefix.ja?.trim() || `${params.departmentName.ja}担当`,
@@ -588,7 +596,7 @@ function buildSeedPersonality(params: {
 }
 
 function buildPackDepartmentDescription(params: {
-  locale: UiLanguageLike;
+  locale: PackLocale;
   packSummary: Localized;
   departmentName: Localized;
 }): string {
@@ -602,7 +610,7 @@ function buildPackDepartmentDescription(params: {
 }
 
 function buildPackDepartmentPrompt(params: {
-  locale: UiLanguageLike;
+  locale: PackLocale;
   packSummary: Localized;
   departmentName: Localized;
 }): string {
@@ -631,13 +639,14 @@ export function getOfficePackRoomThemes(packKey: WorkflowPackKey): Record<string
   return preset.roomThemes;
 }
 
-export function listOfficePackOptions(locale: UiLanguageLike): Array<{
+export function listOfficePackOptions(language: UiLanguageLike): Array<{
   key: WorkflowPackKey;
   label: string;
   summary: string;
   slug: string;
   accent: number;
 }> {
+  const locale = toPackLocale(language);
   return (Object.keys(PACK_PRESETS) as WorkflowPackKey[]).map((key) => ({
     key,
     label: pickText(locale, PACK_PRESETS[key].label),
@@ -654,7 +663,8 @@ export function buildOfficePackPresentation(params: {
   agents: Agent[];
   customRoomThemes: Record<string, RoomTheme>;
 }): OfficePackPresentation {
-  const { packKey, locale, departments, agents, customRoomThemes } = params;
+  const { packKey, departments, agents, customRoomThemes } = params;
+  const locale = toPackLocale(params.locale);
   if (packKey === "development") {
     return {
       departments,
@@ -730,7 +740,7 @@ export function buildOfficePackStarterAgents(params: {
   locale?: UiLanguageLike;
 }): OfficePackStarterAgentDraft[] {
   const { packKey, departments } = params;
-  const locale = params.locale ?? "en";
+  const locale = toPackLocale(params.locale ?? "en");
   if (packKey === "development") return [];
   const preset = PACK_PRESETS[packKey] ?? PACK_PRESETS.development;
   const departmentById = new Map(departments.map((department) => [department.id, department]));

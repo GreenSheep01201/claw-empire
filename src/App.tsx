@@ -149,7 +149,7 @@ export default function App() {
       return null;
     }
 
-    const locale = normalizeLanguage(sourceSettings.language) as "ko" | "en" | "ja" | "zh";
+    const locale = normalizeLanguage(sourceSettings.language);
     const presentation = buildOfficePackPresentation({
       packKey,
       locale,

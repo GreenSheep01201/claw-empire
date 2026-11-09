@@ -239,7 +239,7 @@ const LOCALE_TEXT = {
   },
 };
 
-const BREAK_CHAT_MESSAGES: Record<SupportedLocale, string[]> = {
+const BREAK_CHAT_MESSAGES: LocaleMap<string[]> = {
   ko: [
     "커피 한 잔 더~",
     "오늘 점심 뭐 먹지?",
@@ -314,8 +314,10 @@ const BREAK_CHAT_MESSAGES: Record<SupportedLocale, string[]> = {
   ],
 };
 
-function pickLocale<T>(locale: SupportedLocale, map: Record<SupportedLocale, T>): T {
-  return map[locale] ?? map.ko;
+type LocaleMap<T> = { ko: T; en: T } & Partial<Record<SupportedLocale, T>>;
+
+function pickLocale<T>(locale: SupportedLocale, map: LocaleMap<T>): T {
+  return map[locale] ?? map.en;
 }
 
 function inferReviewDecision(line?: string | null): MeetingReviewDecision {

@@ -1,3 +1,4 @@
+import type { LangText } from "../../i18n";
 import type { SkillEntry, SkillHistoryProvider, SkillLearnJob, SkillLearnProvider } from "../../api";
 import type { UiLanguage } from "../../i18n";
 import type { Agent, AgentRole } from "../../types";
@@ -8,7 +9,7 @@ export interface CategorizedSkill extends SkillEntry {
 }
 
 export type Locale = UiLanguage;
-export type TFunction = (messages: Record<Locale, string>) => string;
+export type TFunction = (messages: LangText) => string;
 
 export function categorize(name: string, repo: string): string {
   const n = name.toLowerCase();

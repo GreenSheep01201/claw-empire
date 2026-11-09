@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { pickLang, type UiLanguage } from "../i18n";
 
 /* ================================================================== */
 /*  Types                                                               */
@@ -12,7 +13,7 @@ export interface OfficeRoomManagerProps {
   onThemeChange: (themes: Record<string, DeptTheme>) => void;
   onActiveDeptChange?: (deptId: string | null) => void;
   onClose: () => void;
-  language: "ko" | "en" | "ja" | "zh";
+  language: UiLanguage;
 }
 
 /* ================================================================== */
@@ -121,7 +122,7 @@ interface DeptCardProps {
   deptId: string;
   deptName: string;
   state: DeptState;
-  language: "ko" | "en" | "ja" | "zh";
+  language: UiLanguage;
   onActivate: () => void;
   onAccentChange: (accent: number) => void;
   onToneChange: (tone: number) => void;
@@ -153,7 +154,7 @@ function DeptCard({
           }}
           className="text-xs text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded border border-slate-600 hover:border-slate-400 transition-colors"
         >
-          {labels.reset[language]}
+          {pickLang(language, labels.reset)}
         </button>
       </div>
 
@@ -167,7 +168,7 @@ function DeptCard({
 
       {/* Preset palette */}
       <div className="space-y-1">
-        <span className="text-xs text-slate-400">{labels.presets[language]}</span>
+        <span className="text-xs text-slate-400">{pickLang(language, labels.presets)}</span>
         <div className="flex gap-1.5 flex-wrap">
           {presets.map((preset) => (
             <button
@@ -189,7 +190,7 @@ function DeptCard({
 
       {/* Accent color picker */}
       <div className="flex items-center gap-3">
-        <label className="text-xs text-slate-400 w-20 shrink-0">{labels.accent[language]}</label>
+        <label className="text-xs text-slate-400 w-20 shrink-0">{pickLang(language, labels.accent)}</label>
         <input
           type="color"
           value={numToHex(state.accent)}
@@ -209,7 +210,7 @@ function DeptCard({
       {/* Tone slider */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <label className="text-xs text-slate-400">{labels.tone[language]}</label>
+          <label className="text-xs text-slate-400">{pickLang(language, labels.tone)}</label>
           <span className="text-xs text-slate-500">{state.tone}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -324,11 +325,11 @@ export default function OfficeRoomManager({
       <div className="w-full md:max-w-md bg-slate-900 flex flex-col h-full shadow-2xl border-l border-slate-700">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700 shrink-0">
-          <h2 className="text-base font-semibold text-slate-100">{labels.title[language]}</h2>
+          <h2 className="text-base font-semibold text-slate-100">{pickLang(language, labels.title)}</h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-slate-100 transition-colors w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700"
-            aria-label={labels.close[language]}
+            aria-label={pickLang(language, labels.close)}
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
               <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
@@ -362,13 +363,13 @@ export default function OfficeRoomManager({
             onClick={resetAll}
             className="flex-1 py-2 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
           >
-            {labels.resetAll[language]}
+            {pickLang(language, labels.resetAll)}
           </button>
           <button
             onClick={onClose}
             className="flex-1 py-2 rounded-md text-sm font-medium bg-slate-600 text-slate-100 hover:bg-slate-500 transition-colors"
           >
-            {labels.close[language]}
+            {pickLang(language, labels.close)}
           </button>
         </div>
       </div>

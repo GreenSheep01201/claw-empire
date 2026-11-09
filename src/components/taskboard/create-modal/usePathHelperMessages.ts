@@ -1,3 +1,4 @@
+import type { LangText } from "../../../i18n";
 import { useCallback, useMemo } from "react";
 import { isApiRequestError } from "../../../api";
 import type { Locale, TFunction } from "../constants";
@@ -46,7 +47,7 @@ export function usePathHelperMessages(t: TFunction) {
   );
 
   const resolvePathHelperErrorMessage = useCallback(
-    (error: unknown, fallback: Record<Locale, string>) => {
+    (error: unknown, fallback: LangText) => {
       if (!isApiRequestError(error)) return t(fallback);
 
       if (error.status === 404) {

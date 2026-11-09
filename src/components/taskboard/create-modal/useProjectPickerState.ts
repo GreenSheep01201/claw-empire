@@ -1,3 +1,4 @@
+import type { LangText } from "../../../i18n";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   browseProjectPath,
@@ -9,7 +10,7 @@ import {
 import type { Project } from "../../../types";
 import type { FormFeedback, Locale, ManualPathEntry, MissingPathPrompt } from "../constants";
 
-type ResolvePathHelperErrorMessage = (error: unknown, fallback: Record<Locale, string>) => string;
+type ResolvePathHelperErrorMessage = (error: unknown, fallback: LangText) => string;
 
 interface UseProjectPickerStateParams {
   unsupportedPathApiMessage: string;

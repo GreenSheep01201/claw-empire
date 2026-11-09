@@ -1,3 +1,4 @@
+import type { LangText } from "../../../i18n";
 import type { Dispatch, SetStateAction } from "react";
 import type { Project, TaskType, WorkflowPackKey } from "../../../types";
 import { checkProjectPath, createProject, getProjects, isApiRequestError } from "../../../api";
@@ -15,7 +16,7 @@ type CreateTaskHandler = (input: {
   workflow_pack_key?: WorkflowPackKey;
 }) => void | Promise<void>;
 
-type ResolvePathHelperErrorMessage = (error: unknown, fallback: Record<Locale, string>) => string;
+type ResolvePathHelperErrorMessage = (error: unknown, fallback: LangText) => string;
 
 type SubmitTaskOptions = {
   allowCreateMissingPath?: boolean;

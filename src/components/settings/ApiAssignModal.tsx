@@ -1,3 +1,4 @@
+import type { LangText } from "../../i18n";
 import { getOfficePackMeta } from "../../app/office-workflow-pack";
 import AgentAvatar, { buildSpriteMap } from "../AgentAvatar";
 import type { Agent, WorkflowPackKey } from "../../types";
@@ -31,7 +32,7 @@ export default function ApiAssignModal({ t, localeTag, apiState }: ApiAssignModa
 
   const roleBadge = (role: string) => {
     const label = ROLE_LABELS[role];
-    const text = label ? t(label as Record<"ko" | "en" | "ja" | "zh", string>) : role;
+    const text = label ? t(label as LangText) : role;
     const color =
       role === "team_leader"
         ? "text-amber-400 bg-amber-500/15"
