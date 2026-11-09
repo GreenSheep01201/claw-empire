@@ -1,6 +1,8 @@
 import type { ComponentProps, FormEventHandler } from "react";
 import type { Agent, Department, TaskType } from "../../../types";
 import { TASK_TYPE_OPTIONS, taskTypeLabel, type FormFeedback, type TFunction } from "../constants";
+import { FileClock } from "lucide-react";
+import Dialog from "../../ui/Dialog";
 import CreateTaskModalOverlays from "./Overlays";
 import type { CreateTaskModalOverlaysProps } from "./overlay-types";
 import { AssigneeSection, PrioritySection, ProjectSection } from "./Sections";
@@ -61,51 +63,41 @@ export default function CreateTaskModalView({
   onAssignAgentChange,
 }: CreateTaskModalViewProps) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:items-center sm:p-4"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          event.preventDefault();
-        }
-      }}
-    >
-      <div
-        className={`my-3 flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl transition-[max-width] duration-300 ease-out sm:my-0 sm:max-h-[90dvh] lg:max-h-none lg:max-w-2xl ${
-          createNewProjectMode ? "lg:max-w-5xl" : ""
-        }`}
-      >
-        <div className="flex items-center justify-between border-b border-slate-700 px-6 py-5">
-          <h2 className="text-lg font-bold text-white">
-            {t({ ko: "새 업무 만들기", en: "Create New Task", ja: "新しいタスクを作成", zh: "创建新任务" })}
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenDraftModal}
-              className="rounded-lg border border-slate-700 px-2.5 py-1.5 text-xs text-slate-200 transition hover:bg-slate-800"
-              title={t({
-                ko: "임시 저장 항목 열기",
-                en: "Open temporary drafts",
-                ja: "一時保存を開く",
-                zh: "打开临时草稿",
-              })}
-            >
-              {`[${t({ ko: "임시", en: "Temp", ja: "一時", zh: "临时" })}(${draftsCount})]`}
-            </button>
-            <button
-              onClick={onRequestClose}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
-              title={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭" })}
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-
-        <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div
-            className={`min-h-0 flex-1 overflow-y-auto px-6 py-4 lg:overflow-visible ${createNewProjectMode ? "lg:grid lg:grid-cols-2 lg:gap-5" : ""}`}
+    <>
+      <Dialog
+        open
+        size="lg"
+        dismissOnBackdrop={false}
+        onClose={onRequestClose}
+        closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+        title={t({
+          ko: "새 업무 만들기",
+          en: "Create New Task",
+          ja: "新しいタスクを作成",
+          zh: "创建新任务",
+          fr: "Nouvelle tâche",
+        })}
+        headerActions={
+          <button
+            type="button"
+            onClick={onOpenDraftModal}
+            className="qg-btn"
+            title={t({
+              ko: "임시 저장 항목 열기",
+              en: "Open temporary drafts",
+              ja: "一時保存を開く",
+              zh: "打开临时草稿",
+              fr: "Ouvrir les brouillons",
+            })}
           >
+            <FileClock size={16} aria-hidden />
+            {t({ ko: "임시", en: "Temp", ja: "一時", zh: "临时", fr: "Brouillons" })}
+            <span className="qg-count">{draftsCount}</span>
+          </button>
+        }
+      >
+        <form onSubmit={onSubmit} className="flex flex-col">
+          <div className={createNewProjectMode ? "lg:grid lg:grid-cols-2 lg:gap-5" : undefined}>
             <div className="min-w-0 space-y-4">
               <div>
                 <label className="mb-1 block text-sm font-medium text-slate-300">
@@ -183,7 +175,14 @@ export default function CreateTaskModalView({
                 </div>
               </div>
 
-              <ProjectSection {...projectSectionProps} />
+              {/* Escape closes an open project dropdown, not the whole dialog. */}
+              <div
+                onKeyDown={(event) => {
+                  if (event.key === "Escape" && projectSectionProps.projectDropdownOpen) event.stopPropagation();
+                }}
+              >
+                <ProjectSection {...projectSectionProps} />
+              </div>
 
               <div className={createNewProjectMode ? "lg:hidden" : ""}>
                 <PrioritySection priority={priority} t={t} onPriorityChange={onPriorityChange} />
@@ -218,7 +217,7 @@ export default function CreateTaskModalView({
           </div>
 
           {formFeedback && (
-            <div className="px-6 pb-3">
+            <div className="pt-4">
               <div
                 className={`rounded-lg border px-3 py-2 text-xs ${
                   formFeedback.tone === "error"
@@ -231,7 +230,7 @@ export default function CreateTaskModalView({
             </div>
           )}
 
-          <div className="flex justify-end gap-3 border-t border-slate-700 px-6 py-4">
+          <div className="mt-4 flex justify-end gap-3 border-t border-slate-700 pt-4">
             <button
               type="button"
               onClick={onRequestClose}
@@ -250,9 +249,9 @@ export default function CreateTaskModalView({
             </button>
           </div>
         </form>
-      </div>
+      </Dialog>
 
       <CreateTaskModalOverlays {...overlaysProps} />
-    </div>
+    </>
   );
 }

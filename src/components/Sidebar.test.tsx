@@ -53,3 +53,23 @@ describe("Sidebar", () => {
     expect(within(poles).getByLabelText("0 agent actif sur 1")).toBeInTheDocument();
   });
 });
+
+describe("Sidebar dans le tiroir mobile", () => {
+  it("n'offre pas de bouton pour replier le menu", () => {
+    render(
+      <I18nProvider language="fr">
+        <Sidebar
+          currentView="office"
+          onChangeView={vi.fn()}
+          departments={departments}
+          agents={agents}
+          settings={settings}
+          connected
+          collapsible={false}
+        />
+      </I18nProvider>,
+    );
+
+    expect(screen.queryByRole("button", { name: "Replier le menu" })).not.toBeInTheDocument();
+  });
+});

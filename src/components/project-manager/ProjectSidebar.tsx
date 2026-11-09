@@ -2,9 +2,7 @@ import type { Project } from "../../types";
 import type { ProjectI18nTranslate } from "./types";
 
 interface ProjectSidebarProps {
-  headerTitle: string;
   t: ProjectI18nTranslate;
-  onClose: () => void;
   search: string;
   setSearch: (value: string) => void;
   loadProjects: (targetPage: number, keyword: string) => Promise<void>;
@@ -19,9 +17,7 @@ interface ProjectSidebarProps {
 }
 
 export default function ProjectSidebar({
-  headerTitle,
   t,
-  onClose,
   search,
   setSearch,
   loadProjects,
@@ -36,17 +32,6 @@ export default function ProjectSidebar({
 }: ProjectSidebarProps) {
   return (
     <aside className="flex w-full flex-col border-r border-slate-700 bg-slate-900/70 md:w-[330px]">
-      <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
-        <h2 className="text-sm font-semibold text-white">{headerTitle}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-md px-2 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-white"
-        >
-          ✕
-        </button>
-      </div>
-
       <div className="border-b border-slate-700 px-4 py-3">
         <input
           type="text"

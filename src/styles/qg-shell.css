@@ -690,3 +690,22 @@
   font-weight: 700;
   line-height: 18px;
 }
+
+.qg-dialog--full {
+  --qg-dialog-width: 1180px;
+  height: min(100dvh - 48px, 880px);
+}
+
+.qg-dialog--full .qg-dialog__body {
+  padding: 0;
+  overflow: hidden;
+}
+
+.qg-btn--danger {
+  border-color: color-mix(in srgb, var(--qg-pin) 55%, transparent);
+  color: var(--qg-pin);
+}
+
+.qg-btn--danger:hover {
+  background: color-mix(in srgb, var(--qg-pin) 10%, var(--th-bg-surface));
+}

@@ -3,6 +3,7 @@ import { getOfficePackMeta } from "../../app/office-workflow-pack";
 import AgentAvatar, { buildSpriteMap } from "../AgentAvatar";
 import type { Agent, WorkflowPackKey } from "../../types";
 import type { ApiStateBundle, TFunction } from "./types";
+import Dialog from "../ui/Dialog";
 
 interface ApiAssignModalProps {
   t: TFunction;
@@ -108,83 +109,75 @@ export default function ApiAssignModal({ t, localeTag, apiState }: ApiAssignModa
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-      onClick={() => setApiAssignTarget(null)}
+    <Dialog
+      open
+      size="sm"
+      onClose={() => setApiAssignTarget(null)}
+      closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+      title={t({
+        ko: "에이전트에 모델 배정",
+        en: "Assign Model to Agent",
+        ja: "エージェントにモデル割当",
+        zh: "分配模型给代理",
+        fr: "Attribuer le modèle à un agent",
+      })}
+      footer={
+        <button
+          onClick={() => setApiAssignTarget(null)}
+          className="text-xs px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-lg transition-colors"
+        >
+          {t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+        </button>
+      }
     >
-      <div
-        className="w-96 max-h-[75vh] rounded-xl border border-slate-600 bg-slate-800 shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-4 py-3 border-b border-slate-700">
-          <h4 className="text-sm font-semibold text-white">
+      <p className="text-[11px] text-slate-400 mb-2 font-mono truncate">{apiAssignTarget.model}</p>
+      <div className="space-y-3">
+        {apiAssignAgents.length === 0 ? (
+          <p className="text-xs text-slate-500 text-center py-4">
             {t({
-              ko: "에이전트에 모델 배정",
-              en: "Assign Model to Agent",
-              ja: "エージェントにモデル割当",
-              zh: "分配模型给代理",
+              ko: "에이전트를 불러오는 중...",
+              en: "Loading agents...",
+              ja: "エージェント読み込み中...",
+              zh: "正在加载代理...",
             })}
-          </h4>
-          <p className="text-[11px] text-slate-400 mt-0.5 font-mono truncate">{apiAssignTarget.model}</p>
-        </div>
-
-        <div className="max-h-[55vh] overflow-y-auto p-2 space-y-3">
-          {apiAssignAgents.length === 0 ? (
-            <p className="text-xs text-slate-500 text-center py-4">
-              {t({
-                ko: "에이전트를 불러오는 중...",
-                en: "Loading agents...",
-                ja: "エージェント読み込み中...",
-                zh: "正在加载代理...",
-              })}
-            </p>
-          ) : (
-            <>
-              {packSections.map(({ packKey, departments, unassigned }) => (
-                <div key={packKey} className="space-y-2">
-                  <div className="px-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      {t(getOfficePackMeta(packKey).label)}
-                    </span>
-                  </div>
-                  {departments.map(({ dept, agents }) => (
-                    <div key={`${packKey}:${dept.id}`}>
-                      <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-slate-700/40">
-                        <span className="text-sm">{dept.icon}</span>
-                        <span className="text-[11px] font-semibold text-slate-300 tracking-wide">
-                          {localName(dept.name, dept.name_ko)}
-                        </span>
-                        <span className="text-[10px] text-slate-600">({agents.length})</span>
-                      </div>
-                      {agents.map(renderAgentRow)}
-                    </div>
-                  ))}
-                  {unassigned.length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-slate-700/40">
-                        <span className="text-sm">📁</span>
-                        <span className="text-[11px] font-semibold text-slate-500 tracking-wide">
-                          {t({ ko: "미배정", en: "Unassigned", ja: "未配属", zh: "未分配" })}
-                        </span>
-                      </div>
-                      {unassigned.map(renderAgentRow)}
-                    </div>
-                  )}
+          </p>
+        ) : (
+          <>
+            {packSections.map(({ packKey, departments, unassigned }) => (
+              <div key={packKey} className="space-y-2">
+                <div className="px-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {t(getOfficePackMeta(packKey).label)}
+                  </span>
                 </div>
-              ))}
-            </>
-          )}
-        </div>
-
-        <div className="px-4 py-2.5 border-t border-slate-700 flex justify-end">
-          <button
-            onClick={() => setApiAssignTarget(null)}
-            className="text-xs px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-lg transition-colors"
-          >
-            {t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭" })}
-          </button>
-        </div>
+                {departments.map(({ dept, agents }) => (
+                  <div key={`${packKey}:${dept.id}`}>
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-slate-700/40">
+                      <span className="text-sm">{dept.icon}</span>
+                      <span className="text-[11px] font-semibold text-slate-300 tracking-wide">
+                        {localName(dept.name, dept.name_ko)}
+                      </span>
+                      <span className="text-[10px] text-slate-600">({agents.length})</span>
+                    </div>
+                    {agents.map(renderAgentRow)}
+                  </div>
+                ))}
+                {unassigned.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-slate-700/40">
+                      <span className="text-sm">📁</span>
+                      <span className="text-[11px] font-semibold text-slate-500 tracking-wide">
+                        {t({ ko: "미배정", en: "Unassigned", ja: "未配属", zh: "未分配" })}
+                      </span>
+                    </div>
+                    {unassigned.map(renderAgentRow)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </>
+        )}
       </div>
-    </div>
+    </Dialog>
   );
 }

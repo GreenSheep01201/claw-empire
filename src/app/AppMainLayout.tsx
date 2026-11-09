@@ -365,6 +365,7 @@ export default function AppMainLayout({
             agents={officePresentation.agents}
             settings={settings}
             connected={connected}
+            collapsible={false}
           />
         </div>
 

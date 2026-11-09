@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 
-type DialogSize = "sm" | "md" | "lg";
+type DialogSize = "sm" | "md" | "lg" | "full";
 
 interface DialogProps {
   open: boolean;
@@ -15,6 +15,10 @@ interface DialogProps {
   headerActions?: ReactNode;
   footer?: ReactNode;
   size?: DialogSize;
+  /** Set false when an accidental outside click must not close the dialog (e.g. long forms). */
+  dismissOnBackdrop?: boolean;
+  /** Scope class for content-specific styling. */
+  className?: string;
 }
 
 /**
@@ -32,6 +36,8 @@ export default function Dialog({
   headerActions,
   footer,
   size = "md",
+  dismissOnBackdrop = true,
+  className,
 }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -52,16 +58,18 @@ export default function Dialog({
   return (
     <dialog
       ref={ref}
-      className={`qg-dialog qg-dialog--${size}`}
+      className={`qg-dialog qg-dialog--${size}${className ? ` ${className}` : ""}`}
       aria-labelledby={titleId}
       onCancel={(event) => event.preventDefault()}
       onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
+        if (event.key !== "Escape" || event.defaultPrevented) return;
+        // A nested dialog handles its own Escape; React would otherwise bubble it here too.
+        if ((event.target as Element).closest("dialog") !== event.currentTarget) return;
         event.preventDefault();
         onClose();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (dismissOnBackdrop && event.target === event.currentTarget) onClose();
       }}
     >
       <div className="qg-dialog__sheet">

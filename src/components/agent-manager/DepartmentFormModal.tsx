@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { Department, WorkflowPackKey } from "../../types";
 import { useI18n } from "../../i18n";
 import * as api from "../../api";
 import { DEPT_BLANK, DEPT_COLORS } from "./constants";
 import EmojiPicker from "./EmojiPicker";
 import type { DeptForm, Translator } from "./types";
+import Dialog from "../ui/Dialog";
 
 export default function DepartmentFormModal({
   locale,
@@ -61,21 +62,12 @@ export default function DepartmentFormModal({
   });
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   // sort_order 기반 다음 순번 계산
   const nextSortOrder = (() => {
     const orders = departments.map((d) => d.sort_order).filter((n) => typeof n === "number" && !isNaN(n));
     return Math.max(0, ...orders) + 1;
   })();
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
@@ -199,219 +191,198 @@ export default function DepartmentFormModal({
   };
 
   return (
-    <div
-      ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "var(--th-modal-overlay)" }}
-      onClick={(e) => {
-        if (e.target === overlayRef.current) onClose();
-      }}
+    <Dialog
+      open
+      size="md"
+      onClose={onClose}
+      closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+      title={
+        isEdit
+          ? t({ ko: "부서 정보 수정", en: "Edit Department", fr: "Modifier le département" })
+          : t({ ko: "신규 부서 추가", en: "Add Department", fr: "Ajouter un département" })
+      }
     >
-      <div
-        className="w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[85vh] overflow-y-auto"
-        style={{
-          background: "var(--th-card-bg)",
-          border: "1px solid var(--th-card-border)",
-          backdropFilter: "blur(20px)",
-        }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-base font-bold flex items-center gap-2" style={{ color: "var(--th-text-heading)" }}>
-            <span className="text-lg">{form.icon}</span>
-            {isEdit ? tr("부서 정보 수정", "Edit Department") : tr("신규 부서 추가", "Add Department")}
-          </h3>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--th-bg-surface-hover)] transition-colors"
-            style={{ color: "var(--th-text-muted)" }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {/* 아이콘 + 영문이름 */}
-          <div className="flex items-start gap-3">
-            <div>
-              <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {tr("아이콘", "Icon")}
-              </label>
-              <EmojiPicker tr={tr} value={form.icon} onChange={(emoji) => setForm({ ...form, icon: emoji })} />
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {tr("영문 이름", "Name")} <span className="text-red-400">*</span>
-              </label>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Development"
-                className={inputCls}
-                style={inputStyle}
-              />
-            </div>
-          </div>
-
-          {/* 색상 선택 */}
+      <div className="space-y-4">
+        {/* 아이콘 + 영문이름 */}
+        <div className="flex items-start gap-3">
           <div>
             <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {tr("테마 색상", "Theme Color")}
+              {tr("아이콘", "Icon")}
             </label>
-            <div className="flex gap-2">
-              {DEPT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setForm({ ...form, color: c })}
-                  className="w-7 h-7 rounded-full transition-all hover:scale-110"
-                  style={{
-                    background: c,
-                    outline: form.color === c ? `2px solid ${c}` : "2px solid transparent",
-                    outlineOffset: "3px",
-                  }}
-                />
-              ))}
-            </div>
+            <EmojiPicker tr={tr} value={form.icon} onChange={(emoji) => setForm({ ...form, icon: emoji })} />
           </div>
-
-          {/* 로캘 이름 */}
-          {locale.startsWith("ko") && (
-            <div>
-              <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {tr("한글 이름", "Korean Name")}
-              </label>
-              <input
-                type="text"
-                value={form.name_ko}
-                onChange={(e) => setForm({ ...form, name_ko: e.target.value })}
-                placeholder="개발팀"
-                className={inputCls}
-                style={inputStyle}
-              />
-            </div>
-          )}
-          {locale.startsWith("ja") && (
-            <div>
-              <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {t({ ko: "일본어 이름", en: "Japanese Name", ja: "日本語名", zh: "日语名" })}
-              </label>
-              <input
-                type="text"
-                value={form.name_ja}
-                onChange={(e) => setForm({ ...form, name_ja: e.target.value })}
-                placeholder="開発チーム"
-                className={inputCls}
-                style={inputStyle}
-              />
-            </div>
-          )}
-          {locale.startsWith("zh") && (
-            <div>
-              <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-                {t({ ko: "중국어 이름", en: "Chinese Name", ja: "中国語名", zh: "中文名" })}
-              </label>
-              <input
-                type="text"
-                value={form.name_zh}
-                onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
-                placeholder="开发部"
-                className={inputCls}
-                style={inputStyle}
-              />
-            </div>
-          )}
-
-          {/* 설명 */}
-          <div>
+          <div className="flex-1">
             <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {tr("부서 설명", "Description")}
+              {tr("영문 이름", "Name")} <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder={tr("부서의 역할 간단 설명", "Brief description of the department")}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Development"
               className={inputCls}
               style={inputStyle}
             />
           </div>
+        </div>
 
-          {/* 프롬프트 */}
-          <div>
-            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
-              {tr("부서 프롬프트", "Department Prompt")}
-            </label>
-            <textarea
-              value={form.prompt}
-              onChange={(e) => setForm({ ...form, prompt: e.target.value })}
-              rows={4}
-              placeholder={tr(
-                "이 부서 소속 에이전트의 공통 시스템 프롬프트...",
-                "Shared system prompt for agents in this department...",
-              )}
-              className={`${inputCls} resize-none`}
-              style={inputStyle}
-            />
-            <p className="text-[10px] mt-1" style={{ color: "var(--th-text-muted)" }}>
-              {tr(
-                "소속 에이전트의 작업 실행 시 공통으로 적용되는 시스템 프롬프트",
-                "Applied as shared system prompt when agents in this department execute tasks",
-              )}
-            </p>
+        {/* 색상 선택 */}
+        <div>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
+            {tr("테마 색상", "Theme Color")}
+          </label>
+          <div className="flex gap-2">
+            {DEPT_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setForm({ ...form, color: c })}
+                className="w-7 h-7 rounded-full transition-all hover:scale-110"
+                style={{
+                  background: c,
+                  outline: form.color === c ? `2px solid ${c}` : "2px solid transparent",
+                  outlineOffset: "3px",
+                }}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 mt-5 pt-4" style={{ borderTop: "1px solid var(--th-card-border)" }}>
-          <button
-            onClick={handleSave}
-            disabled={saving || !form.name.trim()}
-            className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white disabled:opacity-40 shadow-sm shadow-blue-600/20"
-          >
-            {saving
-              ? tr("처리 중...", "Saving...")
-              : isEdit
-                ? tr("변경사항 저장", "Save Changes")
-                : tr("부서 추가", "Add Department")}
-          </button>
-          {isEdit &&
-            (confirmDelete ? (
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleDelete}
-                  disabled={saving}
-                  className="px-3 py-2.5 rounded-lg text-xs font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-40 transition-colors"
-                >
-                  {tr("삭제 확인", "Confirm")}
-                </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  className="px-2 py-2.5 rounded-lg text-xs transition-colors"
-                  style={{ color: "var(--th-text-muted)" }}
-                >
-                  {tr("취소", "No")}
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setConfirmDelete(true)}
-                className="px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-red-500/15 hover:text-red-400"
-                style={{ border: "1px solid var(--th-input-border)", color: "var(--th-text-muted)" }}
-              >
-                {tr("삭제", "Delete")}
-              </button>
-            ))}
-          <button
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[var(--th-bg-surface-hover)]"
-            style={{ border: "1px solid var(--th-input-border)", color: "var(--th-text-secondary)" }}
-          >
-            {tr("취소", "Cancel")}
-          </button>
+        {/* 로캘 이름 */}
+        {locale.startsWith("ko") && (
+          <div>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
+              {tr("한글 이름", "Korean Name")}
+            </label>
+            <input
+              type="text"
+              value={form.name_ko}
+              onChange={(e) => setForm({ ...form, name_ko: e.target.value })}
+              placeholder="개발팀"
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+        )}
+        {locale.startsWith("ja") && (
+          <div>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
+              {t({ ko: "일본어 이름", en: "Japanese Name", ja: "日本語名", zh: "日语名" })}
+            </label>
+            <input
+              type="text"
+              value={form.name_ja}
+              onChange={(e) => setForm({ ...form, name_ja: e.target.value })}
+              placeholder="開発チーム"
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+        )}
+        {locale.startsWith("zh") && (
+          <div>
+            <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
+              {t({ ko: "중국어 이름", en: "Chinese Name", ja: "中国語名", zh: "中文名" })}
+            </label>
+            <input
+              type="text"
+              value={form.name_zh}
+              onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
+              placeholder="开发部"
+              className={inputCls}
+              style={inputStyle}
+            />
+          </div>
+        )}
+
+        {/* 설명 */}
+        <div>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
+            {tr("부서 설명", "Description")}
+          </label>
+          <input
+            type="text"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            placeholder={tr("부서의 역할 간단 설명", "Brief description of the department")}
+            className={inputCls}
+            style={inputStyle}
+          />
+        </div>
+
+        {/* 프롬프트 */}
+        <div>
+          <label className="block text-xs mb-1.5 font-medium" style={{ color: "var(--th-text-secondary)" }}>
+            {tr("부서 프롬프트", "Department Prompt")}
+          </label>
+          <textarea
+            value={form.prompt}
+            onChange={(e) => setForm({ ...form, prompt: e.target.value })}
+            rows={4}
+            placeholder={tr(
+              "이 부서 소속 에이전트의 공통 시스템 프롬프트...",
+              "Shared system prompt for agents in this department...",
+            )}
+            className={`${inputCls} resize-none`}
+            style={inputStyle}
+          />
+          <p className="text-[10px] mt-1" style={{ color: "var(--th-text-muted)" }}>
+            {tr(
+              "소속 에이전트의 작업 실행 시 공통으로 적용되는 시스템 프롬프트",
+              "Applied as shared system prompt when agents in this department execute tasks",
+            )}
+          </p>
         </div>
       </div>
-    </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 mt-5 pt-4" style={{ borderTop: "1px solid var(--th-card-border)" }}>
+        <button
+          onClick={handleSave}
+          disabled={saving || !form.name.trim()}
+          className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-all bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white disabled:opacity-40 shadow-sm shadow-blue-600/20"
+        >
+          {saving
+            ? tr("처리 중...", "Saving...")
+            : isEdit
+              ? tr("변경사항 저장", "Save Changes")
+              : tr("부서 추가", "Add Department")}
+        </button>
+        {isEdit &&
+          (confirmDelete ? (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleDelete}
+                disabled={saving}
+                className="px-3 py-2.5 rounded-lg text-xs font-medium bg-red-600 hover:bg-red-500 text-white disabled:opacity-40 transition-colors"
+              >
+                {tr("삭제 확인", "Confirm")}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-2 py-2.5 rounded-lg text-xs transition-colors"
+                style={{ color: "var(--th-text-muted)" }}
+              >
+                {tr("취소", "No")}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-red-500/15 hover:text-red-400"
+              style={{ border: "1px solid var(--th-input-border)", color: "var(--th-text-muted)" }}
+            >
+              {tr("삭제", "Delete")}
+            </button>
+          ))}
+        <button
+          onClick={onClose}
+          className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[var(--th-bg-surface-hover)]"
+          style={{ border: "1px solid var(--th-input-border)", color: "var(--th-text-secondary)" }}
+        >
+          {tr("취소", "Cancel")}
+        </button>
+      </div>
+    </Dialog>
   );
 }

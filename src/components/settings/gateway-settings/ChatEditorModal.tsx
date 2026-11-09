@@ -1,10 +1,16 @@
 import type { Dispatch, SetStateAction } from "react";
 import AgentSelect from "../../AgentSelect";
-import type { Agent, MessengerChannelType, MessengerChannelsConfig, WorkflowPackKey } from "../../../types";
+import {
+  MESSENGER_CHANNELS,
+  type Agent,
+  type MessengerChannelType,
+  type MessengerChannelsConfig,
+  type WorkflowPackKey,
+} from "../../../types";
 import type { ChannelSettingsTabProps } from "../types";
 import { CHANNEL_META, channelTargetHint, isWorkflowPackKey } from "./constants";
 import type { ChatEditorState } from "./state";
-import { MESSENGER_CHANNELS } from "../../../types";
+import Dialog from "../../ui/Dialog";
 
 type WorkflowPackOption = {
   key: WorkflowPackKey;
@@ -55,23 +61,34 @@ export default function ChatEditorModal({
     editor.channel === "discord" ? discordChannels.find((entry) => entry.id === editor.targetId.trim()) : null;
 
   return (
-    <div className="fixed inset-0 z-[2200] flex items-center justify-center px-4">
-      <button className="absolute inset-0 bg-slate-950/70" onClick={closeEditorModal} aria-label="close modal" />
-      <div className="relative w-full max-w-lg rounded-xl border border-slate-700 bg-slate-900 p-4 shadow-2xl space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-slate-100">
-            {editor.mode === "create"
-              ? t({ ko: "새 채팅 추가", en: "Add Chat", ja: "チャット追加", zh: "新增聊天" })
-              : t({ ko: "채팅 편집", en: "Edit Chat", ja: "チャット編集", zh: "编辑聊天" })}
-          </h4>
+    <Dialog
+      open
+      size="md"
+      onClose={closeEditorModal}
+      closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+      title={
+        editor.mode === "create"
+          ? t({ ko: "새 채팅 추가", en: "Add Chat", ja: "チャット追加", zh: "新增聊天", fr: "Ajouter un chat" })
+          : t({ ko: "채팅 편집", en: "Edit Chat", ja: "チャット編集", zh: "编辑聊天", fr: "Modifier le chat" })
+      }
+      footer={
+        <>
           <button
             onClick={closeEditorModal}
-            className="px-2 py-1 text-xs rounded border border-slate-600 text-slate-300 hover:bg-slate-800"
+            className="px-3 py-1.5 text-xs rounded border border-slate-600 text-slate-300 hover:bg-slate-800"
           >
-            {t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭" })}
+            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消" })}
           </button>
-        </div>
-
+          <button
+            onClick={handleSaveEditor}
+            className="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-500"
+          >
+            {t({ ko: "확인", en: "Confirm", ja: "確認", zh: "确认" })}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-slate-400 mb-1">
@@ -310,22 +327,7 @@ export default function ChatEditorModal({
         )}
 
         {editorError && <div className="text-xs text-red-400">{editorError}</div>}
-
-        <div className="flex justify-end gap-2 pt-1">
-          <button
-            onClick={closeEditorModal}
-            className="px-3 py-1.5 text-xs rounded border border-slate-600 text-slate-300 hover:bg-slate-800"
-          >
-            {t({ ko: "취소", en: "Cancel", ja: "キャンセル", zh: "取消" })}
-          </button>
-          <button
-            onClick={handleSaveEditor}
-            className="px-3 py-1.5 text-xs rounded bg-blue-600 text-white hover:bg-blue-500"
-          >
-            {t({ ko: "확인", en: "Confirm", ja: "確認", zh: "确认" })}
-          </button>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }

@@ -1,3 +1,4 @@
+import Dialog from "./ui/Dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Agent, AssignmentMode, Department, Project } from "../types";
 import {
@@ -297,18 +298,19 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+    <Dialog
+      open
+      size="full"
+      onClose={onClose}
+      title={headerTitle}
+      closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
     >
-      <div className="flex h-[86vh] w-[min(1180px,95vw)] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl md:flex-row">
+      <div className="flex h-full min-h-0 flex-col md:flex-row">
         <div
           className={`w-full md:w-[330px] ${selectedProjectId || isCreating || githubImportMode ? "hidden md:block" : "block"}`}
         >
           <ProjectSidebar
-            headerTitle={headerTitle}
             t={t as ProjectI18nTranslate}
-            onClose={onClose}
             search={search}
             setSearch={setSearch}
             loadProjects={loadProjects}
@@ -490,6 +492,6 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
           pathTools.setManualPathPickerOpen(false);
         }}
       />
-    </div>
+    </Dialog>
   );
 }

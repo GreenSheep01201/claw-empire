@@ -58,3 +58,38 @@ describe("Dialog", () => {
     expect(screen.getByRole("button", { name: "Ouvrir" })).toHaveFocus();
   });
 });
+
+describe("Dialog imbriquée", () => {
+  it("Échap ne ferme que la fenêtre du dessus", async () => {
+    const user = userEvent.setup();
+    const onCloseParent = vi.fn();
+    const onCloseChild = vi.fn();
+    render(
+      <Dialog open title="Nouvelle tâche" closeLabel="Fermer" onClose={onCloseParent}>
+        <Dialog open title="Brouillons" closeLabel="Fermer le brouillon" onClose={onCloseChild}>
+          <p>Brouillon</p>
+        </Dialog>
+      </Dialog>,
+    );
+
+    screen.getByRole("button", { name: "Fermer le brouillon" }).focus();
+    await user.keyboard("{Escape}");
+
+    expect(onCloseChild).toHaveBeenCalledTimes(1);
+    expect(onCloseParent).not.toHaveBeenCalled();
+  });
+
+  it("peut ignorer le clic sur le fond", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(
+      <Dialog open title="Nouvelle tâche" closeLabel="Fermer" onClose={onClose} dismissOnBackdrop={false}>
+        <p>Formulaire</p>
+      </Dialog>,
+    );
+
+    await user.click(screen.getByRole("dialog"));
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});

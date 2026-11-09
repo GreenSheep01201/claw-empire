@@ -469,12 +469,6 @@
   background-color: rgba(34, 27, 16, 0.42) !important;
 }
 
-[data-theme="light"] .skills-learn-modal-card {
-  background-color: rgba(255, 251, 244, 0.97) !important;
-  border-color: rgba(168, 146, 116, 0.48) !important;
-  box-shadow: 0 24px 52px rgba(28, 20, 10, 0.22) !important;
-}
-
 [data-theme="light"] .skills-learn-modal-card [class*="text-slate-500"] {
   color: #5c5247 !important;
 }

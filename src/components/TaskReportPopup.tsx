@@ -2,9 +2,9 @@ import { useMemo, useState, useEffect } from "react";
 import type { Agent, Department } from "../types";
 import type { TaskReportDetail, TaskReportDocument, TaskReportTeamSection } from "../api";
 import { archiveTaskReport, getTaskReportDetail } from "../api";
-import type { UiLanguage } from "../i18n";
-import { pickLang } from "../i18n";
+import { pickLang, type LangText, type UiLanguage } from "../i18n";
 import AgentAvatar from "./AgentAvatar";
+import Dialog from "./ui/Dialog";
 import { resolveReportAgent } from "./task-report-agent";
 
 interface TaskReportPopupProps {
@@ -48,7 +48,7 @@ function statusClass(status: string): string {
 }
 
 export default function TaskReportPopup({ report, agents, departments, uiLanguage, onClose }: TaskReportPopupProps) {
-  const t = (text: { ko: string; en: string; ja?: string; zh?: string }) => pickLang(uiLanguage, text);
+  const t = (text: LangText) => pickLang(uiLanguage, text);
 
   const [currentReport, setCurrentReport] = useState<TaskReportDetail>(report);
   const [refreshingArchive, setRefreshingArchive] = useState(false);
@@ -351,125 +351,109 @@ export default function TaskReportPopup({ report, agents, departments, uiLanguag
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="relative mx-4 w-full max-w-4xl rounded-2xl border border-emerald-500/30 bg-slate-900 shadow-2xl shadow-emerald-500/10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-700/50 px-6 py-4">
-          <div className="min-w-0">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-xl">&#x1F4CB;</span>
-              <h2 className="truncate text-lg font-bold text-white">
-                {t({
-                  ko: "작업 완료 보고서",
-                  en: "Task Completion Report",
-                  ja: "タスク完了レポート",
-                  zh: "任务完成报告",
-                })}
-              </h2>
-              <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">{projectName}</span>
-            </div>
-            <p className="truncate text-xs text-slate-400">{projectPath || "-"}</p>
-          </div>
+    <Dialog
+      open
+      size="lg"
+      onClose={onClose}
+      closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+      title={t({
+        ko: "작업 완료 보고서",
+        en: "Task Completion Report",
+        ja: "タスク完了レポート",
+        zh: "任务完成报告",
+        fr: "Rapport de fin de tâche",
+      })}
+      titleAdornment={
+        <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-300">{projectName}</span>
+      }
+      footer={
+        <div className="flex w-full items-center justify-between">
+          <span className="text-xs text-slate-500">
+            {t({
+              ko: `팀 보고서 ${teamReports.length}개`,
+              en: `${teamReports.length} team reports`,
+              ja: `チームレポート ${teamReports.length}件`,
+              zh: `${teamReports.length} 个团队报告`,
+            })}
+          </span>
           <button
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
+            className="rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500"
           >
-            &#x2715;
+            {t({ ko: "확인", en: "OK", ja: "OK", zh: "确认" })}
           </button>
         </div>
+      }
+    >
+      <p className="truncate px-6 pb-2 text-xs text-slate-400">{projectPath || "-"}</p>
 
-        <div className="border-b border-slate-700/40 px-6 py-3">
-          <div className="flex items-start gap-3">
-            <AgentAvatar agent={taskAgent} agents={agents} size={40} rounded="xl" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{currentReport.task.title}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
-                <span className="rounded bg-slate-700/70 px-1.5 py-0.5">{taskDeptName}</span>
-                <span>
-                  {taskAgentName} ({currentReport.task.agent_role})
-                </span>
-                <span>
-                  {t({ ko: "완료", en: "Completed", ja: "完了", zh: "完成" })}:{" "}
-                  {fmtTime(currentReport.task.completed_at)}
-                </span>
-                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-emerald-400">
-                  {elapsed(currentReport.task.created_at, currentReport.task.completed_at)}
-                </span>
-              </div>
+      <div className="border-b border-slate-700/40 px-6 py-3">
+        <div className="flex items-start gap-3">
+          <AgentAvatar agent={taskAgent} agents={agents} size={40} rounded="xl" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white">{currentReport.task.title}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+              <span className="rounded bg-slate-700/70 px-1.5 py-0.5">{taskDeptName}</span>
+              <span>
+                {taskAgentName} ({currentReport.task.agent_role})
+              </span>
+              <span>
+                {t({ ko: "완료", en: "Completed", ja: "完了", zh: "完成" })}: {fmtTime(currentReport.task.completed_at)}
+              </span>
+              <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-emerald-400">
+                {elapsed(currentReport.task.created_at, currentReport.task.completed_at)}
+              </span>
             </div>
-          </div>
-        </div>
-
-        <div className="border-b border-slate-700/40 px-6 py-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setActiveTab("planning")}
-              className={`rounded-lg px-3 py-1.5 text-xs ${
-                activeTab === "planning"
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-              }`}
-            >
-              {t({ ko: "기획팀장 취합본", en: "Planning Summary", ja: "企画サマリー", zh: "规划汇总" })}
-            </button>
-            {teamReports.map((team) => {
-              const label =
-                uiLanguage === "ko"
-                  ? team.department_name_ko || team.department_name || team.department_id || "팀"
-                  : team.department_name || team.department_id || "Team";
-              return (
-                <button
-                  key={team.id}
-                  onClick={() => setActiveTab(team.id)}
-                  className={`rounded-lg px-3 py-1.5 text-xs ${
-                    activeTab === team.id ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
-          {activeTab === "planning" ? (
-            renderPlanningSummary()
-          ) : selectedTeam ? (
-            renderTeamReport(selectedTeam)
-          ) : (
-            <p className="text-sm text-slate-500">
-              {t({
-                ko: "표시할 보고서가 없습니다",
-                en: "No report to display",
-                ja: "表示するレポートがありません",
-                zh: "没有可显示的报告",
-              })}
-            </p>
-          )}
-        </div>
-
-        <div className="border-t border-slate-700/50 px-6 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">
-              {t({
-                ko: `팀 보고서 ${teamReports.length}개`,
-                en: `${teamReports.length} team reports`,
-                ja: `チームレポート ${teamReports.length}件`,
-                zh: `${teamReports.length} 个团队报告`,
-              })}
-            </span>
-            <button
-              onClick={onClose}
-              className="rounded-lg bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-500"
-            >
-              {t({ ko: "확인", en: "OK", ja: "OK", zh: "确认" })}
-            </button>
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="border-b border-slate-700/40 px-6 py-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setActiveTab("planning")}
+            className={`rounded-lg px-3 py-1.5 text-xs ${
+              activeTab === "planning" ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+            }`}
+          >
+            {t({ ko: "기획팀장 취합본", en: "Planning Summary", ja: "企画サマリー", zh: "规划汇总" })}
+          </button>
+          {teamReports.map((team) => {
+            const label =
+              uiLanguage === "ko"
+                ? team.department_name_ko || team.department_name || team.department_id || "팀"
+                : team.department_name || team.department_id || "Team";
+            return (
+              <button
+                key={team.id}
+                onClick={() => setActiveTab(team.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs ${
+                  activeTab === team.id ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="px-6 py-4">
+        {activeTab === "planning" ? (
+          renderPlanningSummary()
+        ) : selectedTeam ? (
+          renderTeamReport(selectedTeam)
+        ) : (
+          <p className="text-sm text-slate-500">
+            {t({
+              ko: "표시할 보고서가 없습니다",
+              en: "No report to display",
+              ja: "表示するレポートがありません",
+              zh: "没有可显示的报告",
+            })}
+          </p>
+        )}
+      </div>
+    </Dialog>
   );
 }

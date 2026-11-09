@@ -12,6 +12,8 @@ interface SidebarProps {
   agents: Agent[];
   settings: CompanySettings;
   connected: boolean;
+  /** The mobile drawer is already a temporary surface: no collapse control there. */
+  collapsible?: boolean;
 }
 
 type NavItem = { view: View; icon: LucideIcon; label: LangText };
@@ -46,7 +48,15 @@ const SETTINGS_NAV: NavItem = {
   label: { ko: "설정", en: "Settings", ja: "設定", zh: "设置", fr: "Réglages" },
 };
 
-export default function Sidebar({ currentView, onChangeView, departments, agents, settings, connected }: SidebarProps) {
+export default function Sidebar({
+  currentView,
+  onChangeView,
+  departments,
+  agents,
+  settings,
+  connected,
+  collapsible = true,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { t, locale } = useI18n();
 
@@ -128,19 +138,21 @@ export default function Sidebar({ currentView, onChangeView, departments, agents
 
       <div className="qg-sidebar__footer">
         {renderNavItem(SETTINGS_NAV)}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="qg-nav__item"
-          aria-expanded={!collapsed}
-          aria-label={
-            collapsed
-              ? t({ ko: "메뉴 펼치기", en: "Expand menu", fr: "Déplier le menu" })
-              : t({ ko: "메뉴 접기", en: "Collapse menu", fr: "Replier le menu" })
-          }
-        >
-          <PanelLeft size={18} aria-hidden />
-          {!collapsed && <span>{t({ ko: "메뉴 접기", en: "Collapse", fr: "Replier" })}</span>}
-        </button>
+        {collapsible && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="qg-nav__item"
+            aria-expanded={!collapsed}
+            aria-label={
+              collapsed
+                ? t({ ko: "메뉴 펼치기", en: "Expand menu", fr: "Déplier le menu" })
+                : t({ ko: "메뉴 접기", en: "Collapse menu", fr: "Replier le menu" })
+            }
+          >
+            <PanelLeft size={18} aria-hidden />
+            {!collapsed && <span>{t({ ko: "메뉴 접기", en: "Collapse", fr: "Replier" })}</span>}
+          </button>
+        )}
         <div className={`qg-status${connected ? " is-live" : ""}`} role="status">
           <span className="qg-status__mark" aria-hidden />
           {!collapsed && (
