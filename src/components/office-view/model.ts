@@ -208,7 +208,7 @@ function emitSubCloneSmokeBurst(
   });
 
   const burstTxt = new Text({
-    text: "펑",
+    text: "✦",
     style: new TextStyle({
       fontSize: 7,
       fill: mode === "spawn" ? 0xeff4ff : 0xdde4f5,
