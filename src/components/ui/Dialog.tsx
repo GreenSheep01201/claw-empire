@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 type DialogSize = "sm" | "md" | "lg" | "full";
+type DialogPlacement = "center" | "side";
 
 interface DialogProps {
   open: boolean;
@@ -17,6 +18,8 @@ interface DialogProps {
   size?: DialogSize;
   /** Set false when an accidental outside click must not close the dialog (e.g. long forms). */
   dismissOnBackdrop?: boolean;
+  /** "side" docks the dialog to the right edge, full height (settings-like panels). */
+  placement?: DialogPlacement;
   /** Scope class for content-specific styling. */
   className?: string;
 }
@@ -37,6 +40,7 @@ export default function Dialog({
   footer,
   size = "md",
   dismissOnBackdrop = true,
+  placement = "center",
   className,
 }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -58,7 +62,7 @@ export default function Dialog({
   return (
     <dialog
       ref={ref}
-      className={`qg-dialog qg-dialog--${size}${className ? ` ${className}` : ""}`}
+      className={`qg-dialog qg-dialog--${size}${placement === "side" ? " qg-dialog--side" : ""}${className ? ` ${className}` : ""}`}
       aria-labelledby={titleId}
       onCancel={(event) => event.preventDefault()}
       onKeyDown={(event) => {

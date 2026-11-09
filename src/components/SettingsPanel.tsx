@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Settings } from "lucide-react";
 import type { CliModelInfo, CliStatusMap, CompanySettings } from "../types";
 import * as api from "../api";
 import type { DeviceCodeStart, OAuthConnectProvider, OAuthStatus } from "../api";
@@ -411,11 +410,6 @@ export default function SettingsPanel({
 
   return (
     <div className="mx-auto max-w-2xl space-y-4 sm:space-y-6">
-      <h2 className="flex items-center gap-2 text-xl font-bold" style={{ color: "var(--th-text-heading)" }}>
-        <Settings size={16} aria-hidden="true" />
-        {t({ ko: "설정", en: "Settings", ja: "設定", zh: "设置", fr: "Réglages" })}
-      </h2>
-
       <SettingsTabNav tab={tab} setTab={setTab} t={t} />
 
       {tab === "general" && (

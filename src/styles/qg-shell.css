@@ -861,4 +861,24 @@
   .qg-text-secondary {
     color: var(--th-text-secondary);
   }
+
+  .qg-dialog--side {
+    margin: 0 0 0 auto;
+    width: min(100%, var(--qg-dialog-width, 440px));
+    height: 100dvh;
+    max-height: 100dvh;
+    border-width: 0 0 0 1px;
+    border-radius: 0;
+  }
+
+  .qg-dialog--side[open] {
+    animation-name: qg-dialog-side-in;
+  }
+
+  @keyframes qg-dialog-side-in {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+  }
 }

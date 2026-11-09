@@ -1,9 +1,10 @@
 import type { KeyboardEvent, RefObject } from "react";
+import { ClipboardList, FileText, Megaphone, Send } from "lucide-react";
 import type { Agent } from "../../types";
 import ChatModeHint from "./ChatModeHint";
 
 type ChatMode = "chat" | "task" | "announcement" | "report";
-type Tr = (ko: string, en: string, ja?: string, zh?: string) => string;
+type Tr = (ko: string, en: string, ja?: string, zh?: string, fr?: string) => string;
 
 interface ChatComposerProps {
   mode: ChatMode;
@@ -34,105 +35,99 @@ export default function ChatComposer({
   onSend,
   onKeyDown,
 }: ChatComposerProps) {
+  const placeholder = isAnnouncementMode
+    ? tr(
+        "전사 공지 내용을 입력하세요...",
+        "Write an announcement...",
+        "全体告知内容を入力してください...",
+        "请输入公告内容...",
+        "Écrire une annonce…",
+      )
+    : mode === "task"
+      ? tr(
+          "업무 지시 내용을 입력하세요...",
+          "Write a task instruction...",
+          "タスク指示内容を入力してください...",
+          "请输入任务指示内容...",
+          "Décrire la tâche à confier…",
+        )
+      : mode === "report"
+        ? tr(
+            "보고 요청 내용을 입력하세요...",
+            "Write a report request...",
+            "レポート依頼内容を入力してください...",
+            "请输入报告请求内容...",
+            "Décrire le rapport souhaité…",
+          )
+        : selectedAgent
+          ? tr(
+              `${getAgentName(selectedAgent)}에게 메시지 보내기...`,
+              `Send a message to ${getAgentName(selectedAgent)}...`,
+              `${getAgentName(selectedAgent)}にメッセージを送る...`,
+              `向 ${getAgentName(selectedAgent)} 发送消息...`,
+              `Écrire à ${getAgentName(selectedAgent)}…`,
+            )
+          : tr(
+              "메시지를 입력하세요...",
+              "Type a message...",
+              "メッセージを入力してください...",
+              "请输入消息...",
+              "Écrire un message…",
+            );
+
   return (
     <>
-      <div className="flex flex-shrink-0 gap-2 border-t border-gray-700/50 px-4 pb-1 pt-3">
+      <div
+        className="flex flex-shrink-0 gap-2 border-t border-[var(--th-border)] px-4 pb-1 pt-3"
+        role="group"
+        aria-label={tr("메시지 유형", "Message type", "メッセージ種別", "消息类型", "Type de message")}
+      >
         <button
+          type="button"
           onClick={() => onModeChange(mode === "task" ? "chat" : "task")}
           disabled={!selectedAgent}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
-            mode === "task"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
-          }`}
+          aria-pressed={mode === "task"}
+          className="qg-choice flex-1 justify-center px-2"
         >
-          <span>📋</span>
-          <span>{tr("업무 지시", "Task", "タスク指示", "任务指示")}</span>
+          <ClipboardList size={16} aria-hidden />
+          <span>{tr("업무 지시", "Task", "タスク指示", "任务指示", "Tâche")}</span>
         </button>
 
         <button
+          type="button"
           onClick={() => onModeChange(mode === "announcement" ? "chat" : "announcement")}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
-            mode === "announcement" ? "bg-yellow-500 text-gray-900" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-          }`}
+          aria-pressed={mode === "announcement"}
+          className="qg-choice flex-1 justify-center px-2"
         >
-          <span>📢</span>
-          <span>{tr("전사 공지", "Announcement", "全体告知", "全员公告")}</span>
+          <Megaphone size={16} aria-hidden />
+          <span>{tr("전사 공지", "Announcement", "全体告知", "全员公告", "Annonce")}</span>
         </button>
 
         <button
+          type="button"
           onClick={() => onModeChange(mode === "report" ? "chat" : "report")}
           disabled={!selectedAgent}
-          className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
-            mode === "report"
-              ? "bg-emerald-600 text-white"
-              : "bg-gray-700 text-gray-300 hover:bg-gray-600 disabled:cursor-not-allowed disabled:opacity-40"
-          }`}
+          aria-pressed={mode === "report"}
+          className="qg-choice flex-1 justify-center px-2"
         >
-          <span>📊</span>
-          <span>{tr("보고 요청", "Report", "レポート依頼", "报告请求")}</span>
+          <FileText size={16} aria-hidden />
+          <span>{tr("보고 요청", "Report", "レポート依頼", "报告请求", "Rapport")}</span>
         </button>
       </div>
 
       <ChatModeHint mode={mode} isDirectiveMode={isDirectiveMode} tr={tr} />
 
       <div className="flex-shrink-0 px-4 pb-4 pt-2">
-        <div
-          className={`flex items-end gap-2 rounded-2xl border bg-gray-800 transition-colors ${
-            isDirectiveMode
-              ? "border-red-500/50 focus-within:border-red-400"
-              : isAnnouncementMode
-                ? "border-yellow-500/50 focus-within:border-yellow-400"
-                : mode === "task"
-                  ? "border-blue-500/50 focus-within:border-blue-400"
-                  : mode === "report"
-                    ? "border-emerald-500/50 focus-within:border-emerald-400"
-                    : "border-gray-600 focus-within:border-blue-500"
-          }`}
-        >
+        <div className="flex items-end gap-2">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder={
-              isAnnouncementMode
-                ? tr(
-                    "전사 공지 내용을 입력하세요...",
-                    "Write an announcement...",
-                    "全体告知内容を入力してください...",
-                    "请输入公告内容...",
-                  )
-                : mode === "task"
-                  ? tr(
-                      "업무 지시 내용을 입력하세요...",
-                      "Write a task instruction...",
-                      "タスク指示内容を入力してください...",
-                      "请输入任务指示内容...",
-                    )
-                  : mode === "report"
-                    ? tr(
-                        "보고 요청 내용을 입력하세요...",
-                        "Write a report request...",
-                        "レポート依頼内容を入力してください...",
-                        "请输入报告请求内容...",
-                      )
-                    : selectedAgent
-                      ? tr(
-                          `${getAgentName(selectedAgent)}에게 메시지 보내기...`,
-                          `Send a message to ${getAgentName(selectedAgent)}...`,
-                          `${getAgentName(selectedAgent)}にメッセージを送る...`,
-                          `向 ${getAgentName(selectedAgent)} 发送消息...`,
-                        )
-                      : tr(
-                          "메시지를 입력하세요...",
-                          "Type a message...",
-                          "メッセージを入力してください...",
-                          "请输入消息...",
-                        )
-            }
+            placeholder={placeholder}
+            aria-label={placeholder}
             rows={1}
-            className="min-h-[44px] max-h-32 flex-1 resize-none overflow-y-auto bg-transparent px-4 py-3 text-sm leading-relaxed text-gray-100 placeholder-gray-500 focus:outline-none"
+            className="qg-textarea max-h-32 min-h-[44px] flex-1 resize-none overflow-y-auto leading-relaxed"
             style={{ scrollbarWidth: "none" }}
             onInput={(e) => {
               const el = e.currentTarget;
@@ -141,34 +136,22 @@ export default function ChatComposer({
             }}
           />
           <button
+            type="button"
             onClick={onSend}
             disabled={!input.trim()}
-            className={`mb-2 mr-2 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl transition-all ${
-              input.trim()
-                ? isDirectiveMode
-                  ? "bg-red-600 text-white hover:bg-red-500"
-                  : isAnnouncementMode
-                    ? "bg-yellow-500 text-gray-900 hover:bg-yellow-400"
-                    : mode === "task"
-                      ? "bg-blue-600 text-white hover:bg-blue-500"
-                      : mode === "report"
-                        ? "bg-emerald-600 text-white hover:bg-emerald-500"
-                        : "bg-blue-600 text-white hover:bg-blue-500"
-                : "cursor-not-allowed bg-gray-700 text-gray-600"
-            }`}
-            aria-label={tr("전송", "Send", "送信", "发送")}
+            className="qg-btn qg-btn--primary h-11 w-11 flex-shrink-0 !px-0"
+            aria-label={tr("전송", "Send", "送信", "发送", "Envoyer")}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-              <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-            </svg>
+            <Send size={16} aria-hidden />
           </button>
         </div>
-        <p className="mt-1.5 px-1 text-xs text-gray-600">
+        <p className="qg-text-muted mt-1.5 px-1 text-[13px]">
           {tr(
             "Enter로 전송, Shift+Enter로 줄바꿈",
             "Press Enter to send, Shift+Enter for a new line",
             "Enterで送信、Shift+Enterで改行",
             "按 Enter 发送，Shift+Enter 换行",
+            "Entrée pour envoyer, Maj+Entrée pour aller à la ligne",
           )}
         </p>
       </div>

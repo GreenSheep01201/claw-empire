@@ -68,7 +68,7 @@ export function ChatPanel({
   const { t, locale } = useI18n();
   const isKorean = locale.startsWith("ko");
 
-  const tr = (ko: string, en: string, ja = en, zh = en) => t({ ko, en, ja, zh });
+  const tr = useCallback((ko: string, en: string, ja = en, zh = en, fr = en) => t({ ko, en, ja, zh, fr }), [t]);
 
   const getAgentName = (agent: Agent | null | undefined) => {
     if (!agent) return "";
@@ -95,7 +95,8 @@ export function ChatPanel({
   // Close on Escape key
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      // A dialog opened from the panel (project choice) handles its own Escape.
+      if (e.key === "Escape" && !e.defaultPrevented) onClose();
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -113,8 +114,8 @@ export function ChatPanel({
   useEffect(() => {
     if (!selectedAgent) {
       setMode("announcement");
-    } else if (mode === "announcement") {
-      setMode("task");
+    } else {
+      setMode((prev) => (prev === "announcement" ? "task" : prev));
     }
   }, [selectedAgent]);
 
@@ -213,6 +214,7 @@ export function ChatPanel({
           "Please enter a number (1-10) or a project name.",
           "番号(1-10)またはプロジェクト名を入力してください。",
           "请输入编号(1-10)或项目名称。",
+          "Indiquez un numéro (1 à 10) ou le nom d'un projet.",
         ),
       );
       return;
@@ -220,7 +222,7 @@ export function ChatPanel({
     setExistingProjectError("");
     setSelectedProject(picked);
     setProjectFlowStep("confirm");
-  }, [existingProjectInput, resolveExistingProjectSelection]);
+  }, [existingProjectInput, resolveExistingProjectSelection, tr]);
 
   const handleChooseExistingProject = useCallback(() => {
     setProjectFlowStep("existing");
@@ -330,7 +332,7 @@ export function ChatPanel({
     } else if (mode === "report" && selectedAgent) {
       action = {
         kind: "report",
-        content: `[${tr("보고 요청", "Report Request", "レポート依頼", "报告请求")}] ${trimmed}`,
+        content: `[${tr("보고 요청", "Report Request", "レポート依頼", "报告请求", "Demande de rapport")}] ${trimmed}`,
         receiverId: selectedAgent.id,
       };
     } else if (selectedAgent) {
@@ -412,7 +414,7 @@ export function ChatPanel({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex h-full w-full flex-col bg-gray-900 shadow-2xl lg:relative lg:inset-auto lg:z-auto lg:w-96 lg:border-l lg:border-gray-700">
+    <div className="fixed inset-0 z-50 flex h-full w-full flex-col bg-[var(--th-bg-surface)] text-[var(--th-text-primary)] lg:relative lg:inset-auto lg:z-auto lg:w-96 lg:border-l lg:border-[var(--th-border)]">
       <ChatPanelHeader
         selectedAgent={selectedAgent}
         selectedDeptName={selectedDeptName}

@@ -137,13 +137,7 @@ export function TaskBoard({
   return (
     <div className="flex h-full flex-col gap-4 p-3 sm:p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h1
-          className="text-xl font-semibold text-[var(--th-text-heading)]"
-          style={{ fontFamily: "var(--th-font-display)" }}
-        >
-          {t({ ko: "업무 보드", en: "Task Board", ja: "タスクボード", zh: "任务看板", fr: "Tâches" })}
-        </h1>
-        <span className="qg-text-muted text-[13px]">
+        <span className="qg-text-muted text-[13px]" role="status">
           {t({
             ko: `총 ${taskCount}개`,
             en: `Total ${taskCount}`,
