@@ -2,6 +2,10 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { Container, Graphics, Sprite, Text, TextStyle, type Application, type Texture } from "pixi.js";
 import type { Task } from "../../types";
 import { CEO_SIZE, DESK_H, type Delivery } from "./model";
+import { stretchDelegationWire } from "./delegationWire";
+
+/** QG accent green (cutting-mat) reserved for the mission route. */
+const DELEGATION_WIRE_COLOR = 0x3f8f76;
 
 interface BuildFinalLayersParams {
   app: Application;
@@ -91,10 +95,16 @@ export function buildFinalLayers({
     const target = agentPosRef.current.get(task.assigned_agent_id);
     if (!target) continue;
 
+    stretchDelegationWire(app, deliveryLayer, ceoPosRef.current, target, DELEGATION_WIRE_COLOR);
+
+    // A task card (fiche) travels along the wire to the agent's desk.
     const deliverySprite = new Container();
-    const docEmoji = new Text({ text: "📋", style: new TextStyle({ fontSize: 16 }) });
-    docEmoji.anchor.set(0.5, 0.5);
-    deliverySprite.addChild(docEmoji);
+    const card = new Graphics();
+    card.rect(-7, -9, 14, 18).fill(0xfafaf7).stroke({ width: 1, color: 0x1e1e1e, alpha: 0.6 });
+    card.rect(-7, -9, 14, 4).fill(DELEGATION_WIRE_COLOR);
+    card.rect(-4, -2, 8, 1).fill({ color: 0x1e1e1e, alpha: 0.5 });
+    card.rect(-4, 1, 6, 1).fill({ color: 0x1e1e1e, alpha: 0.5 });
+    deliverySprite.addChild(card);
     deliverySprite.position.set(ceoPosRef.current.x, ceoPosRef.current.y);
     deliveryLayer.addChild(deliverySprite);
 
