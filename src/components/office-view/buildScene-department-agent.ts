@@ -13,6 +13,7 @@ import {
 } from "./model";
 import { hashStr } from "./drawing-core";
 import { drawDesk } from "./drawing-furniture-a";
+import { drawSpriteDesk, hasOfficeTiles } from "./drawing-tiles";
 
 interface RenderDeskAgentAndSubClonesParams {
   room: Container;
@@ -86,7 +87,9 @@ export function renderDeskAgentAndSubClones({
   }
   room.addChild(charContainer);
 
-  const deskG = drawDesk(room, ax - DESK_W / 2, deskY, isWorking);
+  const deskG = hasOfficeTiles(textures)
+    ? drawSpriteDesk(room, textures, ax, deskY)
+    : drawDesk(room, ax - DESK_W / 2, deskY, isWorking);
 
   const bedW = TARGET_CHAR_H + 20;
   const bedH = 36;

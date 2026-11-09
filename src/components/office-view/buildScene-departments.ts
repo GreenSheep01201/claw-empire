@@ -6,7 +6,8 @@ import type { CallbackSnapshot, AnimItem, SubCloneAnimItem } from "./buildScene-
 import {
   COLS_PER_ROW,
   DESK_W,
-  ROOM_PAD,
+  ROOM_AGENT_TOP,
+  ROOM_BACK_WALL_ROWS,
   SLOT_H,
   SLOT_W,
   TARGET_CHAR_H,
@@ -16,6 +17,8 @@ import {
   emitSubCloneSmokeBurst,
 } from "./model";
 import { DEPT_THEME, LOCALE_TEXT, type SupportedLocale, pickLocale } from "./themes-locale";
+import { drawTileRoom, hasOfficeTiles, placeFurniture } from "./drawing-tiles";
+import { TILE_PX } from "./officeTiles";
 import {
   blendColor,
   contrastTextColor,
@@ -103,45 +106,59 @@ export function buildDepartmentRooms({
     roomRectsRef.current.push({ dept, x: rx, y: ry, w: roomW, h: roomH });
 
     const room = new Container();
+    const frontWalls = hasOfficeTiles(textures)
+      ? drawTileRoom(room, textures, {
+          x: rx,
+          y: ry,
+          cols: Math.round(roomW / TILE_PX),
+          rows: Math.round(roomH / TILE_PX),
+          floorVariant: 2,
+          backWallRows: ROOM_BACK_WALL_ROWS,
+          floorTint: blendColor(theme.floor1, 0xffffff, 0.15),
+          wallTint: blendColor(theme.wall, 0x1e2430, 0.35),
+        })
+      : null;
+    if (!frontWalls) {
+      const floorG = new Graphics();
+      drawTiledFloor(floorG, rx, ry, roomW, roomH, theme.floor1, theme.floor2);
+      room.addChild(floorG);
+      drawRoomAtmosphere(room, rx, ry, roomW, roomH, theme.wall, theme.accent);
+      const wallG = new Graphics();
+      wallG.roundRect(rx, ry, roomW, roomH, 3).stroke({ width: 2.5, color: theme.wall });
+      room.addChild(wallG);
+    }
 
-    const floorG = new Graphics();
-    drawTiledFloor(floorG, rx, ry, roomW, roomH, theme.floor1, theme.floor2);
-    room.addChild(floorG);
-    drawRoomAtmosphere(room, rx, ry, roomW, roomH, theme.wall, theme.accent);
+    if (frontWalls) {
+      drawWallDecor(room, textures, rx, ry, roomW, roomH);
+    } else {
+      drawCeilingAndDecor(room, rx, ry, roomW, roomH, theme, deptIdx, wallClocksRef);
+    }
 
-    const wallG = new Graphics();
-    wallG.roundRect(rx, ry, roomW, roomH, 3).stroke({ width: 2.5, color: theme.wall });
-    room.addChild(wallG);
-
-    const doorG = new Graphics();
-    doorG.rect(rx + roomW / 2 - 16, ry - 2, 32, 5).fill(0xf5f0e8);
-    room.addChild(doorG);
-
-    const signW = 84;
+    // QG pôle plaque: a strip of coloured tape on the back wall, clickable.
+    const label = `${dept.icon || "🏢"} ${localeName(activeLocale, dept)}`;
+    const signTxt = new Text({
+      text: label,
+      style: new TextStyle({
+        fontSize: 11,
+        fill: 0xffffff,
+        fontWeight: "bold",
+        fontFamily: "Archivo, system-ui, sans-serif",
+      }),
+    });
+    const signW = Math.max(96, Math.ceil(signTxt.width) + 24);
+    const signY = frontWalls ? ry + TILE_PX + 10 : ry - 4;
     const signBg = new Graphics();
-    signBg.roundRect(rx + roomW / 2 - signW / 2 + 1, ry - 3, signW, 18, 4).fill({ color: 0x000000, alpha: 0.12 });
-    signBg.roundRect(rx + roomW / 2 - signW / 2, ry - 4, signW, 18, 4).fill(theme.accent);
+    signBg.rect(rx + roomW / 2 - signW / 2 + 1, signY + 2, signW, 20).fill({ color: 0x000000, alpha: 0.18 });
+    signBg.rect(rx + roomW / 2 - signW / 2, signY, signW, 20).fill(theme.accent);
     signBg.eventMode = "static";
     signBg.cursor = "pointer";
     signBg.on("pointerdown", () => cbRef.current.onSelectDepartment(dept));
     room.addChild(signBg);
-    const signTxt = new Text({
-      text: `${dept.icon || "🏢"} ${localeName(activeLocale, dept)}`,
-      style: new TextStyle({
-        fontSize: 9,
-        fill: 0xffffff,
-        fontWeight: "bold",
-        fontFamily: "system-ui, sans-serif",
-        dropShadow: { alpha: 0.2, distance: 1, color: 0x000000 },
-      }),
-    });
     signTxt.anchor.set(0.5, 0.5);
-    signTxt.position.set(rx + roomW / 2, ry + 5);
+    signTxt.position.set(rx + roomW / 2, signY + 10);
     room.addChild(signTxt);
 
-    drawCeilingAndDecor(room, rx, ry, roomW, roomH, theme, deptIdx, wallClocksRef);
-
-    if (deptAgents.length > 0) {
+    if (deptAgents.length > 0 && !frontWalls) {
       drawRug(
         room,
         rx + roomW / 2,
@@ -165,8 +182,8 @@ export function buildDepartmentRooms({
     deptAgents.forEach((agent, agentIdx) => {
       const acol = agentIdx % COLS_PER_ROW;
       const arow = Math.floor(agentIdx / COLS_PER_ROW);
-      const ax = rx + ROOM_PAD + acol * SLOT_W + SLOT_W / 2;
-      const ay = ry + 38 + arow * SLOT_H;
+      const ax = rx + (roomW - COLS_PER_ROW * SLOT_W) / 2 + acol * SLOT_W + SLOT_W / 2;
+      const ay = ry + ROOM_AGENT_TOP + arow * SLOT_H;
       const isWorking = agent.status === "working";
       const isOffline = agent.status === "offline";
       const isBreak = agent.status === "break";
@@ -178,7 +195,7 @@ export function buildDepartmentRooms({
       agentPosRef.current.set(agent.id, { x: ax, y: deskY });
 
       renderAgentHeader(room, ax, nameY, agent, theme.accent, unread, activeLocale);
-      drawChair(room, ax, charFeetY - TARGET_CHAR_H * 0.18, theme.accent);
+      if (!frontWalls) drawChair(room, ax, charFeetY - TARGET_CHAR_H * 0.18, theme.accent);
 
       const removedBursts = removedSubBurstsByParent.get(agent.id);
       if (removedBursts && removedBursts.length > 0) {
@@ -214,8 +231,28 @@ export function buildDepartmentRooms({
       }
     });
 
+    if (frontWalls) room.addChild(frontWalls);
     app.stage.addChild(room);
   });
+}
+
+function drawWallDecor(
+  room: Container,
+  textures: Record<string, Texture>,
+  rx: number,
+  ry: number,
+  roomW: number,
+  roomH: number,
+): void {
+  const wallBottom = ry + TILE_PX * (ROOM_BACK_WALL_ROWS + 1);
+  const floorBottom = ry + roomH - TILE_PX;
+  placeFurniture(room, textures, "BOOKSHELF/BOOKSHELF", rx + TILE_PX + 40, wallBottom);
+  placeFurniture(room, textures, "SMALL_PAINTING/SMALL_PAINTING", rx + TILE_PX + 96, wallBottom - 22);
+  placeFurniture(room, textures, "WHITEBOARD/WHITEBOARD", rx + roomW - TILE_PX - 48, wallBottom - 6);
+  placeFurniture(room, textures, "CLOCK/CLOCK", rx + roomW - TILE_PX - 104, wallBottom - 22);
+  placeFurniture(room, textures, "PLANT/PLANT", rx + TILE_PX + 14, floorBottom);
+  placeFurniture(room, textures, "PLANT_2/PLANT_2", rx + roomW - TILE_PX - 14, floorBottom);
+  placeFurniture(room, textures, "BIN/BIN", rx + roomW - TILE_PX - 44, floorBottom);
 }
 
 function drawCeilingAndDecor(

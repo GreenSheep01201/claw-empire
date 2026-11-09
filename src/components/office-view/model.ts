@@ -1,3 +1,4 @@
+import { TILE_PX } from "./officeTiles";
 import { type Container, Graphics, Text, TextStyle } from "pixi.js";
 import type {
   Department,
@@ -137,6 +138,10 @@ const ROOM_PAD = 16;
 const TILE = 20;
 const CEO_SPEED = 7;
 const DELIVERY_SPEED = 0.012;
+
+/** Agents start below the cap row + back wall row of a tile room (see tileRoom.ts). */
+const ROOM_BACK_WALL_ROWS = 2;
+const ROOM_AGENT_TOP = (ROOM_BACK_WALL_ROWS + 1) * TILE_PX + 8;
 
 const BREAK_ROOM_H = 110;
 const BREAK_ROOM_GAP = 32;
@@ -283,6 +288,8 @@ export {
   CEO_SPEED,
   DELIVERY_SPEED,
   BREAK_ROOM_H,
+  ROOM_AGENT_TOP,
+  ROOM_BACK_WALL_ROWS,
   BREAK_ROOM_GAP,
   MAX_VISIBLE_SUB_CLONES_PER_AGENT,
   SUB_CLONE_WAVE_SPEED,

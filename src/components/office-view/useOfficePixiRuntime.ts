@@ -1,3 +1,4 @@
+import { loadOfficeTiles } from "./officeTiles";
 import { useEffect, type MutableRefObject } from "react";
 import { Application, Assets, TextureStyle, type Texture } from "pixi.js";
 import type { Agent, Department, SubAgent, Task } from "../../types";
@@ -130,6 +131,7 @@ export function useOfficePixiRuntime({
         }
       }
 
+      loads.push(loadOfficeTiles(textures));
       loads.push(
         Assets.load<Texture>("/sprites/ceo-lobster.png")
           .then((texture) => {

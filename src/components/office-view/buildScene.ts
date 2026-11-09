@@ -6,7 +6,7 @@ import {
   CEO_ZONE_H,
   COLS_PER_ROW,
   HALLWAY_H,
-  ROOM_PAD,
+  ROOM_AGENT_TOP,
   SLOT_H,
   SLOT_W,
   detachNode,
@@ -17,6 +17,7 @@ import { buildCeoAndHallway } from "./buildScene-ceo-hallway";
 import { buildDepartmentRooms } from "./buildScene-departments";
 import { buildBreakRoom } from "./buildScene-break-room";
 import { buildFinalLayers } from "./buildScene-final-layers";
+import { TILE_PX } from "./officeTiles";
 
 export function buildOfficeScene(context: BuildOfficeSceneContext): void {
   const {
@@ -123,7 +124,8 @@ export function buildOfficeScene(context: BuildOfficeSceneContext): void {
 
   const OFFICE_W = officeWRef.current;
   const deptCount = departments.length || 1;
-  const baseRoomW = COLS_PER_ROW * SLOT_W + ROOM_PAD * 2;
+  // Rooms are whole tiles so walls and floors line up with the Pixel Agents grid.
+  const baseRoomW = Math.ceil((COLS_PER_ROW * SLOT_W + (TILE_PX + 4) * 2) / TILE_PX) * TILE_PX;
   const roomGap = 12;
   let gridCols = Math.min(deptCount, 3);
   while (gridCols > 1 && gridCols * baseRoomW + (gridCols - 1) * roomGap + 24 > OFFICE_W) {
@@ -136,8 +138,11 @@ export function buildOfficeScene(context: BuildOfficeSceneContext): void {
   const agentRows = Math.ceil(maxAgents / COLS_PER_ROW);
 
   const totalRoomSpace = OFFICE_W - 24 - (gridCols - 1) * roomGap;
-  const roomW = Math.max(baseRoomW, Math.floor(totalRoomSpace / gridCols));
-  const roomH = Math.max(170, agentRows * SLOT_H + 44);
+  const roomW = Math.max(baseRoomW, Math.floor(totalRoomSpace / gridCols / TILE_PX) * TILE_PX);
+  const roomH = Math.max(
+    TILE_PX * 6,
+    Math.ceil((ROOM_AGENT_TOP + agentRows * SLOT_H + TILE_PX * 2) / TILE_PX) * TILE_PX,
+  );
   const deptStartY = CEO_ZONE_H + HALLWAY_H;
   const breakRoomY = deptStartY + gridRows * (roomH + roomGap) + BREAK_ROOM_GAP;
   const totalH = breakRoomY + BREAK_ROOM_H + 30;
