@@ -264,9 +264,9 @@ export default function OfficeWorldView({
           // Floor sprites are grayscale: the tint is the floor colour (night = dimmed).
           corridorFloor: isDark ? 0x4a4f4d : 0xeeeae2,
           wall: isDark ? 0x3d4350 : 0x6b7385,
-          ceoFloor: isDark ? 0x6e624a : 0xe3cfa6,
+          ceoFloor: isDark ? 0x6b5b43 : 0xd9c39b,
           meetingFloor: isDark ? 0x55606a : 0xd9e4ea,
-          breakFloor: isDark ? 0x75694c : 0xf3e3bd,
+          breakFloor: isDark ? 0x6a6150 : 0xf1e6cf,
           poleFloor: (id) => blendColor(roomTheme(id).floor1, isDark ? 0x1a1d1c : 0xffffff, isDark ? 0.55 : 0.15),
           poleAccent: (id) => roomTheme(id).accent,
         },

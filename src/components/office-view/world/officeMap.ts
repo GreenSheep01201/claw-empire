@@ -238,9 +238,15 @@ function roomSeats(draft: RoomDraft, col: number, row: number, width: number, he
     // Visitors stand in a row in front of the CEO's desk (desk is drawn at col + 5, rows 3-5).
     for (let i = 0; i < draft.seatCount; i++) seats.push({ col: col + 3 + i * 2, row: row + 6 });
   } else if (draft.kind === "break") {
-    for (let i = 0; i < draft.seatCount; i++) {
-      seats.push({ col: col + 3 + i * 3, row: row + height - 3 });
-    }
+    // On the lounge sofas facing each other around the coffee table (see renderWorld furnishBreak).
+    const lounge = col + Math.floor(width / 2);
+    const spots = [
+      { col: lounge - 1, row: row + 2 },
+      { col: lounge + 1, row: row + 2 },
+      { col: lounge - 1, row: row + 4 },
+      { col: lounge + 1, row: row + 4 },
+    ];
+    seats.push(...spots.slice(0, draft.seatCount));
   }
   return seats;
 }

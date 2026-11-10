@@ -1,6 +1,6 @@
 import { Container, Graphics, Sprite, Text, TextStyle, type Texture } from "pixi.js";
 import { placeFurniture, placeStretchedFurniture } from "../drawing-tiles";
-import { tileKey, TILE_SCALE, WALL_CAP_PX } from "../officeTiles";
+import { tileKey, TILE_SCALE, WALL_CAP_PX, type FurnitureKey } from "../officeTiles";
 import type { MapRoom, OfficeMap } from "./officeMap";
 import { mapWallMask, roomAt, tileToPixel } from "./worldGeometry";
 
@@ -33,7 +33,7 @@ export interface WorldScene {
 }
 
 const CHAR_H = 52;
-const FLOOR_VARIANT = { corridor: 0, ceo: 1, meeting: 2, pole: 2, break: 7 } as const;
+const FLOOR_VARIANT = { corridor: 0, ceo: 1, meeting: 2, pole: 2, break: 3 } as const;
 
 function floorTint(room: MapRoom | null, palette: WorldPalette): { variant: number; tint: number } {
   if (!room) return { variant: FLOOR_VARIANT.corridor, tint: palette.corridorFloor };
@@ -179,45 +179,165 @@ function furnishMeeting(entities: Container, textures: Record<string, Texture>, 
   );
 }
 
-function furnishCeo(entities: Container, textures: Record<string, Texture>, map: OfficeMap, room: MapRoom): void {
-  const size = map.tileSize;
-  const cx = (room.col + 5) * size;
-  const deskBottom = (room.row + 5) * size;
-  const desk = new Container();
-  placeFurniture(desk, textures, "DESK/DESK_FRONT", cx, deskBottom);
-  placeFurniture(desk, textures, "PC/PC_FRONT_ON_1", cx - 24, deskBottom - 30);
-  addDepth(entities, desk, deskBottom);
-  const decor = new Container();
-  placeFurniture(
-    decor,
-    textures,
-    "DOUBLE_BOOKSHELF/DOUBLE_BOOKSHELF",
-    (room.col + room.width - 4) * size,
-    (room.row + 2) * size,
-  );
-  placeFurniture(
-    decor,
-    textures,
-    "LARGE_PLANT/LARGE_PLANT",
-    (room.col + room.width - 2) * size,
-    (room.row + room.height - 1) * size,
-  );
-  addDepth(entities, decor, (room.row + 2) * size);
+/** Bottom-centre pixel of a tile, offset in tiles inside a room. */
+function anchor(map: OfficeMap, room: MapRoom, dc: number, dr: number): { x: number; y: number } {
+  return { x: (room.col + dc + 0.5) * map.tileSize, y: (room.row + dr + 1) * map.tileSize };
 }
 
-function furnishBreak(entities: Container, textures: Record<string, Texture>, map: OfficeMap, room: MapRoom): void {
+/** Flat rug on the floor layer: soft fill with a darker hem, tinted from the room accent. */
+function drawRug(
+  floor: Container,
+  map: OfficeMap,
+  room: MapRoom,
+  dc: number,
+  dr: number,
+  w: number,
+  h: number,
+  color: number,
+) {
   const size = map.tileSize;
-  const cx = (room.col + room.width / 2) * size;
-  const back = (room.row + 2) * size;
-  const decor = new Container();
-  placeFurniture(decor, textures, "SOFA/SOFA_FRONT", cx - 48, back + 8);
-  placeFurniture(decor, textures, "SOFA/SOFA_FRONT", cx + 48, back + 8);
-  placeFurniture(decor, textures, "COFFEE/COFFEE", (room.col + 2) * size, back + 8);
-  placeFurniture(decor, textures, "LARGE_PLANT/LARGE_PLANT", (room.col + room.width - 2) * size, back + 16);
-  addDepth(entities, decor, back + 8);
-  const table = new Container();
-  placeFurniture(table, textures, "COFFEE_TABLE/COFFEE_TABLE", cx, back + size * 2);
-  addDepth(entities, table, back + size * 2);
+  const x = (room.col + dc) * size;
+  const y = (room.row + dr) * size;
+  const rug = new Graphics();
+  rug.roundRect(x, y, w * size, h * size, 6).fill({ color, alpha: 0.55 });
+  rug.roundRect(x + 6, y + 6, w * size - 12, h * size - 12, 4).stroke({ width: 2, color, alpha: 0.9 });
+  floor.addChild(rug);
+}
+
+function furniture(
+  entities: Container,
+  textures: Record<string, Texture>,
+  file: FurnitureKey,
+  at: { x: number; y: number },
+  options: { scale?: number; dx?: number; dy?: number; flip?: boolean; z?: number } = {},
+): void {
+  const node = new Container();
+  const sprite = placeFurniture(node, textures, file, at.x + (options.dx ?? 0), at.y + (options.dy ?? 0), {
+    scale: options.scale,
+  });
+  if (sprite && options.flip) sprite.scale.x *= -1;
+  addDepth(entities, node, options.z ?? at.y + (options.dy ?? 0));
+}
+
+/**
+ * CEO office: an executive desk on a rug with visitor spots in front, a
+ * library wall, and a lounge corner on the right.
+ */
+function furnishCeo(
+  floor: Container,
+  entities: Container,
+  textures: Record<string, Texture>,
+  map: OfficeMap,
+  room: MapRoom,
+): void {
+  const back = 1; // first floor row, against the back wall
+  drawRug(floor, map, room, 2, 3, 7, 4, 0x2f5d50);
+
+  // Library wall and art.
+  furniture(entities, textures, "DOUBLE_BOOKSHELF/DOUBLE_BOOKSHELF", anchor(map, room, 7, back), { dx: 16 });
+  furniture(entities, textures, "DOUBLE_BOOKSHELF/DOUBLE_BOOKSHELF", anchor(map, room, 9, back), { dx: 16 });
+  furniture(entities, textures, "LARGE_PAINTING/LARGE_PAINTING", anchor(map, room, 12, back - 1), {
+    dx: 16,
+    scale: TILE_SCALE / 2,
+    dy: -6,
+    z: (room.row + 1) * map.tileSize + 2,
+  });
+  furniture(entities, textures, "CLOCK/CLOCK", anchor(map, room, 6, back - 1), {
+    scale: TILE_SCALE / 2,
+    dy: -6,
+    z: (room.row + 1) * map.tileSize + 2,
+  });
+
+  // Executive desk: chair behind, monitor and a coffee on top.
+  const desk = anchor(map, room, 5, 4);
+  furniture(entities, textures, "CUSHIONED_CHAIR/CUSHIONED_CHAIR_FRONT", anchor(map, room, 5, 3), { dy: -4 });
+  furniture(entities, textures, "DESK/DESK_FRONT", desk, { dy: map.tileSize });
+  furniture(entities, textures, "PC/PC_BACK", desk, {
+    dx: 26,
+    dy: 2,
+    scale: TILE_SCALE / 2,
+    z: desk.y + map.tileSize + 1,
+  });
+  furniture(entities, textures, "COFFEE/COFFEE", desk, { dx: -28, dy: 4, z: desk.y + map.tileSize + 1 });
+
+  // Lounge corner.
+  const right = room.width - 2;
+  furniture(entities, textures, "SOFA/SOFA_FRONT", anchor(map, room, right - 3, back + 1), { dx: 16 });
+  furniture(entities, textures, "COFFEE_TABLE/COFFEE_TABLE", anchor(map, room, right - 3, back + 3), { dx: 16 });
+  furniture(entities, textures, "CUSHIONED_CHAIR/CUSHIONED_CHAIR_SIDE", anchor(map, room, right - 5, back + 3), {});
+  furniture(entities, textures, "CUSHIONED_CHAIR/CUSHIONED_CHAIR_SIDE", anchor(map, room, right, back + 3), {
+    flip: true,
+  });
+  furniture(entities, textures, "LARGE_PLANT/LARGE_PLANT", anchor(map, room, right, back), {});
+  furniture(entities, textures, "LARGE_PLANT/LARGE_PLANT", anchor(map, room, 1, room.height - 3), {});
+  furniture(entities, textures, "HANGING_PLANT/HANGING_PLANT", anchor(map, room, right - 6, back - 1), {
+    scale: TILE_SCALE / 2,
+    dy: -6,
+    z: (room.row + 1) * map.tileSize + 2,
+  });
+}
+
+/**
+ * Break room as a small café: coffee bar on the back wall, a lounge on a rug
+ * in the middle (agents on break sit on these sofas), café tables on the right.
+ */
+function furnishBreak(
+  floor: Container,
+  entities: Container,
+  textures: Record<string, Texture>,
+  map: OfficeMap,
+  room: MapRoom,
+): void {
+  const back = 1;
+  const lounge = Math.floor(room.width / 2);
+  drawRug(floor, map, room, lounge - 2, 2, 6, 3, 0xd9a640);
+
+  // Coffee bar.
+  for (let i = 0; i < 3; i++) {
+    const at = anchor(map, room, 2 + i * 2, back);
+    furniture(entities, textures, "SMALL_TABLE/SMALL_TABLE_FRONT", at, { dx: 16 });
+    furniture(entities, textures, "COFFEE/COFFEE", at, { dx: 10 + (i % 2) * 12, dy: -18, z: at.y + 1 });
+  }
+  furniture(entities, textures, "BIN/BIN", anchor(map, room, 8, back), {});
+  furniture(entities, textures, "SMALL_PAINTING/SMALL_PAINTING", anchor(map, room, 4, back - 1), {
+    scale: TILE_SCALE / 2,
+    dy: -6,
+    z: (room.row + 1) * map.tileSize + 2,
+  });
+  furniture(entities, textures, "CLOCK/CLOCK", anchor(map, room, lounge, back - 1), {
+    scale: TILE_SCALE / 2,
+    dy: -6,
+    z: (room.row + 1) * map.tileSize + 2,
+  });
+
+  // Lounge: two sofas facing each other around the table.
+  furniture(entities, textures, "SOFA/SOFA_FRONT", anchor(map, room, lounge - 1, 2), { dx: 16 });
+  furniture(entities, textures, "SOFA/SOFA_FRONT", anchor(map, room, lounge + 1, 2), { dx: 16 });
+  furniture(entities, textures, "COFFEE_TABLE/COFFEE_TABLE", anchor(map, room, lounge, 3), { dx: 16 });
+  furniture(entities, textures, "SOFA/SOFA_BACK", anchor(map, room, lounge - 1, 4), { dx: 16 });
+  furniture(entities, textures, "SOFA/SOFA_BACK", anchor(map, room, lounge + 1, 4), { dx: 16 });
+
+  // Café tables.
+  for (let i = 0; i < 2; i++) {
+    const col = room.width - 8 + i * 4;
+    furniture(entities, textures, "WOODEN_CHAIR/WOODEN_CHAIR_SIDE", anchor(map, room, col - 1, 3), {});
+    furniture(entities, textures, "SMALL_TABLE/SMALL_TABLE_FRONT", anchor(map, room, col, 3), { dx: 16 });
+    furniture(entities, textures, "WOODEN_CHAIR/WOODEN_CHAIR_SIDE", anchor(map, room, col + 2, 3), { flip: true });
+  }
+
+  // Greenery.
+  furniture(entities, textures, "LARGE_PLANT/LARGE_PLANT", anchor(map, room, 1, room.height - 3), {});
+  furniture(entities, textures, "LARGE_PLANT/LARGE_PLANT", anchor(map, room, room.width - 2, room.height - 3), {});
+  furniture(entities, textures, "HANGING_PLANT/HANGING_PLANT", anchor(map, room, lounge - 5, back - 1), {
+    scale: TILE_SCALE / 2,
+    dy: -6,
+    z: (room.row + 1) * map.tileSize + 2,
+  });
+  furniture(entities, textures, "HANGING_PLANT/HANGING_PLANT", anchor(map, room, lounge + 5, back - 1), {
+    scale: TILE_SCALE / 2,
+    dy: -6,
+    z: (room.row + 1) * map.tileSize + 2,
+  });
 }
 
 function agentNode(agent: WorldAgent, x: number, feetY: number): Container {
@@ -286,10 +406,10 @@ export function buildWorldScene(
       furnishMeeting(entities, textures, map, room);
       addDepth(entities, plaque(room, map, labels.meeting, 0x2e86ab), (room.row + 1) * map.tileSize + 1);
     } else if (room.kind === "ceo") {
-      furnishCeo(entities, textures, map, room);
+      furnishCeo(floor, entities, textures, map, room);
       addDepth(entities, plaque(room, map, labels.ceo, 0x2f5d50), (room.row + 1) * map.tileSize + 1);
     } else {
-      furnishBreak(entities, textures, map, room);
+      furnishBreak(floor, entities, textures, map, room);
       addDepth(entities, plaque(room, map, labels.break, 0xf2c14e), (room.row + 1) * map.tileSize + 1);
     }
   }
