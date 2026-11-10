@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import { Application, Assets, Container, Sprite, type Texture } from "pixi.js";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Application, Assets, Container, Graphics, Sprite, type Texture } from "pixi.js";
 import type { Agent, Department, MeetingPresence, Task } from "../../types";
 import { localeName, useI18n } from "../../i18n";
 import { buildSpriteMap } from "../AgentAvatar";
@@ -13,6 +13,7 @@ import { buildWorldScene, type WorldAgent } from "./world/renderWorld";
 import { desiredSpot, findPath, stepAlongPath, type Spot } from "./world/movement";
 import { stretchDelegationWire } from "./delegationWire";
 import type { TilePoint } from "./world/officeMap";
+import { interactionAt, type Interaction } from "./world/interaction";
 import type { RoomTheme } from "./model";
 
 interface OfficeWorldViewProps {
@@ -21,7 +22,13 @@ interface OfficeWorldViewProps {
   tasks: Task[];
   meetingPresence?: MeetingPresence[];
   customDeptThemes?: Record<string, RoomTheme>;
+  pendingDecisionAgentIds: string[];
+  activeMeetingTaskId: string | null;
   onSelectAgent: (agent: Agent) => void;
+  onOpenChat: (agent: Agent) => void;
+  onSelectDepartment: (department: Department) => void;
+  onOpenDecisionInbox: () => void;
+  onOpenMeetingMinutes: (taskId: string) => void;
 }
 
 interface Walker {
@@ -37,6 +44,8 @@ interface Walker {
 }
 
 const AGENT_SPEED = 1.8;
+/** Red is reserved for what waits for the CEO's approval. */
+const PIN_COLOR = 0xd7263d;
 /** QG accent green reserved for the mission route. */
 const DELEGATION_WIRE_COLOR = 0x3f8f76;
 
@@ -71,15 +80,45 @@ export default function OfficeWorldView({
   tasks,
   meetingPresence,
   customDeptThemes,
+  pendingDecisionAgentIds,
+  activeMeetingTaskId,
   onSelectAgent,
+  onOpenChat,
+  onSelectDepartment,
+  onOpenDecisionInbox,
+  onOpenMeetingMinutes,
 }: OfficeWorldViewProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const onSelectAgentRef = useRef(onSelectAgent);
   onSelectAgentRef.current = onSelectAgent;
   // Live data read every frame, so status changes move agents without rebuilding the floor.
-  const liveRef = useRef({ agents, tasks, meetingPresence: meetingPresence ?? [] });
-  liveRef.current = { agents, tasks, meetingPresence: meetingPresence ?? [] };
+  const liveRef = useRef({ agents, tasks, meetingPresence: meetingPresence ?? [], pinned: new Set<string>() });
+  liveRef.current = {
+    agents,
+    tasks,
+    meetingPresence: meetingPresence ?? [],
+    pinned: new Set(pendingDecisionAgentIds),
+  };
+  const [prompt, setPrompt] = useState<Interaction>(null);
+  const promptRef = useRef<Interaction>(null);
+  // Acting on the current prompt (Enter / E / click) goes through the app's existing panels.
+  const actRef = useRef<() => void>(() => {});
+  actRef.current = () => {
+    const current = promptRef.current;
+    if (!current) return;
+    if (current.kind === "pin") onOpenDecisionInbox();
+    else if (current.kind === "meeting" && activeMeetingTaskId) onOpenMeetingMinutes(activeMeetingTaskId);
+    else if (current.kind === "agent") {
+      const agent = agents.find((candidate) => candidate.id === current.agentId);
+      if (agent) onOpenChat(agent);
+    } else if (current.kind === "pole") {
+      const dept = departments.find((candidate) => candidate.id === current.poleId);
+      if (dept) onSelectDepartment(dept);
+    }
+  };
+  const meetingActiveRef = useRef(false);
+  meetingActiveRef.current = Boolean(activeMeetingTaskId);
 
   // The floor only depends on which agents sit in which pole.
   const layoutKey = useMemo(
@@ -117,7 +156,13 @@ export default function OfficeWorldView({
     const keys = new Set<string>();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (isTyping() || !MOVE_KEYS[event.code]) return;
+      if (isTyping()) return;
+      if ((event.code === "Enter" || event.code === "KeyE") && promptRef.current) {
+        event.preventDefault();
+        actRef.current();
+        return;
+      }
+      if (!MOVE_KEYS[event.code]) return;
       event.preventDefault();
       keys.add(event.code);
     };
@@ -224,6 +269,7 @@ export default function OfficeWorldView({
         });
       }
       let knownAssignments: Set<string> | null = null;
+      const pins = new Map<string, Graphics>();
 
       const avatar = new Container();
       const pos = tileToPixel(map, map.spawn);
@@ -310,10 +356,48 @@ export default function OfficeWorldView({
           }
         }
         knownAssignments = assigned;
+
+        // Red pins above agents waiting for a decision (bobbing so they catch the eye).
+        for (const [agentId, walker] of walkers) {
+          let pin = pins.get(agentId);
+          if (live.pinned.has(agentId)) {
+            if (!pin) {
+              pin = new Graphics();
+              pin.circle(0, 0, 7).fill(PIN_COLOR).stroke({ width: 2, color: 0xffffff });
+              pin.moveTo(-3, 5).lineTo(0, 14).lineTo(3, 5).fill(PIN_COLOR);
+              overlay.addChild(pin);
+              pins.set(agentId, pin);
+            }
+            pin.position.set(walker.x + 14, walker.node.position.y - 78 + Math.sin(performance.now() / 260) * 3);
+          } else if (pin) {
+            pin.destroy();
+            pins.delete(agentId);
+          }
+        }
+
+        // What can the avatar act on right now?
+        const next = interactionAt({
+          map,
+          avatar: pos,
+          agents: [...walkers].map(([id, walker]) => ({ id, x: walker.x, y: walker.y })),
+          pinnedAgentIds: live.pinned,
+          meetingActive: meetingActiveRef.current,
+        });
+        if (JSON.stringify(next) !== JSON.stringify(promptRef.current)) {
+          promptRef.current = next;
+          setPrompt(next);
+        }
         const offset = cameraOffset({ width: app.screen.width, height: app.screen.height }, worldSize, pos, ZOOM);
         world.position.set(offset.x, offset.y);
       });
 
+      if (import.meta.env.DEV) {
+        // QA hook (dev builds only): inspect the map and place the avatar on a tile.
+        (window as unknown as { __qgWorld?: unknown }).__qgWorld = {
+          map,
+          teleport: (col: number, row: number) => Object.assign(pos, tileToPixel(map, { col, row })),
+        };
+      }
       window.addEventListener("keydown", onKeyDown);
       window.addEventListener("keyup", onKeyUp);
     })();
@@ -330,13 +414,44 @@ export default function OfficeWorldView({
     };
   }, [map, customDeptThemes, language]);
 
+  const promptLabel = (() => {
+    if (!prompt) return null;
+    if (prompt.kind === "pin")
+      return t({ ko: "의사결정 확인", en: "Review the decision", fr: "Voir la validation en attente" });
+    if (prompt.kind === "meeting")
+      return t({ ko: "회의록 보기", en: "Open the meeting minutes", fr: "Ouvrir le compte rendu" });
+    if (prompt.kind === "agent") {
+      const agent = agents.find((candidate) => candidate.id === prompt.agentId);
+      return t({ ko: "대화하기", en: "Talk to", fr: "Discuter avec" }) + (agent ? ` ${agent.name}` : "");
+    }
+    const dept = departments.find((candidate) => candidate.id === prompt.poleId);
+    return (
+      t({ ko: "부서 열기", en: "Open the pole", fr: "Ouvrir le pôle" }) + (dept ? ` ${localeName(language, dept)}` : "")
+    );
+  })();
+
   return (
-    <div
-      ref={hostRef}
-      className="relative h-[calc(100dvh-140px)] min-h-[420px] w-full overflow-hidden rounded-[var(--qg-radius)] border border-[var(--th-border)]"
-      style={{ background: "var(--th-bg-primary)" }}
-      aria-label={pickLocale(language, LOCALE_TEXT.hint)}
-      tabIndex={0}
-    />
+    <div className="relative">
+      <div
+        ref={hostRef}
+        className="relative h-[calc(100dvh-140px)] min-h-[420px] w-full overflow-hidden rounded-[var(--qg-radius)] border border-[var(--th-border)]"
+        style={{ background: "var(--th-bg-primary)" }}
+        aria-label={pickLocale(language, LOCALE_TEXT.hint)}
+        tabIndex={0}
+      />
+      {promptLabel && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-4">
+          <button
+            type="button"
+            onClick={() => actRef.current()}
+            className={`qg-btn pointer-events-auto${prompt?.kind === "pin" ? " qg-btn--pin is-pending" : " qg-btn--primary"}`}
+            aria-keyshortcuts="Enter E"
+          >
+            <kbd className="qg-badge">{t({ ko: "Enter", en: "Enter", fr: "Entrée" })}</kbd>
+            {promptLabel}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

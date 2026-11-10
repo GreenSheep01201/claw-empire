@@ -122,6 +122,9 @@ interface AppMainLayoutProps {
   onRefreshCli: () => Promise<void>;
   onOauthResultClear: () => void;
   onOpenDecisionInbox: () => void;
+  /** Agents with a decision waiting for the CEO (red pins in the office). */
+  pendingDecisionAgentIds: string[];
+  onOpenChatWithAgent: (agent: Agent) => void;
   onOpenAgentStatus: () => void;
   onOpenReportHistory: () => void;
   onOpenAnnouncement: () => void;
@@ -183,6 +186,8 @@ export default function AppMainLayout({
   onRefreshCli,
   onOauthResultClear,
   onOpenDecisionInbox,
+  pendingDecisionAgentIds,
+  onOpenChatWithAgent,
   onOpenAgentStatus,
   onOpenReportHistory,
   onOpenAnnouncement,
@@ -476,6 +481,12 @@ export default function AppMainLayout({
                 agents={officePresentation.agents}
                 tasks={tasks}
                 meetingPresence={meetingPresence}
+                pendingDecisionAgentIds={pendingDecisionAgentIds}
+                activeMeetingTaskId={activeMeetingTaskId}
+                onOpenMeetingMinutes={onOpenActiveMeetingMinutes}
+                onOpenDecisionInbox={onOpenDecisionInbox}
+                onOpenChat={onOpenChatWithAgent}
+                onSelectDepartment={onSelectDepartment}
                 customDeptThemes={officePresentation.roomThemes}
                 onSelectAgent={onSelectAgent}
               />

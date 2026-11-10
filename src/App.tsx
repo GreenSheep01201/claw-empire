@@ -383,6 +383,11 @@ export default function App() {
     [activePackKey, activePackProfile?.agents, agents],
   );
 
+  const pendingDecisionAgentIds = useMemo(
+    () => decisionInboxItems.map((item) => item.agentId).filter((id): id is string => Boolean(id)),
+    [decisionInboxItems],
+  );
+
   if (loading) {
     return (
       <AppLoadingScreen language={labels.uiLanguage} title={labels.loadingTitle} subtitle={labels.loadingSubtitle} />
@@ -413,6 +418,8 @@ export default function App() {
       toggleTheme={toggleTheme}
       decisionInboxLoading={decisionInboxLoading}
       decisionInboxCount={decisionInboxItems.length}
+      pendingDecisionAgentIds={pendingDecisionAgentIds}
+      onOpenChatWithAgent={actions.handleOpenChat}
       activeMeetingTaskId={activeMeetingTaskId}
       unreadAgentIds={unreadAgentIds}
       crossDeptDeliveries={crossDeptDeliveries}
