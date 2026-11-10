@@ -1,6 +1,5 @@
 import { useCallback, useMemo, type ReactNode } from "react";
 import Sidebar from "../components/Sidebar";
-import OfficeView from "../components/OfficeView";
 import OfficeWorldView from "../components/office-view/OfficeWorldView";
 import Dashboard from "../components/Dashboard";
 import TaskBoard from "../components/TaskBoard";
@@ -201,17 +200,6 @@ export default function AppMainLayout({
     labels.uiLanguage === "ko" || labels.uiLanguage === "ja" || labels.uiLanguage === "zh" ? labels.uiLanguage : "en";
   const officePackKey = normalizeOfficeWorkflowPack(activeOfficeWorkflowPack);
   const officePackOptions = useMemo(() => listOfficePackOptions(uiLanguage), [uiLanguage]);
-  // Walkable office floor: default view; ?world=0 / ?world=1 switch (remembered per browser).
-  const officeWorldEnabled = useMemo(() => {
-    try {
-      const param = new URLSearchParams(window.location.search).get("world");
-      if (param === "1" || param === "0") window.localStorage.setItem("qg.officeWorld", param);
-      // The walkable floor is the default office; ?world=0 brings the previous view back.
-      return window.localStorage.getItem("qg.officeWorld") !== "0";
-    } catch {
-      return true;
-    }
-  }, []);
   const officePackLabel = pickLang(normalizeLanguage(labels.uiLanguage), {
     ko: "오피스 팩",
     en: "Office pack",
@@ -476,7 +464,7 @@ export default function AppMainLayout({
           )}
 
           <div className="p-3 sm:p-4 lg:p-6">
-            {view === "office" && officeWorldEnabled && (
+            {view === "office" && (
               <OfficeWorldView
                 departments={officePresentation.departments}
                 agents={officePresentation.agents}
@@ -495,26 +483,6 @@ export default function AppMainLayout({
                 onSelectDepartment={onSelectDepartment}
                 customDeptThemes={officePresentation.roomThemes}
                 onSelectAgent={onSelectAgent}
-              />
-            )}
-            {view === "office" && !officeWorldEnabled && (
-              <OfficeView
-                departments={officePresentation.departments}
-                agents={officePresentation.agents}
-                tasks={tasks}
-                subAgents={subAgents}
-                meetingPresence={meetingPresence}
-                activeMeetingTaskId={activeMeetingTaskId}
-                unreadAgentIds={unreadAgentIds}
-                crossDeptDeliveries={crossDeptDeliveries}
-                onCrossDeptDeliveryProcessed={onCrossDeptDeliveryProcessed}
-                ceoOfficeCalls={ceoOfficeCalls}
-                onCeoOfficeCallProcessed={onCeoOfficeCallProcessed}
-                onOpenActiveMeetingMinutes={onOpenActiveMeetingMinutes}
-                customDeptThemes={officePresentation.roomThemes}
-                themeHighlightTargetId={activeRoomThemeTargetId}
-                onSelectAgent={onSelectAgent}
-                onSelectDepartment={onSelectDepartment}
               />
             )}
 
