@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { Application, Assets, Container, Graphics, Sprite, Text, TextStyle, type Texture } from "pixi.js";
 import type { Agent, CeoOfficeCall, CrossDeptDelivery, Department, MeetingPresence, Task } from "../../types";
 import { localeName, useI18n } from "../../i18n";
@@ -6,9 +7,9 @@ import { buildSpriteMap } from "../AgentAvatar";
 import { loadOfficeTiles } from "./officeTiles";
 import { DEPT_THEME, LOCALE_TEXT, pickLocale } from "./themes-locale";
 import { blendColor } from "./drawing-core";
-import { generateOfficeMap } from "./world/officeMap";
+import { generateOfficeMap, isWalkableTile } from "./world/officeMap";
 import { moveWithCollision } from "./world/collision";
-import { cameraOffset, tileToPixel } from "./world/worldGeometry";
+import { cameraOffset, screenToTile, tileToPixel } from "./world/worldGeometry";
 import { buildWorldScene, type WorldAgent } from "./world/renderWorld";
 import { desiredSpot, findPath, stepAlongPath, type Spot } from "./world/movement";
 import { stretchDelegationWire } from "./delegationWire";
@@ -24,6 +25,7 @@ interface OfficeWorldViewProps {
   meetingPresence?: MeetingPresence[];
   customDeptThemes?: Record<string, RoomTheme>;
   pendingDecisionAgentIds: string[];
+  theme: "light" | "dark";
   crossDeptDeliveries?: CrossDeptDelivery[];
   ceoOfficeCalls?: CeoOfficeCall[];
   onCrossDeptDeliveryProcessed?: (id: string) => void;
@@ -86,6 +88,7 @@ export default function OfficeWorldView({
   meetingPresence,
   customDeptThemes,
   pendingDecisionAgentIds,
+  theme,
   crossDeptDeliveries,
   ceoOfficeCalls,
   onCrossDeptDeliveryProcessed,
@@ -101,6 +104,13 @@ export default function OfficeWorldView({
   const { language, t } = useI18n();
   const onSelectAgentRef = useRef(onSelectAgent);
   onSelectAgentRef.current = onSelectAgent;
+  // Movement input shared by keyboard, the touch pad and click-to-walk.
+  const keysRef = useRef(new Set<string>());
+  const walkToRef = useRef<(tile: TilePoint) => void>(() => {});
+  const avatarDotRef = useRef<SVGCircleElement>(null);
+  const [coarsePointer] = useState(
+    () => typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches === true,
+  );
   // Live data read every frame, so status changes move agents without rebuilding the floor.
   const liveRef = useRef({ agents, tasks, meetingPresence: meetingPresence ?? [], pinned: new Set<string>() });
   liveRef.current = {
@@ -186,7 +196,8 @@ export default function OfficeWorldView({
     if (!host) return;
     let disposed = false;
     const app = new Application();
-    const keys = new Set<string>();
+    const keys = keysRef.current;
+    keys.clear();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTyping()) return;
@@ -234,7 +245,8 @@ export default function OfficeWorldView({
       ]);
       if (disposed) return;
 
-      const theme = (deptId: string) => customDeptThemes?.[deptId] ?? DEPT_THEME[deptId] ?? DEPT_THEME.dev;
+      const isDark = theme === "dark";
+      const roomTheme = (deptId: string) => customDeptThemes?.[deptId] ?? DEPT_THEME[deptId] ?? DEPT_THEME.dev;
       const worldAgents: WorldAgent[] = agents
         .filter((agent) => agent.department_id)
         .map((agent) => ({
@@ -249,13 +261,14 @@ export default function OfficeWorldView({
         textures,
         map,
         {
-          corridorFloor: 0xeeeae2,
-          wall: 0x6b7385,
-          ceoFloor: 0xe3cfa6,
-          meetingFloor: 0xd9e4ea,
-          breakFloor: 0xf3e3bd,
-          poleFloor: (id) => blendColor(theme(id).floor1, 0xffffff, 0.15),
-          poleAccent: (id) => theme(id).accent,
+          // Floor sprites are grayscale: the tint is the floor colour (night = dimmed).
+          corridorFloor: isDark ? 0x4a4f4d : 0xeeeae2,
+          wall: isDark ? 0x3d4350 : 0x6b7385,
+          ceoFloor: isDark ? 0x6e624a : 0xe3cfa6,
+          meetingFloor: isDark ? 0x55606a : 0xd9e4ea,
+          breakFloor: isDark ? 0x75694c : 0xf3e3bd,
+          poleFloor: (id) => blendColor(roomTheme(id).floor1, isDark ? 0x1a1d1c : 0xffffff, isDark ? 0.55 : 0.15),
+          poleAccent: (id) => roomTheme(id).accent,
         },
         worldAgents,
         {
@@ -316,6 +329,29 @@ export default function OfficeWorldView({
       scene.entities.addChild(avatar);
 
       const worldSize = { width: map.cols * map.tileSize, height: map.rows * map.tileSize };
+
+      // Click / tap a floor tile to walk there (Gather-like); the keyboard takes over at once.
+      let route: { path: TilePoint[]; index: number } | null = null;
+      const marker = new Graphics();
+      marker.circle(0, 0, 9).stroke({ width: 2, color: DELEGATION_WIRE_COLOR, alpha: 0.9 });
+      marker.visible = false;
+      overlay.addChild(marker);
+      walkToRef.current = (tile) => {
+        if (!isWalkableTile(map, tile.col, tile.row)) return;
+        const here = { col: Math.floor(pos.x / map.tileSize), row: Math.floor(pos.y / map.tileSize) };
+        const path = findPath(map, here, tile);
+        if (!path) return;
+        route = { path, index: 0 };
+        const target = tileToPixel(map, tile);
+        marker.position.set(target.x, target.y);
+        marker.visible = true;
+      };
+      app.stage.eventMode = "static";
+      app.stage.hitArea = app.screen;
+      app.stage.on("pointertap", (event) => {
+        if (event.target !== app.stage) return; // agents handle their own taps
+        walkToRef.current(screenToTile(map, event.global, world.position, ZOOM));
+      });
       app.ticker.add((ticker) => {
         let dx = 0;
         let dy = 0;
@@ -323,6 +359,22 @@ export default function OfficeWorldView({
           dx += MOVE_KEYS[code][0];
           dy += MOVE_KEYS[code][1];
         }
+        if (dx !== 0 || dy !== 0) route = null;
+        if (route) {
+          const before = pos.x;
+          const step = stepAlongPath(
+            { ...pos, index: route.index },
+            route.path,
+            AVATAR_SPEED * ticker.deltaTime,
+            map.tileSize,
+          );
+          pos.x = step.x;
+          pos.y = step.y;
+          route.index = step.index;
+          if (pos.x !== before) avatar.scale.x = pos.x < before ? -1 : 1;
+          if (step.arrived) route = null;
+        }
+        marker.visible = route !== null;
         if (dx !== 0 || dy !== 0) {
           const length = Math.hypot(dx, dy);
           const step = AVATAR_SPEED * ticker.deltaTime;
@@ -464,6 +516,8 @@ export default function OfficeWorldView({
         }
         const offset = cameraOffset({ width: app.screen.width, height: app.screen.height }, worldSize, pos, ZOOM);
         world.position.set(offset.x, offset.y);
+        avatarDotRef.current?.setAttribute("cx", String(pos.x / map.tileSize));
+        avatarDotRef.current?.setAttribute("cy", String(pos.y / map.tileSize));
       });
 
       if (import.meta.env.DEV) {
@@ -491,7 +545,7 @@ export default function OfficeWorldView({
         // App may not have finished initialising.
       }
     };
-  }, [map, customDeptThemes, language]);
+  }, [map, customDeptThemes, language, theme]);
 
   const promptLabel = (() => {
     if (!prompt) return null;
@@ -518,6 +572,23 @@ export default function OfficeWorldView({
         aria-label={pickLocale(language, LOCALE_TEXT.hint)}
         tabIndex={0}
       />
+      <OfficeMiniMap
+        map={map}
+        dotRef={avatarDotRef}
+        label={t({ ko: "미니맵", en: "Floor map", fr: "Plan de l'étage" })}
+        onPick={(tile) => walkToRef.current(tile)}
+      />
+      {coarsePointer && (
+        <MovePad
+          keys={keysRef.current}
+          labels={{
+            up: t({ ko: "위", en: "Up", fr: "Haut" }),
+            down: t({ ko: "아래", en: "Down", fr: "Bas" }),
+            left: t({ ko: "왼쪽", en: "Left", fr: "Gauche" }),
+            right: t({ ko: "오른쪽", en: "Right", fr: "Droite" }),
+          }}
+        />
+      )}
       {promptLabel && (
         <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-4">
           <button
@@ -531,6 +602,107 @@ export default function OfficeWorldView({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+const MINIMAP_COLORS: Record<string, string> = {
+  ceo: "#2f5d50",
+  meeting: "#2e86ab",
+  pole: "#9aa3ad",
+  break: "#d9a640",
+};
+
+/** Plan of the floor in the corner: rooms, your position, click to walk there. */
+function OfficeMiniMap({
+  map,
+  dotRef,
+  label,
+  onPick,
+}: {
+  map: ReturnType<typeof generateOfficeMap>;
+  dotRef: React.RefObject<SVGCircleElement | null>;
+  label: string;
+  onPick: (tile: TilePoint) => void;
+}) {
+  // Smaller on phones so it never covers the room you are in.
+  const width = typeof window !== "undefined" && window.innerWidth < 640 ? 112 : 168;
+  const height = Math.round((width * map.rows) / map.cols);
+  return (
+    <svg
+      role="img"
+      aria-label={label}
+      viewBox={`0 0 ${map.cols} ${map.rows}`}
+      width={width}
+      height={height}
+      className="absolute right-3 top-3 cursor-pointer rounded-[var(--qg-radius)] border border-[var(--th-border-strong)] bg-[var(--th-bg-surface)] shadow-[var(--qg-lift)]"
+      onClick={(event) => {
+        const box = event.currentTarget.getBoundingClientRect();
+        onPick({
+          col: Math.floor(((event.clientX - box.left) / box.width) * map.cols),
+          row: Math.floor(((event.clientY - box.top) / box.height) * map.rows),
+        });
+      }}
+    >
+      {map.tiles.flatMap((row, r) =>
+        row.map((tile, c) =>
+          tile === "wall" ? null : (
+            <rect key={`${c},${r}`} x={c} y={r} width={1} height={1} fill="var(--th-bg-surface-hover)" />
+          ),
+        ),
+      )}
+      {map.rooms.map((room) => (
+        <rect
+          key={room.id}
+          x={room.col + 1}
+          y={room.row + 1}
+          width={room.width - 2}
+          height={room.height - 2}
+          fill={MINIMAP_COLORS[room.kind]}
+          opacity={0.45}
+        />
+      ))}
+      <circle ref={dotRef} r={1.4} fill="#d7263d" stroke="#fff" strokeWidth={0.4} />
+    </svg>
+  );
+}
+
+/** Touch pad: holding a direction acts like holding the arrow key. */
+function MovePad({
+  keys,
+  labels,
+}: {
+  keys: Set<string>;
+  labels: { up: string; down: string; left: string; right: string };
+}) {
+  const bind = (code: string) => ({
+    onPointerDown: (event: ReactPointerEvent) => {
+      event.preventDefault();
+      keys.add(code);
+    },
+    onPointerUp: () => keys.delete(code),
+    onPointerLeave: () => keys.delete(code),
+    onPointerCancel: () => keys.delete(code),
+  });
+  return (
+    <div className="absolute bottom-20 right-3 grid grid-cols-3 gap-1" style={{ touchAction: "none" }}>
+      <span />
+      <button type="button" className="qg-icon-btn" aria-label={labels.up} {...bind("ArrowUp")}>
+        <ChevronUp size={20} aria-hidden />
+      </button>
+      <span />
+      <button type="button" className="qg-icon-btn" aria-label={labels.left} {...bind("ArrowLeft")}>
+        <ChevronLeft size={20} aria-hidden />
+      </button>
+      <span />
+      <button type="button" className="qg-icon-btn" aria-label={labels.right} {...bind("ArrowRight")}>
+        <ChevronRight size={20} aria-hidden />
+      </button>
+      <span />
+      <button type="button" className="qg-icon-btn" aria-label={labels.down} {...bind("ArrowDown")}>
+        <ChevronDown size={20} aria-hidden />
+      </button>
+      <span />
     </div>
   );
 }

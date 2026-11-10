@@ -482,6 +482,7 @@ export default function AppMainLayout({
                 tasks={tasks}
                 meetingPresence={meetingPresence}
                 pendingDecisionAgentIds={pendingDecisionAgentIds}
+                theme={theme}
                 crossDeptDeliveries={crossDeptDeliveries}
                 ceoOfficeCalls={ceoOfficeCalls}
                 onCrossDeptDeliveryProcessed={onCrossDeptDeliveryProcessed}

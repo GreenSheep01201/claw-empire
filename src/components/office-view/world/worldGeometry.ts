@@ -42,3 +42,11 @@ export function cameraOffset(viewport: Size, world: Size, target: Point, zoom: n
   };
   return { x: axis(viewport.width, world.width, target.x), y: axis(viewport.height, world.height, target.y) };
 }
+
+/** Tile under a screen point, given the world container's offset and zoom. */
+export function screenToTile(map: OfficeMap, screen: Point, worldOffset: Point, zoom: number): TilePoint {
+  return {
+    col: Math.floor((screen.x - worldOffset.x) / zoom / map.tileSize),
+    row: Math.floor((screen.y - worldOffset.y) / zoom / map.tileSize),
+  };
+}
