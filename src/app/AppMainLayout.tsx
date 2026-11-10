@@ -1,6 +1,7 @@
 import { useCallback, useMemo, type ReactNode } from "react";
 import Sidebar from "../components/Sidebar";
 import OfficeView from "../components/OfficeView";
+import OfficeWorldView from "../components/office-view/OfficeWorldView";
 import Dashboard from "../components/Dashboard";
 import TaskBoard from "../components/TaskBoard";
 import AgentManager from "../components/AgentManager";
@@ -195,6 +196,16 @@ export default function AppMainLayout({
     labels.uiLanguage === "ko" || labels.uiLanguage === "ja" || labels.uiLanguage === "zh" ? labels.uiLanguage : "en";
   const officePackKey = normalizeOfficeWorkflowPack(activeOfficeWorkflowPack);
   const officePackOptions = useMemo(() => listOfficePackOptions(uiLanguage), [uiLanguage]);
+  // Walkable office floor (in progress): opt in with ?world=1, remembered per browser.
+  const officeWorldEnabled = useMemo(() => {
+    try {
+      const param = new URLSearchParams(window.location.search).get("world");
+      if (param === "1" || param === "0") window.localStorage.setItem("qg.officeWorld", param);
+      return window.localStorage.getItem("qg.officeWorld") === "1";
+    } catch {
+      return false;
+    }
+  }, []);
   const officePackLabel = pickLang(normalizeLanguage(labels.uiLanguage), {
     ko: "오피스 팩",
     en: "Office pack",
@@ -459,7 +470,15 @@ export default function AppMainLayout({
           )}
 
           <div className="p-3 sm:p-4 lg:p-6">
-            {view === "office" && (
+            {view === "office" && officeWorldEnabled && (
+              <OfficeWorldView
+                departments={officePresentation.departments}
+                agents={officePresentation.agents}
+                customDeptThemes={officePresentation.roomThemes}
+                onSelectAgent={onSelectAgent}
+              />
+            )}
+            {view === "office" && !officeWorldEnabled && (
               <OfficeView
                 departments={officePresentation.departments}
                 agents={officePresentation.agents}

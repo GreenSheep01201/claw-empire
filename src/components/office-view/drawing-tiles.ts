@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, type Texture } from "pixi.js";
+import { Container, Graphics, NineSliceSprite, Sprite, type Text, type Texture } from "pixi.js";
 import { buildRoomTiles, wallMask } from "./tileRoom";
 import { tileKey, TILE_PX, TILE_SCALE, WALL_CAP_PX, type FurnitureKey } from "./officeTiles";
 
@@ -146,4 +146,77 @@ export function drawSpriteDesk(
   placeFurniture(desk, textures, "PC/PC_BACK", x + 30, deskY - 2, { scale: TILE_SCALE / 2 });
   parent.addChild(desk);
   return desk;
+}
+
+/** Fills `cols`×`rows` whole tiles with one floor variant (hallways: no walls). */
+export function drawFloorStrip(
+  parent: Container,
+  textures: Record<string, Texture>,
+  spec: { x: number; y: number; cols: number; rows: number; floorVariant?: number; tint: number; alpha?: number },
+): boolean {
+  const texture = textures[tileKey.floor(spec.floorVariant ?? 0)];
+  if (!texture) return false;
+  for (let r = 0; r < spec.rows; r++) {
+    for (let c = 0; c < spec.cols; c++) {
+      const tile = new Sprite(texture);
+      tile.position.set(spec.x + c * TILE_PX, spec.y + r * TILE_PX);
+      tile.scale.set(TILE_SCALE);
+      tile.tint = spec.tint;
+      if (spec.alpha !== undefined) tile.alpha = spec.alpha;
+      parent.addChild(tile);
+    }
+  }
+  return true;
+}
+
+/**
+ * Furniture stretched by nine-slice (borders in source pixels stay crisp), e.g.
+ * a long meeting table from the coffee table sprite. (x, y) is the top-left;
+ * width/height are in screen pixels.
+ */
+export function placeStretchedFurniture(
+  parent: Container,
+  textures: Record<string, Texture>,
+  file: FurnitureKey,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  insets: { left: number; top: number; right: number; bottom: number },
+): NineSliceSprite | null {
+  const texture = textures[tileKey.furniture(file)];
+  if (!texture) return null;
+  const sprite = new NineSliceSprite({
+    texture,
+    leftWidth: insets.left,
+    topHeight: insets.top,
+    rightWidth: insets.right,
+    bottomHeight: insets.bottom,
+  });
+  sprite.width = width / TILE_SCALE;
+  sprite.height = height / TILE_SCALE;
+  sprite.scale.set(TILE_SCALE);
+  sprite.position.set(Math.round(x), Math.round(y));
+  parent.addChild(sprite);
+  return sprite;
+}
+
+/** Wall plaque: a strip of coloured tape with a soft drop shadow, centred on `cx`. */
+export function drawWallPlaque(
+  parent: Container,
+  cx: number,
+  y: number,
+  label: Text,
+  color: number,
+  minWidth = 96,
+): Graphics {
+  const w = Math.max(minWidth, Math.ceil(label.width) + 24);
+  const bg = new Graphics();
+  bg.rect(cx - w / 2 + 1, y + 2, w, 20).fill({ color: 0x000000, alpha: 0.18 });
+  bg.rect(cx - w / 2, y, w, 20).fill(color);
+  parent.addChild(bg);
+  label.anchor.set(0.5, 0.5);
+  label.position.set(cx, y + 10);
+  parent.addChild(label);
+  return bg;
 }
