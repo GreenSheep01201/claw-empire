@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Application, Assets, Container, Sprite, type Texture } from "pixi.js";
-import type { Agent, Department } from "../../types";
+import type { Agent, Department, MeetingPresence, Task } from "../../types";
 import { localeName, useI18n } from "../../i18n";
 import { buildSpriteMap } from "../AgentAvatar";
 import { loadOfficeTiles } from "./officeTiles";
@@ -10,14 +10,35 @@ import { generateOfficeMap } from "./world/officeMap";
 import { moveWithCollision } from "./world/collision";
 import { cameraOffset, tileToPixel } from "./world/worldGeometry";
 import { buildWorldScene, type WorldAgent } from "./world/renderWorld";
+import { desiredSpot, findPath, stepAlongPath, type Spot } from "./world/movement";
+import { stretchDelegationWire } from "./delegationWire";
+import type { TilePoint } from "./world/officeMap";
 import type { RoomTheme } from "./model";
 
 interface OfficeWorldViewProps {
   departments: Department[];
   agents: Agent[];
+  tasks: Task[];
+  meetingPresence?: MeetingPresence[];
   customDeptThemes?: Record<string, RoomTheme>;
   onSelectAgent: (agent: Agent) => void;
 }
+
+interface Walker {
+  node: Container;
+  sprite: Sprite | null;
+  frames: { D?: Texture; L?: Texture; R?: Texture };
+  x: number;
+  y: number;
+  path: TilePoint[];
+  index: number;
+  goalKey: string;
+  spot: Spot | null;
+}
+
+const AGENT_SPEED = 1.8;
+/** QG accent green reserved for the mission route. */
+const DELEGATION_WIRE_COLOR = 0x3f8f76;
 
 const AVATAR_SPEED = 3.2;
 const AVATAR_RADIUS = 9;
@@ -47,6 +68,8 @@ function isTyping(): boolean {
 export default function OfficeWorldView({
   departments,
   agents,
+  tasks,
+  meetingPresence,
   customDeptThemes,
   onSelectAgent,
 }: OfficeWorldViewProps) {
@@ -54,16 +77,36 @@ export default function OfficeWorldView({
   const { language } = useI18n();
   const onSelectAgentRef = useRef(onSelectAgent);
   onSelectAgentRef.current = onSelectAgent;
+  // Live data read every frame, so status changes move agents without rebuilding the floor.
+  const liveRef = useRef({ agents, tasks, meetingPresence: meetingPresence ?? [] });
+  liveRef.current = { agents, tasks, meetingPresence: meetingPresence ?? [] };
 
+  // The floor only depends on which agents sit in which pole.
+  const layoutKey = useMemo(
+    () =>
+      departments
+        .map(
+          (dept) =>
+            `${dept.id}:${agents
+              .filter((a) => a.department_id === dept.id)
+              .map((a) => a.id)
+              .join(",")}`,
+        )
+        .join("|"),
+    [departments, agents],
+  );
+  const layoutRef = useRef({ departments, agents });
+  layoutRef.current = { departments, agents };
   const map = useMemo(
     () =>
       generateOfficeMap({
-        poles: departments.map((dept) => ({
+        poles: layoutRef.current.departments.map((dept) => ({
           id: dept.id,
-          seats: agents.filter((agent) => agent.department_id === dept.id).length,
+          seats: layoutRef.current.agents.filter((agent) => agent.department_id === dept.id).length,
         })),
       }),
-    [departments, agents],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuilt only when the seating layout changes
+    [layoutKey],
   );
 
   useEffect(() => {
@@ -95,6 +138,7 @@ export default function OfficeWorldView({
       (app.canvas as HTMLCanvasElement).style.imageRendering = "pixelated";
       host.appendChild(app.canvas);
 
+      const { agents, departments } = layoutRef.current;
       const textures: Record<string, Texture> = {};
       const spriteMap = buildSpriteMap(agents);
       await Promise.all([
@@ -102,10 +146,12 @@ export default function OfficeWorldView({
         Assets.load<Texture>("/sprites/ceo-lobster.png")
           .then((t) => (textures.ceo = t))
           .catch(() => {}),
-        ...[...new Set(spriteMap.values())].map((num) =>
-          Assets.load<Texture>(`/sprites/${num}-D-1.png`)
-            .then((t) => (textures[`${num}-D-1`] = t))
-            .catch(() => {}),
+        ...[...new Set(spriteMap.values())].flatMap((num) =>
+          ["D", "L", "R"].map((dir) =>
+            Assets.load<Texture>(`/sprites/${num}-${dir}-1.png`)
+              .then((t) => (textures[`${num}-${dir}-1`] = t))
+              .catch(() => {}),
+          ),
         ),
       ]);
       if (disposed) return;
@@ -151,8 +197,33 @@ export default function OfficeWorldView({
 
       const world = new Container();
       world.scale.set(ZOOM);
-      world.addChild(scene.floor, scene.entities);
+      const overlay = new Container();
+      world.addChild(scene.floor, scene.entities, overlay);
       app.stage.addChild(world);
+
+      const size = map.tileSize;
+      const seatIndexOf = new Map<string, number>();
+      for (const dept of departments) {
+        agents.filter((a) => a.department_id === dept.id).forEach((a, index) => seatIndexOf.set(a.id, index));
+      }
+      const walkers = new Map<string, Walker>();
+      for (const [agentId, node] of scene.agentNodes) {
+        const num = spriteMap.get(agentId);
+        const first = node.children[0];
+        walkers.set(agentId, {
+          node,
+          sprite: first instanceof Sprite ? first : null,
+          frames: { D: textures[`${num}-D-1`], L: textures[`${num}-L-1`], R: textures[`${num}-R-1`] },
+          x: node.position.x,
+          // Seated feet sit 10 px below the seat row; the walker tracks the tile centre.
+          y: node.position.y - 10 - size / 2,
+          path: [],
+          index: 0,
+          goalKey: "",
+          spot: null,
+        });
+      }
+      let knownAssignments: Set<string> | null = null;
 
       const avatar = new Container();
       const pos = tileToPixel(map, map.spawn);
@@ -182,6 +253,63 @@ export default function OfficeWorldView({
         }
         avatar.position.set(pos.x, pos.y);
         avatar.zIndex = pos.y + 1;
+
+        // Agents walk the corridors to wherever they should be (desk, meeting, break).
+        const live = liveRef.current;
+        let breakCount = 0;
+        for (const agent of live.agents) {
+          const walker = walkers.get(agent.id);
+          if (!walker || !agent.department_id) continue;
+          const spot = desiredSpot(
+            map,
+            {
+              id: agent.id,
+              poleId: agent.department_id,
+              seatIndex: seatIndexOf.get(agent.id) ?? 0,
+              status: agent.status,
+            },
+            live.meetingPresence,
+            agent.status === "break" ? breakCount++ : 0,
+          );
+          const goalKey = `${spot.kind}:${spot.tile.col},${spot.tile.row}`;
+          if (goalKey !== walker.goalKey) {
+            const here = { col: Math.floor(walker.x / size), row: Math.floor(walker.y / size) };
+            walker.path = findPath(map, here, spot.tile) ?? [spot.tile];
+            walker.index = 0;
+            walker.goalKey = goalKey;
+            walker.spot = spot;
+          }
+          const before = walker.x;
+          const step = stepAlongPath(walker, walker.path, AGENT_SPEED * ticker.deltaTime, size);
+          walker.x = step.x;
+          walker.y = step.y;
+          walker.index = step.index;
+          const seated = step.arrived && walker.spot?.kind === "desk";
+          // Seated agents sit behind their desk; walking agents stand on the tile.
+          const feetY = seated ? (walker.spot!.tile.row + 1) * size + 10 : walker.y + 12;
+          walker.node.position.set(walker.x, feetY);
+          walker.node.zIndex = feetY;
+          if (walker.sprite) {
+            const moving = Math.abs(walker.x - before) > 0.05;
+            const facing = !moving ? walker.frames.D : walker.x < before ? walker.frames.L : walker.frames.R;
+            if (facing && walker.sprite.texture !== facing) walker.sprite.texture = facing;
+          }
+        }
+
+        // QG signature: a wire from you to the agent who just got a task.
+        const assigned = new Set(
+          live.tasks.filter((task) => task.assigned_agent_id && task.status === "in_progress").map((task) => task.id),
+        );
+        if (knownAssignments) {
+          for (const taskId of assigned) {
+            if (knownAssignments.has(taskId)) continue;
+            const task = live.tasks.find((candidate) => candidate.id === taskId);
+            const walker = task?.assigned_agent_id ? walkers.get(task.assigned_agent_id) : undefined;
+            if (walker)
+              stretchDelegationWire(app, overlay, pos, { x: walker.x, y: walker.y - 20 }, DELEGATION_WIRE_COLOR);
+          }
+        }
+        knownAssignments = assigned;
         const offset = cameraOffset({ width: app.screen.width, height: app.screen.height }, worldSize, pos, ZOOM);
         world.position.set(offset.x, offset.y);
       });
@@ -200,7 +328,7 @@ export default function OfficeWorldView({
         // App may not have finished initialising.
       }
     };
-  }, [map, agents, departments, customDeptThemes, language]);
+  }, [map, customDeptThemes, language]);
 
   return (
     <div

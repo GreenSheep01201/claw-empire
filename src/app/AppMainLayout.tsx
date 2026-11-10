@@ -474,6 +474,8 @@ export default function AppMainLayout({
               <OfficeWorldView
                 departments={officePresentation.departments}
                 agents={officePresentation.agents}
+                tasks={tasks}
+                meetingPresence={meetingPresence}
                 customDeptThemes={officePresentation.roomThemes}
                 onSelectAgent={onSelectAgent}
               />
