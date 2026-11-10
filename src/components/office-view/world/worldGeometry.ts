@@ -50,3 +50,16 @@ export function screenToTile(map: OfficeMap, screen: Point, worldOffset: Point, 
     row: Math.floor((screen.y - worldOffset.y) / zoom / map.tileSize),
   };
 }
+
+/** Zoom steps of the office camera, widest view first. */
+export const ZOOM_LEVELS = [0.5, 0.6, 0.75, 1, 1.25, 1.5] as const;
+
+/** Next zoom step in `direction` (+1 closer, -1 wider) from the step nearest to `current`. */
+export function stepZoom(current: number, direction: 1 | -1): number {
+  let nearest = 0;
+  ZOOM_LEVELS.forEach((level, index) => {
+    if (Math.abs(level - current) < Math.abs(ZOOM_LEVELS[nearest] - current)) nearest = index;
+  });
+  const next = Math.min(ZOOM_LEVELS.length - 1, Math.max(0, nearest + direction));
+  return ZOOM_LEVELS[next];
+}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Minus, Plus } from "lucide-react";
 import { Application, Assets, Container, Graphics, Sprite, Text, TextStyle, type Texture } from "pixi.js";
 import type { Agent, CeoOfficeCall, CrossDeptDelivery, Department, MeetingPresence, Task } from "../../types";
 import { localeName, useI18n } from "../../i18n";
@@ -9,7 +9,7 @@ import { DEPT_THEME, LOCALE_TEXT, pickLocale } from "./themes-locale";
 import { blendColor } from "./drawing-core";
 import { generateOfficeMap, isWalkableTile } from "./world/officeMap";
 import { moveWithCollision } from "./world/collision";
-import { cameraOffset, screenToTile, tileToPixel } from "./world/worldGeometry";
+import { cameraOffset, screenToTile, stepZoom, tileToPixel, ZOOM_LEVELS } from "./world/worldGeometry";
 import { buildWorldScene, type WorldAgent } from "./world/renderWorld";
 import { desiredSpot, findPath, stepAlongPath, type Spot } from "./world/movement";
 import { stretchDelegationWire } from "./delegationWire";
@@ -58,7 +58,17 @@ const DELEGATION_WIRE_COLOR = 0x3f8f76;
 
 const AVATAR_SPEED = 3.2;
 const AVATAR_RADIUS = 9;
-const ZOOM = 1.25;
+const ZOOM_STORAGE_KEY = "qg.officeZoom";
+
+function initialZoom(): number {
+  try {
+    const stored = Number(window.localStorage.getItem(ZOOM_STORAGE_KEY));
+    if ((ZOOM_LEVELS as readonly number[]).includes(stored)) return stored;
+  } catch {
+    // Storage unavailable: fall back to the default.
+  }
+  return window.innerWidth < 640 ? 0.6 : 0.75;
+}
 const MOVE_KEYS: Record<string, [number, number]> = {
   ArrowUp: [0, -1],
   KeyW: [0, -1],
@@ -106,6 +116,21 @@ export default function OfficeWorldView({
   onSelectAgentRef.current = onSelectAgent;
   // Movement input shared by keyboard, the touch pad and click-to-walk.
   const keysRef = useRef(new Set<string>());
+  const [zoom, setZoom] = useState(initialZoom);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const changeZoom = (direction: 1 | -1) =>
+    setZoom((current) => {
+      const next = stepZoom(current, direction);
+      try {
+        window.localStorage.setItem(ZOOM_STORAGE_KEY, String(next));
+      } catch {
+        // Not persisted: zoom still applies for this session.
+      }
+      return next;
+    });
+  const changeZoomRef = useRef(changeZoom);
+  changeZoomRef.current = changeZoom;
   const walkToRef = useRef<(tile: TilePoint) => void>(() => {});
   const avatarDotRef = useRef<SVGCircleElement>(null);
   const [coarsePointer] = useState(
@@ -211,6 +236,14 @@ export default function OfficeWorldView({
       keys.add(event.code);
     };
     const onKeyUp = (event: KeyboardEvent) => keys.delete(event.code);
+    let wheelAccumulator = 0;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      wheelAccumulator += event.deltaY;
+      if (Math.abs(wheelAccumulator) < 60) return;
+      changeZoomRef.current(wheelAccumulator < 0 ? 1 : -1);
+      wheelAccumulator = 0;
+    };
 
     void (async () => {
       await app.init({
@@ -287,7 +320,6 @@ export default function OfficeWorldView({
       }
 
       const world = new Container();
-      world.scale.set(ZOOM);
       const overlay = new Container();
       world.addChild(scene.floor, scene.entities, overlay);
       app.stage.addChild(world);
@@ -350,7 +382,7 @@ export default function OfficeWorldView({
       app.stage.hitArea = app.screen;
       app.stage.on("pointertap", (event) => {
         if (event.target !== app.stage) return; // agents handle their own taps
-        walkToRef.current(screenToTile(map, event.global, world.position, ZOOM));
+        walkToRef.current(screenToTile(map, event.global, world.position, zoomRef.current));
       });
       app.ticker.add((ticker) => {
         let dx = 0;
@@ -514,7 +546,13 @@ export default function OfficeWorldView({
           promptRef.current = next;
           setPrompt(next);
         }
-        const offset = cameraOffset({ width: app.screen.width, height: app.screen.height }, worldSize, pos, ZOOM);
+        world.scale.set(zoomRef.current);
+        const offset = cameraOffset(
+          { width: app.screen.width, height: app.screen.height },
+          worldSize,
+          pos,
+          zoomRef.current,
+        );
         world.position.set(offset.x, offset.y);
         avatarDotRef.current?.setAttribute("cx", String(pos.x / map.tileSize));
         avatarDotRef.current?.setAttribute("cy", String(pos.y / map.tileSize));
@@ -531,12 +569,14 @@ export default function OfficeWorldView({
           },
         };
       }
+      host.addEventListener("wheel", onWheel, { passive: false });
       window.addEventListener("keydown", onKeyDown);
       window.addEventListener("keyup", onKeyUp);
     })();
 
     return () => {
       disposed = true;
+      host.removeEventListener("wheel", onWheel);
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       try {
@@ -578,6 +618,30 @@ export default function OfficeWorldView({
         label={t({ ko: "미니맵", en: "Floor map", fr: "Plan de l'étage" })}
         onPick={(tile) => walkToRef.current(tile)}
       />
+      <div
+        className="absolute left-3 top-3 flex flex-col gap-1"
+        role="group"
+        aria-label={t({ ko: "확대/축소", en: "Zoom", fr: "Zoom" })}
+      >
+        <button
+          type="button"
+          className="qg-icon-btn"
+          onClick={() => changeZoom(1)}
+          disabled={zoom >= ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+          aria-label={t({ ko: "확대", en: "Zoom in", fr: "Zoomer" })}
+        >
+          <Plus size={18} aria-hidden />
+        </button>
+        <button
+          type="button"
+          className="qg-icon-btn"
+          onClick={() => changeZoom(-1)}
+          disabled={zoom <= ZOOM_LEVELS[0]}
+          aria-label={t({ ko: "축소", en: "Zoom out", fr: "Dézoomer" })}
+        >
+          <Minus size={18} aria-hidden />
+        </button>
+      </div>
       {coarsePointer && (
         <MovePad
           keys={keysRef.current}

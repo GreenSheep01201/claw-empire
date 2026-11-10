@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateOfficeMap } from "./officeMap";
-import { cameraOffset, mapWallMask, roomAt, screenToTile, tileToPixel } from "./worldGeometry";
+import { cameraOffset, mapWallMask, roomAt, screenToTile, stepZoom, tileToPixel, ZOOM_LEVELS } from "./worldGeometry";
 
 const map = generateOfficeMap({ poles: [{ id: "reequal", seats: 2 }] });
 
@@ -67,5 +67,18 @@ describe("screenToTile", () => {
   it("retrouve la case visée en tenant compte de la caméra et du zoom", () => {
     // World shifted by (-100, -50) on screen and drawn at 2×: screen (164, 78) is world (132, 64).
     expect(screenToTile(map, { x: 164, y: 78 }, { x: -100, y: -50 }, 2)).toEqual({ col: 4, row: 2 });
+  });
+});
+
+describe("stepZoom", () => {
+  it("passe au cran de zoom suivant ou précédent, sans dépasser les bornes", () => {
+    expect(stepZoom(0.75, 1)).toBe(1);
+    expect(stepZoom(0.75, -1)).toBe(0.6);
+    expect(stepZoom(ZOOM_LEVELS[0], -1)).toBe(ZOOM_LEVELS[0]);
+    expect(stepZoom(ZOOM_LEVELS[ZOOM_LEVELS.length - 1], 1)).toBe(ZOOM_LEVELS[ZOOM_LEVELS.length - 1]);
+  });
+
+  it("se cale sur le cran le plus proche d'une valeur libre", () => {
+    expect(stepZoom(0.8, 1)).toBe(1);
   });
 });
