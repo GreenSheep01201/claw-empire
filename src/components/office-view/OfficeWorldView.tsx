@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Application, Assets, Container, Graphics, Sprite, type Texture } from "pixi.js";
-import type { Agent, Department, MeetingPresence, Task } from "../../types";
+import { Application, Assets, Container, Graphics, Sprite, Text, TextStyle, type Texture } from "pixi.js";
+import type { Agent, CeoOfficeCall, CrossDeptDelivery, Department, MeetingPresence, Task } from "../../types";
 import { localeName, useI18n } from "../../i18n";
 import { buildSpriteMap } from "../AgentAvatar";
 import { loadOfficeTiles } from "./officeTiles";
@@ -14,6 +14,7 @@ import { desiredSpot, findPath, stepAlongPath, type Spot } from "./world/movemen
 import { stretchDelegationWire } from "./delegationWire";
 import type { TilePoint } from "./world/officeMap";
 import { interactionAt, type Interaction } from "./world/interaction";
+import { applyOfficeEvents, type ErrandState } from "./world/errands";
 import type { RoomTheme } from "./model";
 
 interface OfficeWorldViewProps {
@@ -23,6 +24,10 @@ interface OfficeWorldViewProps {
   meetingPresence?: MeetingPresence[];
   customDeptThemes?: Record<string, RoomTheme>;
   pendingDecisionAgentIds: string[];
+  crossDeptDeliveries?: CrossDeptDelivery[];
+  ceoOfficeCalls?: CeoOfficeCall[];
+  onCrossDeptDeliveryProcessed?: (id: string) => void;
+  onCeoOfficeCallProcessed?: (id: string) => void;
   activeMeetingTaskId: string | null;
   onSelectAgent: (agent: Agent) => void;
   onOpenChat: (agent: Agent) => void;
@@ -81,6 +86,10 @@ export default function OfficeWorldView({
   meetingPresence,
   customDeptThemes,
   pendingDecisionAgentIds,
+  crossDeptDeliveries,
+  ceoOfficeCalls,
+  onCrossDeptDeliveryProcessed,
+  onCeoOfficeCallProcessed,
   activeMeetingTaskId,
   onSelectAgent,
   onOpenChat,
@@ -147,6 +156,30 @@ export default function OfficeWorldView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuilt only when the seating layout changes
     [layoutKey],
   );
+
+  // Errands (visits to a colleague, calls to the CEO office) and speech bubbles.
+  const errandsRef = useRef<ErrandState>({ errands: new Map(), bubbles: [] });
+  useEffect(() => {
+    if (!crossDeptDeliveries?.length && !ceoOfficeCalls?.length) return;
+    const { departments, agents } = layoutRef.current;
+    const seatOf = (agentId: string) => {
+      const agent = agents.find((candidate) => candidate.id === agentId);
+      if (!agent?.department_id) return undefined;
+      const index = agents.filter((a) => a.department_id === agent.department_id).findIndex((a) => a.id === agentId);
+      const room = map.rooms.find((candidate) => candidate.poleId === agent.department_id);
+      return departments.some((dept) => dept.id === agent.department_id) ? room?.seats[index] : undefined;
+    };
+    const result = applyOfficeEvents(
+      map,
+      errandsRef.current,
+      { deliveries: crossDeptDeliveries ?? [], calls: ceoOfficeCalls ?? [] },
+      seatOf,
+      Date.now(),
+    );
+    errandsRef.current = result.state;
+    for (const id of result.processedDeliveryIds) onCrossDeptDeliveryProcessed?.(id);
+    for (const id of result.processedCallIds) onCeoOfficeCallProcessed?.(id);
+  }, [crossDeptDeliveries, ceoOfficeCalls, map, onCrossDeptDeliveryProcessed, onCeoOfficeCallProcessed]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -270,6 +303,7 @@ export default function OfficeWorldView({
       }
       let knownAssignments: Set<string> | null = null;
       const pins = new Map<string, Graphics>();
+      const bubbleNodes = new Map<string, Container>();
 
       const avatar = new Container();
       const pos = tileToPixel(map, map.spawn);
@@ -316,6 +350,8 @@ export default function OfficeWorldView({
             },
             live.meetingPresence,
             agent.status === "break" ? breakCount++ : 0,
+            Date.now(),
+            errandsRef.current.errands.get(agent.id),
           );
           const goalKey = `${spot.kind}:${spot.tile.col},${spot.tile.row}`;
           if (goalKey !== walker.goalKey) {
@@ -375,6 +411,45 @@ export default function OfficeWorldView({
           }
         }
 
+        // Speech bubbles (e.g. an agent reporting in the CEO office).
+        const now = Date.now();
+        const liveBubbles = errandsRef.current.bubbles.filter((bubble) => bubble.until > now);
+        for (const [agentId, bubble] of bubbleNodes) {
+          if (!liveBubbles.some((candidate) => candidate.agentId === agentId)) {
+            bubble.destroy({ children: true });
+            bubbleNodes.delete(agentId);
+          }
+        }
+        for (const bubble of liveBubbles) {
+          const walker = walkers.get(bubble.agentId);
+          if (!walker) continue;
+          let node = bubbleNodes.get(bubble.agentId);
+          if (!node) {
+            node = new Container();
+            const text = new Text({
+              text: bubble.text,
+              style: new TextStyle({
+                fontSize: 11,
+                fill: 0x1e1e1e,
+                fontFamily: "Archivo, system-ui, sans-serif",
+                wordWrap: true,
+                wordWrapWidth: 180,
+              }),
+            });
+            text.anchor.set(0.5, 1);
+            const box = new Graphics();
+            box
+              .roundRect(-text.width / 2 - 8, -text.height - 8, text.width + 16, text.height + 10, 6)
+              .fill(0xfafaf7)
+              .stroke({ width: 1, color: 0x1e1e1e, alpha: 0.25 });
+            box.moveTo(-5, 2).lineTo(0, 8).lineTo(5, 2).fill(0xfafaf7);
+            node.addChild(box, text);
+            overlay.addChild(node);
+            bubbleNodes.set(bubble.agentId, node);
+          }
+          node.position.set(walker.x, walker.node.position.y - 76);
+        }
+
         // What can the avatar act on right now?
         const next = interactionAt({
           map,
@@ -396,6 +471,10 @@ export default function OfficeWorldView({
         (window as unknown as { __qgWorld?: unknown }).__qgWorld = {
           map,
           teleport: (col: number, row: number) => Object.assign(pos, tileToPixel(map, { col, row })),
+          agents: agents.map((agent) => ({ id: agent.id, name: agent.name, poleId: agent.department_id })),
+          events: (events: Parameters<typeof applyOfficeEvents>[2]) => {
+            errandsRef.current = applyOfficeEvents(map, errandsRef.current, events, () => undefined, Date.now()).state;
+          },
         };
       }
       window.addEventListener("keydown", onKeyDown);

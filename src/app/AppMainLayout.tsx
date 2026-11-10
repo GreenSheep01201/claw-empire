@@ -482,6 +482,10 @@ export default function AppMainLayout({
                 tasks={tasks}
                 meetingPresence={meetingPresence}
                 pendingDecisionAgentIds={pendingDecisionAgentIds}
+                crossDeptDeliveries={crossDeptDeliveries}
+                ceoOfficeCalls={ceoOfficeCalls}
+                onCrossDeptDeliveryProcessed={onCrossDeptDeliveryProcessed}
+                onCeoOfficeCallProcessed={onCeoOfficeCallProcessed}
                 activeMeetingTaskId={activeMeetingTaskId}
                 onOpenMeetingMinutes={onOpenActiveMeetingMinutes}
                 onOpenDecisionInbox={onOpenDecisionInbox}

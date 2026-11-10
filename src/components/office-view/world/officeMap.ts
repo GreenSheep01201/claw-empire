@@ -35,7 +35,7 @@ export interface MapRoom {
   height: number;
   /** Door tiles (walkable) in the room's wall. */
   door: TilePoint[];
-  /** Where an agent sits (pole: one per agent, meeting: table seats, break: rest spots). */
+  /** Where an agent sits (pole: one per agent, meeting: table seats, ceo: visitor spots, break: rest spots). */
   seats: TilePoint[];
 }
 
@@ -64,6 +64,7 @@ const SPINE_W = 3;
 const DOOR_W = 2;
 const MEETING_SEATS = 6;
 const BREAK_SPOTS = 4;
+const CEO_VISITOR_SEATS = 4;
 
 const POLE_INTERIOR_W = DESK_COLS * DESK_SLOT_W + 1;
 const TOP_BAND_INTERIOR_H = 7;
@@ -98,7 +99,14 @@ export function isWalkableTile(map: Pick<OfficeMap, "tiles">, col: number, row: 
 
 export function generateOfficeMap({ poles, tileSize = 32 }: OfficeMapInput): OfficeMap {
   const topBand: RoomDraft[] = [
-    { id: "ceo", kind: "ceo", width: 18, height: TOP_BAND_INTERIOR_H + 2, seatCount: 0, doorSide: "bottom" },
+    {
+      id: "ceo",
+      kind: "ceo",
+      width: 18,
+      height: TOP_BAND_INTERIOR_H + 2,
+      seatCount: CEO_VISITOR_SEATS,
+      doorSide: "bottom",
+    },
     {
       id: "meeting",
       kind: "meeting",
@@ -226,6 +234,9 @@ function roomSeats(draft: RoomDraft, col: number, row: number, width: number, he
       seats.push({ col: centerCol - 2 + i * 2, row: tableRow - 1 });
       seats.push({ col: centerCol - 2 + i * 2, row: tableRow + 1 });
     }
+  } else if (draft.kind === "ceo") {
+    // Visitors stand in a row in front of the CEO's desk (desk is drawn at col + 5, rows 3-5).
+    for (let i = 0; i < draft.seatCount; i++) seats.push({ col: col + 3 + i * 2, row: row + 6 });
   } else if (draft.kind === "break") {
     for (let i = 0; i < draft.seatCount; i++) {
       seats.push({ col: col + 3 + i * 3, row: row + height - 3 });

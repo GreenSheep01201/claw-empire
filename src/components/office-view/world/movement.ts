@@ -77,16 +77,24 @@ export interface MeetingSeat {
   until: number;
 }
 
-export type Spot = { kind: "desk" | "meeting" | "break"; tile: TilePoint };
+export type Spot = { kind: "desk" | "meeting" | "break" | "visit" | "ceo"; tile: TilePoint };
 
-/** Where the agent should be right now: a live meeting wins, then a break, otherwise its desk. */
+export interface Errand {
+  kind: "visit" | "ceo";
+  tile: TilePoint;
+  until: number;
+}
+
+/** Where the agent should be right now: an errand wins, then a live meeting, a break, otherwise its desk. */
 export function desiredSpot(
   map: OfficeMap,
   agent: PlacedAgent,
   presence: MeetingSeat[],
   breakIndex: number,
   now = Date.now(),
+  errand?: Errand,
 ): Spot {
+  if (errand && errand.until > now) return { kind: errand.kind, tile: errand.tile };
   const pole = map.rooms.find((room) => room.kind === "pole" && room.poleId === agent.poleId);
   const desk = pole?.seats[agent.seatIndex] ?? map.spawn;
   const meetingSeats = map.rooms.find((room) => room.kind === "meeting")?.seats ?? [];
