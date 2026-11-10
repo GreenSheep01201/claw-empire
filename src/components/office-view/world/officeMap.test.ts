@@ -94,4 +94,26 @@ describe("generateOfficeMap", () => {
     expect(empty.rooms.map((room) => room.kind).sort()).toEqual(["break", "ceo", "meeting"]);
     expect(isWalkableTile(empty, empty.spawn.col, empty.spawn.row)).toBe(true);
   });
+
+  it("sépare les salles voisines par une rue de 3 cases, sur toute leur hauteur", () => {
+    const sameBand = (a: { row: number }, b: { row: number }) => a.row === b.row;
+    const rooms = [...map.rooms].sort((a, b) => a.row - b.row || a.col - b.col);
+    let pairs = 0;
+    for (let i = 0; i < rooms.length - 1; i++) {
+      const left = rooms[i];
+      const right = rooms[i + 1];
+      if (!sameBand(left, right)) continue;
+      pairs++;
+      const gapStart = left.col + left.width;
+      expect(right.col - gapStart).toBeGreaterThanOrEqual(3);
+      const height = Math.min(left.height, right.height);
+      // Inside the building: the outer wall (row 0) stays closed.
+      for (let row = Math.max(1, left.row); row < left.row + height; row++) {
+        for (let col = gapStart; col < right.col; col++) {
+          expect(isWalkableTile(map, col, row)).toBe(true);
+        }
+      }
+    }
+    expect(pairs).toBeGreaterThanOrEqual(2);
+  });
 });

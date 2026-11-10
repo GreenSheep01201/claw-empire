@@ -10,7 +10,7 @@
  *   │       │ break room                                        │   last band
  *   └───────┴───────────────────────────────────────────────────┘
  *
- * Rooms sit side by side and share walls. Every room opens on the corridor
+ * Rooms stand apart, separated by roads as wide as the corridors. Every room opens on the corridor
  * above it (the top band opens downwards), and a vertical spine on the left
  * links all corridors, so the whole floor is one connected walk.
  */
@@ -61,6 +61,8 @@ const DESK_ROW_H = 3;
 const POLES_PER_BAND = 3;
 const CORRIDOR_H = 3;
 const SPINE_W = 3;
+/** Rooms in a band stand apart, with a road as wide as the corridors between them. */
+const ROAD_W = CORRIDOR_H;
 const DOOR_W = 2;
 const MEETING_SEATS = 6;
 const BREAK_SPOTS = 4;
@@ -139,12 +141,14 @@ export function generateOfficeMap({ poles, tileSize = 32 }: OfficeMapInput): Off
   ];
   const lowerBands = [...poleBands, breakBand];
 
-  // Width: the widest band; lower bands start after the spine.
-  const bandWidth = (band: RoomDraft[]) => band.reduce((sum, room) => sum + room.width - 1, 1);
-  const cols = Math.max(bandWidth(topBand), ...lowerBands.map((band) => SPINE_W + 1 + bandWidth(band) - 1));
+  // Width: the widest band (rooms + the roads between them); lower bands start after the spine.
+  const bandWidth = (band: RoomDraft[]) =>
+    band.reduce((sum, room) => sum + room.width, 0) + ROAD_W * Math.max(0, band.length - 1);
+  const cols = Math.max(bandWidth(topBand), ...lowerBands.map((band) => SPINE_W + 1 + bandWidth(band)));
 
   const placed: MapRoom[] = [];
   const corridors: { top: number; bottom: number }[] = [];
+  const roads: { col: number; top: number; bottom: number }[] = [];
   let rowCursor = 0;
 
   const placeBand = (band: RoomDraft[], startCol: number) => {
@@ -154,7 +158,11 @@ export function generateOfficeMap({ poles, tileSize = 32 }: OfficeMapInput): Off
       const isLast = index === band.length - 1;
       const width = isLast ? cols - colCursor : draft.width;
       placed.push(layoutRoom(draft, colCursor, rowCursor, width, height));
-      colCursor += width - 1;
+      colCursor += width;
+      if (!isLast) {
+        roads.push({ col: colCursor, top: rowCursor, bottom: rowCursor + height - 1 });
+        colCursor += ROAD_W;
+      }
     });
     rowCursor += height;
   };
@@ -181,6 +189,11 @@ export function generateOfficeMap({ poles, tileSize = 32 }: OfficeMapInput): Off
   for (const corridor of corridors) {
     for (let row = corridor.top; row <= corridor.bottom; row++) {
       for (let col = 1; col < cols - 1; col++) carve(col, row, "floor");
+    }
+  }
+  for (const road of roads) {
+    for (let row = road.top; row <= road.bottom; row++) {
+      for (let col = road.col; col < road.col + ROAD_W; col++) carve(col, row, "floor");
     }
   }
   const spineTop = corridors[0]?.top ?? 0;
