@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateOfficeMap, isWalkableTile } from "./officeMap";
-import { desiredSpot, findPath, stepAlongPath } from "./movement";
+import { desiredSpot, findPath, hasLineOfSight, smoothPath, stepAlongPath } from "./movement";
 
 const map = generateOfficeMap({
   poles: [
@@ -79,5 +79,24 @@ describe("desiredSpot", () => {
     expect(
       desiredSpot(map, { id: "a1", poleId: "reequal", seatIndex: 0, status: "working" }, presence, 0, 3_000).kind,
     ).toBe("desk");
+  });
+});
+
+describe("smoothPath", () => {
+  it("ne garde que les extrémités d'un trajet en ligne droite", () => {
+    const straight = [0, 1, 2, 3, 4].map((col) => ({ col: map.spawn.col - 2 + col, row: map.spawn.row }));
+    expect(smoothPath(map, straight)).toEqual([straight[0], straight[4]]);
+  });
+
+  it("ne coupe jamais à travers un mur", () => {
+    const from = room("pole:reequal").seats[0];
+    const path = findPath(map, from, room("break").seats[0])!;
+    const smooth = smoothPath(map, path);
+    expect(smooth.length).toBeLessThan(path.length);
+    expect(smooth[0]).toEqual(path[0]);
+    expect(smooth[smooth.length - 1]).toEqual(path[path.length - 1]);
+    for (let i = 1; i < smooth.length; i++) {
+      expect(hasLineOfSight(map, smooth[i - 1], smooth[i])).toBe(true);
+    }
   });
 });

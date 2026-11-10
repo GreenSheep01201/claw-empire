@@ -108,3 +108,48 @@ export function desiredSpot(
   }
   return { kind: "desk", tile: desk };
 }
+
+/** Clearance kept around a walker so straight lines don't graze wall corners (in tiles). */
+const LOS_MARGIN = 0.3;
+const LOS_STEP = 0.2;
+
+/** True when a walker can go straight from one tile centre to the other without touching a wall. */
+export function hasLineOfSight(map: OfficeMap, from: TilePoint, to: TilePoint): boolean {
+  const ax = from.col + 0.5;
+  const ay = from.row + 0.5;
+  const bx = to.col + 0.5;
+  const by = to.row + 0.5;
+  const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay) / LOS_STEP));
+  for (let i = 0; i <= steps; i++) {
+    const x = ax + ((bx - ax) * i) / steps;
+    const y = ay + ((by - ay) * i) / steps;
+    for (const [ox, oy] of [
+      [-LOS_MARGIN, -LOS_MARGIN],
+      [LOS_MARGIN, -LOS_MARGIN],
+      [-LOS_MARGIN, LOS_MARGIN],
+      [LOS_MARGIN, LOS_MARGIN],
+    ]) {
+      if (!isWalkableTile(map, Math.floor(x + ox), Math.floor(y + oy))) return false;
+    }
+  }
+  return true;
+}
+
+/** Drops waypoints a walker can skip in a straight line, so it turns only at real corners. */
+export function smoothPath(map: OfficeMap, path: TilePoint[]): TilePoint[] {
+  if (path.length <= 2) return path;
+  const smooth = [path[0]];
+  let anchor = 0;
+  while (anchor < path.length - 1) {
+    let next = anchor + 1;
+    for (let candidate = path.length - 1; candidate > anchor + 1; candidate--) {
+      if (hasLineOfSight(map, path[anchor], path[candidate])) {
+        next = candidate;
+        break;
+      }
+    }
+    smooth.push(path[next]);
+    anchor = next;
+  }
+  return smooth;
+}

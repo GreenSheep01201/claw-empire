@@ -11,7 +11,7 @@ import { generateOfficeMap, isWalkableTile } from "./world/officeMap";
 import { moveWithCollision } from "./world/collision";
 import { cameraOffset, screenToTile, stepZoom, tileToPixel, ZOOM_LEVELS } from "./world/worldGeometry";
 import { buildWorldScene, type WorldAgent } from "./world/renderWorld";
-import { desiredSpot, findPath, stepAlongPath, type Spot } from "./world/movement";
+import { desiredSpot, findPath, smoothPath, stepAlongPath, type Spot } from "./world/movement";
 import { stretchDelegationWire } from "./delegationWire";
 import type { TilePoint } from "./world/officeMap";
 import { interactionAt, type Interaction } from "./world/interaction";
@@ -50,7 +50,10 @@ interface Walker {
   spot: Spot | null;
 }
 
-const AGENT_SPEED = 1.8;
+/** px per frame at 60 fps; a little slower than the avatar so you can catch up with them. */
+const AGENT_SPEED = 3;
+/** Stride bounce while walking (px). */
+const STEP_BOUNCE = 2.5;
 /** Red is reserved for what waits for the CEO's approval. */
 const PIN_COLOR = 0xd7263d;
 /** QG accent green reserved for the mission route. */
@@ -371,9 +374,9 @@ export default function OfficeWorldView({
       walkToRef.current = (tile) => {
         if (!isWalkableTile(map, tile.col, tile.row)) return;
         const here = { col: Math.floor(pos.x / map.tileSize), row: Math.floor(pos.y / map.tileSize) };
-        const path = findPath(map, here, tile);
-        if (!path) return;
-        route = { path, index: 0 };
+        const found = findPath(map, here, tile);
+        if (!found) return;
+        route = { path: smoothPath(map, found), index: 0 };
         const target = tileToPixel(map, tile);
         marker.position.set(target.x, target.y);
         marker.visible = true;
@@ -440,7 +443,8 @@ export default function OfficeWorldView({
           const goalKey = `${spot.kind}:${spot.tile.col},${spot.tile.row}`;
           if (goalKey !== walker.goalKey) {
             const here = { col: Math.floor(walker.x / size), row: Math.floor(walker.y / size) };
-            walker.path = findPath(map, here, spot.tile) ?? [spot.tile];
+            const found = findPath(map, here, spot.tile);
+            walker.path = found ? smoothPath(map, found) : [spot.tile];
             walker.index = 0;
             walker.goalKey = goalKey;
             walker.spot = spot;
@@ -456,8 +460,12 @@ export default function OfficeWorldView({
           walker.node.position.set(walker.x, feetY);
           walker.node.zIndex = feetY;
           if (walker.sprite) {
-            const moving = Math.abs(walker.x - before) > 0.05;
-            const facing = !moving ? walker.frames.D : walker.x < before ? walker.frames.L : walker.frames.R;
+            const moving = !step.arrived;
+            // A light stride bounce so walking reads as walking, not sliding.
+            walker.sprite.y = moving ? -Math.abs(Math.sin(performance.now() / 110)) * STEP_BOUNCE : 0;
+            const dx = walker.x - before;
+            // Face the way you walk sideways; going up/down or standing, face the viewer.
+            const facing = !moving || Math.abs(dx) < 0.3 ? walker.frames.D : dx < 0 ? walker.frames.L : walker.frames.R;
             if (facing && walker.sprite.texture !== facing) walker.sprite.texture = facing;
           }
         }
