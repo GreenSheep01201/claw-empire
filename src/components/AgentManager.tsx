@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
 import type { Agent, Department } from "../types";
+import { Building2, Plus } from "lucide-react";
 import { useI18n } from "../i18n";
 import * as api from "../api";
 import { normalizeOfficeWorkflowPack } from "../app/office-workflow-pack";
@@ -23,7 +24,7 @@ export default function AgentManager({
 }: AgentManagerProps) {
   const { t, locale } = useI18n();
   const isKo = locale.startsWith("ko");
-  const tr = (ko: string, en: string) => t({ ko, en, ja: en, zh: en });
+  const tr = (ko: string, en: string, fr?: string) => t({ ko, en, ja: en, zh: en, fr });
   const officePackKey = normalizeOfficeWorkflowPack(activeOfficeWorkflowPack);
   const isIsolatedPack = officePackKey !== "development";
   const useDbBackedPack = isIsolatedPack && dbBackedOfficePack;
@@ -229,6 +230,7 @@ export default function AgentManager({
     form,
     isIsolatedPack,
     modalAgent,
+    officePackKey,
     onAgentsChange,
     persistIsolatedProfile,
     useDbBackedPack,
@@ -362,7 +364,7 @@ export default function AgentManager({
     } finally {
       setReorderSaving(false);
     }
-  }, [agents, deptOrder, isIsolatedPack, onAgentsChange, persistIsolatedProfile, useDbBackedPack]);
+  }, [agents, deptOrder, isIsolatedPack, officePackKey, onAgentsChange, persistIsolatedProfile, useDbBackedPack]);
 
   const resetDeptOrder = useCallback(() => {
     setDeptOrder([...departments].sort((a, b) => a.sort_order - b.sort_order));
@@ -484,43 +486,38 @@ export default function AgentManager({
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-5">
-      <div className="flex items-center justify-end gap-2">
-        <button
-          onClick={openCreateDept}
-          className="px-3 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 active:opacity-80 shadow-sm"
-          style={{ background: "#7c3aed", color: "#ffffff", boxShadow: "0 1px 3px rgba(124,58,237,0.3)" }}
-        >
-          + {tr("부서 추가", "Add Dept")}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <button type="button" onClick={openCreateDept} className="qg-btn">
+          <Plus size={16} aria-hidden="true" />
+          {tr("부서 추가", "Add Dept", "Ajouter un pôle")}
         </button>
-        <button
-          onClick={openCreate}
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-all bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white shadow-sm shadow-blue-600/20"
-        >
-          + {tr("신규 채용", "Hire Agent")}
+        <button type="button" onClick={openCreate} className="qg-btn qg-btn--primary">
+          <Plus size={16} aria-hidden="true" />
+          {tr("신규 채용", "Hire Agent", "Ajouter un agent")}
         </button>
       </div>
 
-      <div
-        className="flex gap-1 p-1 rounded-xl"
-        style={{ background: "var(--th-card-bg)", border: "1px solid var(--th-card-border)" }}
-      >
+      <div className="grid grid-cols-2 gap-2" role="group" aria-label={tr("보기", "View", "Affichage")}>
         {[
           {
             key: "agents" as const,
-            label: tr("직원관리", "Agents"),
+            label: tr("직원관리", "Agents", "Agents"),
             icon: <StackedSpriteIcon sprites={randomIconSprites.tab} />,
           },
-          { key: "departments" as const, label: tr("부서관리", "Departments"), icon: "🏢" },
+          {
+            key: "departments" as const,
+            label: tr("부서관리", "Departments", "Pôles"),
+            icon: <Building2 size={16} aria-hidden="true" />,
+          },
         ].map((tab) => (
           <button
+            type="button"
             key={tab.key}
             onClick={() => setSubTab(tab.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              subTab === tab.key ? "bg-blue-600 text-white shadow-sm" : "hover:bg-white/5"
-            }`}
-            style={subTab !== tab.key ? { color: "var(--th-text-muted)" } : undefined}
+            aria-pressed={subTab === tab.key}
+            className="qg-choice justify-center"
           >
-            <span>{tab.icon}</span>
+            {tab.icon}
             {tab.label}
           </button>
         ))}

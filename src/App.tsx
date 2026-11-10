@@ -149,7 +149,7 @@ export default function App() {
       return null;
     }
 
-    const locale = normalizeLanguage(sourceSettings.language) as "ko" | "en" | "ja" | "zh";
+    const locale = normalizeLanguage(sourceSettings.language);
     const presentation = buildOfficePackPresentation({
       packKey,
       locale,
@@ -383,6 +383,11 @@ export default function App() {
     [activePackKey, activePackProfile?.agents, agents],
   );
 
+  const pendingDecisionAgentIds = useMemo(
+    () => decisionInboxItems.map((item) => item.agentId).filter((id): id is string => Boolean(id)),
+    [decisionInboxItems],
+  );
+
   if (loading) {
     return (
       <AppLoadingScreen language={labels.uiLanguage} title={labels.loadingTitle} subtitle={labels.loadingSubtitle} />
@@ -413,6 +418,8 @@ export default function App() {
       toggleTheme={toggleTheme}
       decisionInboxLoading={decisionInboxLoading}
       decisionInboxCount={decisionInboxItems.length}
+      pendingDecisionAgentIds={pendingDecisionAgentIds}
+      onOpenChatWithAgent={actions.handleOpenChat}
       activeMeetingTaskId={activeMeetingTaskId}
       unreadAgentIds={unreadAgentIds}
       crossDeptDeliveries={crossDeptDeliveries}

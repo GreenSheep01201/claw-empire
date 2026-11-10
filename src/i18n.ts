@@ -1,7 +1,7 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-export type UiLanguage = "ko" | "en" | "ja" | "zh";
+export type UiLanguage = "ko" | "en" | "ja" | "zh" | "fr";
 export const LANGUAGE_STORAGE_KEY = "climpire.language";
 export const LANGUAGE_USER_SET_STORAGE_KEY = "climpire.language.user_set";
 
@@ -10,6 +10,7 @@ export type LangText = {
   en: string;
   ja?: string;
   zh?: string;
+  fr?: string;
 };
 
 type TranslationInput = LangText | string;
@@ -20,6 +21,7 @@ function parseLanguage(value?: string | null): UiLanguage | null {
   if (code === "en" || code.startsWith("en-")) return "en";
   if (code === "ja" || code.startsWith("ja-")) return "ja";
   if (code === "zh" || code.startsWith("zh-")) return "zh";
+  if (code === "fr" || code.startsWith("fr-")) return "fr";
   return null;
 }
 
@@ -73,6 +75,8 @@ export function localeFromLanguage(lang: UiLanguage): string {
       return "ja-JP";
     case "zh":
       return "zh-CN";
+    case "fr":
+      return "fr-FR";
     default:
       return "en-US";
   }
@@ -88,6 +92,8 @@ export function pickLang(lang: UiLanguage, text: LangText): string {
       return text.ja ?? text.en;
     case "zh":
       return text.zh ?? text.en;
+    case "fr":
+      return text.fr ?? text.en;
     default:
       return text.en;
   }

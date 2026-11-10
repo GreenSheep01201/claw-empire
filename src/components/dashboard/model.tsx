@@ -1,8 +1,8 @@
+import { useI18n, type LangText, type UiLanguage } from "../../i18n";
 import { useEffect, useState } from "react";
-import type { UiLanguage } from "../../i18n";
 
 export type Locale = UiLanguage;
-export type TFunction = (messages: Record<Locale, string>) => string;
+export type TFunction = (messages: LangText) => string;
 
 export function useNow(localeTag: string, t: TFunction) {
   const [now, setNow] = useState(() => new Date());
@@ -30,10 +30,22 @@ export function useNow(localeTag: string, t: TFunction) {
   const hour = now.getHours();
   const briefing =
     hour < 12
-      ? t({ ko: "오전 브리핑", en: "Morning Briefing", ja: "午前ブリーフィング", zh: "上午简报" })
+      ? t({ ko: "오전 브리핑", en: "Morning Briefing", ja: "午前ブリーフィング", zh: "上午简报", fr: "Point du matin" })
       : hour < 18
-        ? t({ ko: "오후 운영 점검", en: "Afternoon Ops Check", ja: "午後運用点検", zh: "下午运行检查" })
-        : t({ ko: "저녁 마감 점검", en: "Evening Wrap-up", ja: "夜間締め点検", zh: "晚间收尾检查" });
+        ? t({
+            ko: "오후 운영 점검",
+            en: "Afternoon Ops Check",
+            ja: "午後運用点検",
+            zh: "下午运行检查",
+            fr: "Point de l'après-midi",
+          })
+        : t({
+            ko: "저녁 마감 점검",
+            en: "Evening Wrap-up",
+            ja: "夜間締め点検",
+            zh: "晚间收尾检查",
+            fr: "Bilan du soir",
+          });
 
   return { date, time, briefing };
 }
@@ -50,20 +62,17 @@ export function timeAgo(timestamp: number, localeTag: string): string {
   return relativeTimeFormat.format(-days, "day");
 }
 
-export const RANK_TIERS = [
-  { name: "BRONZE", nameKo: "브론즈", minXp: 0, color: "#CD7F32", glow: "rgba(205,127,50,0.35)", icon: "⚔️" },
-  { name: "SILVER", nameKo: "실버", minXp: 100, color: "#C0C0C0", glow: "rgba(192,192,192,0.35)", icon: "🛡️" },
-  { name: "GOLD", nameKo: "골드", minXp: 500, color: "#FFD700", glow: "rgba(255,215,0,0.35)", icon: "⭐" },
+export const RANK_TIERS: Array<{ name: string; label: LangText; minXp: number }> = [
+  { name: "BRONZE", label: { ko: "브론즈", en: "Bronze", ja: "ブロンズ", zh: "青铜", fr: "Bronze" }, minXp: 0 },
+  { name: "SILVER", label: { ko: "실버", en: "Silver", ja: "シルバー", zh: "白银", fr: "Argent" }, minXp: 100 },
+  { name: "GOLD", label: { ko: "골드", en: "Gold", ja: "ゴールド", zh: "黄金", fr: "Or" }, minXp: 500 },
   {
     name: "PLATINUM",
-    nameKo: "플래티넘",
+    label: { ko: "플래티넘", en: "Platinum", ja: "プラチナ", zh: "铂金", fr: "Platine" },
     minXp: 2000,
-    color: "#00c8b4",
-    glow: "rgba(0,200,180,0.35)",
-    icon: "💎",
   },
-  { name: "DIAMOND", nameKo: "다이아", minXp: 5000, color: "#7df9ff", glow: "rgba(125,249,255,0.35)", icon: "💠" },
-  { name: "MASTER", nameKo: "마스터", minXp: 15000, color: "#c45ff6", glow: "rgba(196,95,246,0.35)", icon: "👑" },
+  { name: "DIAMOND", label: { ko: "다이아", en: "Diamond", ja: "ダイヤ", zh: "钻石", fr: "Diamant" }, minXp: 5000 },
+  { name: "MASTER", label: { ko: "마스터", en: "Master", ja: "マスター", zh: "大师", fr: "Maître" }, minXp: 15000 },
 ];
 
 export function getRankTier(xp: number) {
@@ -73,93 +82,60 @@ export function getRankTier(xp: number) {
   return { ...RANK_TIERS[0], level: 0 };
 }
 
-export const STATUS_LABELS: Record<string, { color: string; dot: string }> = {
-  inbox: { color: "bg-slate-500/20 text-slate-200 border-slate-400/30", dot: "bg-slate-400" },
-  planned: { color: "bg-blue-500/20 text-blue-100 border-blue-400/30", dot: "bg-blue-400" },
-  in_progress: { color: "bg-amber-500/20 text-amber-100 border-amber-400/30", dot: "bg-amber-400" },
-  review: { color: "bg-violet-500/20 text-violet-100 border-violet-400/30", dot: "bg-violet-400" },
-  done: { color: "bg-emerald-500/20 text-emerald-100 border-emerald-400/30", dot: "bg-emerald-400" },
-  pending: { color: "bg-orange-500/20 text-orange-100 border-orange-400/30", dot: "bg-orange-400" },
-  cancelled: { color: "bg-rose-500/20 text-rose-100 border-rose-400/30", dot: "bg-rose-400" },
-};
-
-export const STATUS_LEFT_BORDER: Record<string, string> = {
-  inbox: "border-l-slate-400",
-  planned: "border-l-blue-400",
-  in_progress: "border-l-amber-400",
-  review: "border-l-violet-400",
-  done: "border-l-emerald-400",
-  pending: "border-l-orange-400",
-  cancelled: "border-l-rose-400",
-};
+/** Badge variant per task status: green = finished, red = waiting for the owner's approval. */
+export function taskStatusBadgeClass(status: string): string {
+  if (status === "done") return "qg-badge qg-badge--accent";
+  if (status === "review") return "qg-badge qg-badge--pin";
+  return "qg-badge";
+}
 
 export function taskStatusLabel(status: string, t: TFunction) {
   switch (status) {
     case "inbox":
-      return t({ ko: "수신함", en: "Inbox", ja: "受信箱", zh: "收件箱" });
+      return t({ ko: "수신함", en: "Inbox", ja: "受信箱", zh: "收件箱", fr: "Reçue" });
     case "planned":
-      return t({ ko: "계획됨", en: "Planned", ja: "計画済み", zh: "已计划" });
+      return t({ ko: "계획됨", en: "Planned", ja: "計画済み", zh: "已计划", fr: "Planifiée" });
     case "in_progress":
-      return t({ ko: "진행 중", en: "In Progress", ja: "進行中", zh: "进行中" });
+      return t({ ko: "진행 중", en: "In Progress", ja: "進行中", zh: "进行中", fr: "En cours" });
     case "review":
-      return t({ ko: "검토 중", en: "Review", ja: "レビュー", zh: "审核" });
+      return t({ ko: "검토 중", en: "Review", ja: "レビュー", zh: "审核", fr: "À valider" });
     case "done":
-      return t({ ko: "완료", en: "Done", ja: "完了", zh: "完成" });
+      return t({ ko: "완료", en: "Done", ja: "完了", zh: "完成", fr: "Terminée" });
     case "pending":
-      return t({ ko: "보류", en: "Pending", ja: "保留", zh: "待处理" });
+      return t({ ko: "보류", en: "Pending", ja: "保留", zh: "待处理", fr: "En attente" });
     case "cancelled":
-      return t({ ko: "취소됨", en: "Cancelled", ja: "キャンセル", zh: "已取消" });
+      return t({ ko: "취소됨", en: "Cancelled", ja: "キャンセル", zh: "已取消", fr: "Annulée" });
     default:
       return status;
   }
 }
 
-export const DEPT_COLORS = [
-  { bar: "from-blue-500 to-cyan-400", badge: "bg-blue-500/20 text-blue-200 border-blue-400/30" },
-  { bar: "from-violet-500 to-fuchsia-400", badge: "bg-violet-500/20 text-violet-200 border-violet-400/30" },
-  { bar: "from-emerald-500 to-teal-400", badge: "bg-emerald-500/20 text-emerald-200 border-emerald-400/30" },
-  { bar: "from-amber-500 to-orange-400", badge: "bg-amber-500/20 text-amber-100 border-amber-400/30" },
-  { bar: "from-rose-500 to-pink-400", badge: "bg-rose-500/20 text-rose-100 border-rose-400/30" },
-  { bar: "from-cyan-500 to-sky-400", badge: "bg-cyan-500/20 text-cyan-100 border-cyan-400/30" },
-  { bar: "from-orange-500 to-red-400", badge: "bg-orange-500/20 text-orange-100 border-orange-400/30" },
-  { bar: "from-teal-500 to-lime-400", badge: "bg-teal-500/20 text-teal-100 border-teal-400/30" },
-];
-
-export function XpBar({ xp, maxXp, color }: { xp: number; maxXp: number; color: string }) {
-  const pct = maxXp > 0 ? Math.min(100, Math.round((xp / maxXp) * 100)) : 0;
+export function ProgressBar({ value, max, label }: { value: number; max: number; label?: string }) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="relative h-2.5 w-full overflow-hidden rounded-full border border-white/[0.08] bg-white/[0.04]">
+    <div
+      className="relative h-2 w-full overflow-hidden rounded-full"
+      style={{ background: "var(--th-bg-surface-hover)" }}
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={pct}
+      aria-label={label}
+    >
       <div
-        className="xp-bar-fill h-full rounded-full transition-all duration-1000 ease-out"
-        style={{
-          width: `${pct}%`,
-          background: `linear-gradient(90deg, ${color}88, ${color})`,
-          boxShadow: `0 0 8px ${color}60`,
-        }}
+        className="h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none"
+        style={{ width: `${pct}%`, background: "var(--qg-accent)" }}
       />
     </div>
   );
 }
 
-export function RankBadge({ xp, size = "md" }: { xp: number; size?: "sm" | "md" | "lg" }) {
+export function XpBar({ xp, maxXp }: { xp: number; maxXp: number }) {
+  return <ProgressBar value={xp} max={maxXp} />;
+}
+
+export function RankBadge({ xp }: { xp: number }) {
+  const { t } = useI18n();
   const tier = getRankTier(xp);
-  const sizeClasses = {
-    sm: "px-1.5 py-0.5 text-[8px] gap-0.5",
-    md: "px-2 py-0.5 text-[10px] gap-1",
-    lg: "px-3 py-1 text-xs gap-1",
-  };
-  return (
-    <span
-      className={`inline-flex items-center rounded-md font-black uppercase tracking-wider ${sizeClasses[size]}`}
-      style={{
-        background: tier.glow,
-        color: tier.color,
-        border: `1px solid ${tier.color}50`,
-        boxShadow: `0 0 8px ${tier.glow}`,
-        textShadow: `0 0 6px ${tier.glow}`,
-      }}
-    >
-      {tier.icon} {tier.name}
-    </span>
-  );
+  return <span className={tier.level >= 3 ? "qg-badge qg-badge--accent" : "qg-badge"}>{t(tier.label)}</span>;
 }

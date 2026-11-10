@@ -12,14 +12,15 @@ export default function OAuthConnectCards({
 }: OAuthConnectCardProps) {
   return (
     <div className="space-y-3">
-      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+      <h4 className="text-sm font-semibold qg-text-secondary">
         {t({
           ko: "OAuth 계정 추가",
           en: "Add OAuth Account",
           ja: "OAuth アカウント追加",
           zh: "添加 OAuth 账号",
+          fr: "Ajouter un compte OAuth",
         })}
-      </div>
+      </h4>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {CONNECTABLE_PROVIDERS.map(({ id, label, Logo, description }) => {
@@ -32,74 +33,88 @@ export default function OAuthConnectCards({
           return (
             <div
               key={id}
-              className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
-                isConnected
-                  ? "bg-green-500/5 border-green-500/30"
-                  : isDetectedOnly
-                    ? "bg-amber-500/5 border-amber-500/30"
-                    : storageOk
-                      ? "bg-slate-700/30 border-slate-600/50 hover:border-blue-400/50 hover:bg-slate-700/50"
-                      : "bg-slate-800/30 border-slate-700/30 opacity-50"
-              }`}
+              className="qg-card flex flex-col items-center gap-2"
+              style={{
+                borderColor: isConnected ? "var(--qg-accent)" : undefined,
+                background: isConnected ? "var(--qg-accent-soft)" : "var(--th-bg-surface)",
+                opacity: storageOk ? 1 : 0.6,
+              }}
             >
               <Logo className="w-8 h-8" />
-              <span className="text-sm font-medium text-white">{label}</span>
-              <span className="text-[10px] text-slate-400 text-center leading-tight">{description}</span>
+              <span className="text-sm font-semibold" style={{ color: "var(--th-text-heading)" }}>
+                {label}
+              </span>
+              <span className="text-center text-[13px] leading-tight qg-text-muted">{t(description)}</span>
 
               {!storageOk ? (
-                <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-500">
+                <span className="qg-badge">
                   {t({
                     ko: "암호화 키 필요",
                     en: "Encryption key required",
                     ja: "暗号化キーが必要",
                     zh: "需要加密密钥",
+                    fr: "Clé de chiffrement requise",
                   })}
                 </span>
               ) : (
                 <>
                   {isConnected ? (
-                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-green-500/20 text-green-400 font-medium">
-                      {t({ ko: "실행 가능", en: "Runnable", ja: "実行可能", zh: "可执行" })}
+                    <span className="qg-badge qg-badge--accent">
+                      {t({ ko: "실행 가능", en: "Runnable", ja: "実行可能", zh: "可执行", fr: "Utilisable" })}
                     </span>
                   ) : isDetectedOnly ? (
-                    <span className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-medium">
-                      {t({ ko: "감지됨", en: "Detected", ja: "検出済み", zh: "已检测" })}
+                    <span className="qg-badge">
+                      {t({ ko: "감지됨", en: "Detected", ja: "検出済み", zh: "已检测", fr: "Détecté" })}
                     </span>
                   ) : null}
 
                   {isGitHub ? (
                     deviceCode && deviceStatus === "polling" ? (
                       <div className="flex flex-col items-center gap-1.5">
-                        <div className="text-xs text-slate-300 font-mono bg-slate-700/60 px-3 py-1.5 rounded-lg tracking-widest select-all">
+                        <div
+                          className="select-all rounded-[var(--qg-radius)] px-3 py-1.5 font-mono text-sm tracking-widest"
+                          style={{ background: "var(--th-bg-surface-hover)", color: "var(--th-text-heading)" }}
+                        >
                           {deviceCode.userCode}
                         </div>
-                        <span className="text-[10px] text-blue-400 animate-pulse">
+                        <span role="status" className="text-[13px] qg-text-muted motion-safe:animate-pulse">
                           {t({
                             ko: "코드 입력 대기 중...",
                             en: "Waiting for code...",
                             ja: "コード入力待機中...",
                             zh: "等待输入代码...",
+                            fr: "En attente du code…",
                           })}
                         </span>
                       </div>
                     ) : (
                       <button
+                        type="button"
                         onClick={() => void onStartDeviceCodeFlow()}
-                        className="text-[11px] px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
+                        className="qg-btn qg-btn--primary qg-btn--sm"
                       >
                         {isConnected || isDetectedOnly
-                          ? t({ ko: "계정 추가", en: "Add Account", ja: "アカウント追加", zh: "添加账号" })
-                          : t({ ko: "연결하기", en: "Connect", ja: "接続", zh: "连接" })}
+                          ? t({
+                              ko: "계정 추가",
+                              en: "Add Account",
+                              ja: "アカウント追加",
+                              zh: "添加账号",
+                              fr: "Ajouter un compte",
+                            })
+                          : t({ ko: "연결하기", en: "Connect", ja: "接続", zh: "连接", fr: "Connecter" })}
                       </button>
                     )
                   ) : (
-                    <button
-                      onClick={() => onConnect(id)}
-                      className="text-[11px] px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition-colors"
-                    >
+                    <button type="button" onClick={() => onConnect(id)} className="qg-btn qg-btn--primary qg-btn--sm">
                       {isConnected || isDetectedOnly
-                        ? t({ ko: "계정 추가", en: "Add Account", ja: "アカウント追加", zh: "添加账号" })
-                        : t({ ko: "연결하기", en: "Connect", ja: "接続", zh: "连接" })}
+                        ? t({
+                            ko: "계정 추가",
+                            en: "Add Account",
+                            ja: "アカウント追加",
+                            zh: "添加账号",
+                            fr: "Ajouter un compte",
+                          })
+                        : t({ ko: "연결하기", en: "Connect", ja: "接続", zh: "连接", fr: "Connecter" })}
                     </button>
                   )}
                 </>
@@ -111,22 +126,33 @@ export default function OAuthConnectCards({
 
       {deviceStatus === "complete" && (
         <div className="space-y-1.5">
-          <div className="text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-2 rounded-lg">
-            {t({ ko: "GitHub 연결 완료!", en: "GitHub connected!", ja: "GitHub 接続完了!", zh: "GitHub 已连接!" })}
+          <div
+            role="status"
+            className="rounded-[var(--qg-radius)] px-3 py-2 text-[13px]"
+            style={{ background: "var(--qg-accent-soft)", color: "var(--th-text-heading)" }}
+          >
+            {t({
+              ko: "GitHub 연결 완료!",
+              en: "GitHub connected!",
+              ja: "GitHub 接続完了!",
+              zh: "GitHub 已连接!",
+              fr: "GitHub connecté !",
+            })}
           </div>
-          <div className="text-[11px] text-slate-400 bg-slate-800/60 border border-slate-700/50 px-3 py-2 rounded-lg">
+          <div className="qg-field__hint">
             {t({
               ko: "Copilot 구독이 있으면 AI 모델을 사용할 수 있고, 없어도 프로젝트 관리의 GitHub 리포 가져오기 기능은 정상 작동합니다.",
               en: "With a Copilot subscription you can use AI models. Without it, GitHub repo import in Project Manager still works.",
               ja: "Copilot サブスクリプションがあれば AI モデルを利用できます。なくてもプロジェクト管理の GitHub リポインポートは利用可能です。",
               zh: "有 Copilot 订阅可使用 AI 模型；没有订阅也可正常使用项目管理的 GitHub 仓库导入功能。",
+              fr: "Avec un abonnement Copilot, vous accédez aux modèles d'IA. Sans abonnement, l'import de dépôts GitHub dans les projets fonctionne quand même.",
             })}
           </div>
         </div>
       )}
 
       {deviceError && (
-        <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-lg">
+        <div role="alert" className="qg-field__error">
           {deviceError}
         </div>
       )}

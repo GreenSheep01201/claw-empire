@@ -7,6 +7,8 @@ import {
   type SkillHistoryProvider,
   type SkillLearningHistoryEntry,
 } from "../api";
+import { RefreshCw } from "lucide-react";
+import { useI18n } from "../i18n";
 import { type Agent } from "../types";
 import AgentAvatar from "./AgentAvatar";
 import {
@@ -18,6 +20,7 @@ import {
   providerLabel,
   relativeTime,
   statusClass,
+  statusIsPending,
   statusLabel,
 } from "./skill-history/utils";
 
@@ -36,6 +39,7 @@ export default function SkillHistoryPanel({
   className = "",
   onLearningDataChanged,
 }: SkillHistoryPanelProps) {
+  const { t, locale } = useI18n();
   const [tab, setTab] = useState<"history" | "available">("history");
   const [providerFilter, setProviderFilter] = useState<"all" | SkillHistoryProvider>("all");
   const [historyRows, setHistoryRows] = useState<SkillLearningHistoryEntry[]>([]);
@@ -111,8 +115,9 @@ export default function SkillHistoryPanel({
   }, [providerFilter, tab]);
 
   useEffect(() => {
+    const timers = unlearnEffectTimersRef.current;
     return () => {
-      for (const timerId of Object.values(unlearnEffectTimersRef.current)) {
+      for (const timerId of Object.values(timers)) {
         if (typeof timerId === "number") {
           window.clearTimeout(timerId);
         }
@@ -193,97 +198,170 @@ export default function SkillHistoryPanel({
 
   const hiddenHistoryCount = Math.max(0, historyRows.length - HISTORY_PREVIEW_COUNT);
 
+  const unlearnLabel = (busy: boolean) =>
+    busy
+      ? t({ ko: "학습 취소 중...", en: "Unlearning...", ja: "学習取消中...", zh: "取消学习中...", fr: "Retrait…" })
+      : t({ ko: "학습 취소", en: "Unlearn", ja: "学習取消", zh: "取消学习", fr: "Oublier" });
+
+  const renderAvatar = (agent: Agent | null, unlearnEffect: UnlearnEffect | undefined) => (
+    <div
+      className={`relative h-6 w-6 shrink-0 overflow-hidden rounded-md ${unlearnEffect ? "unlearn-avatar-hit" : ""}`}
+      style={{ background: "var(--th-bg-surface-hover)" }}
+    >
+      <AgentAvatar agent={agent ?? undefined} agents={agents} size={24} rounded="xl" />
+      {unlearnEffect === "pot" && (
+        <span className="unlearn-pot-drop-sm" aria-hidden="true">
+          🪴
+        </span>
+      )}
+      {unlearnEffect === "hammer" && (
+        <span className="unlearn-hammer-swing-sm" aria-hidden="true">
+          🔨
+        </span>
+      )}
+      {unlearnEffect && (
+        <span className="unlearn-hit-text-sm" aria-hidden="true">
+          Bonk!
+        </span>
+      )}
+    </div>
+  );
+
+  const providerChip = (key: "all" | SkillHistoryProvider, label: string) => (
+    <button
+      key={key}
+      type="button"
+      onClick={() => setProviderFilter(key)}
+      aria-pressed={providerFilter === key}
+      className="qg-choice shrink-0"
+      style={{ width: "auto", minHeight: 32, padding: "4px 10px", fontSize: "0.8125rem" }}
+    >
+      {label}
+    </button>
+  );
+
+  const emptyBox = (text: string) => <div className="qg-empty">{text}</div>;
+
+  const errorBox = (text: string) => (
+    <div
+      role="alert"
+      className="rounded-md px-3 py-2 text-[13px]"
+      style={{
+        background: "var(--th-danger-bg)",
+        border: "1px solid var(--th-danger-border)",
+        color: "var(--th-danger-text)",
+      }}
+    >
+      {text}
+    </div>
+  );
+
   return (
     <div
-      className={`skill-history-panel flex h-full min-h-[360px] flex-col rounded-xl border border-slate-700/60 bg-slate-900/60 ${className}`}
+      className={`flex h-full min-h-[360px] flex-col rounded-md ${className}`}
+      style={{ background: "var(--th-bg-surface)", border: "1px solid var(--th-border)" }}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-slate-700/60 px-3 py-2.5">
-        <div className="flex items-center gap-1">
+      <div
+        className="flex items-center justify-between gap-2 px-3 py-2.5"
+        style={{ borderBottom: "1px solid var(--th-border)" }}
+      >
+        <div
+          className="flex items-center gap-1"
+          role="group"
+          aria-label={t({ ko: "보기", en: "View", ja: "表示", zh: "视图", fr: "Affichage" })}
+        >
           <button
             type="button"
             onClick={() => setTab("history")}
-            className={`rounded-md px-2 py-1 text-[11px] font-medium transition-all ${
-              tab === "history"
-                ? "bg-slate-700 text-white"
-                : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
-            }`}
+            aria-pressed={tab === "history"}
+            className="qg-choice"
+            style={{ width: "auto", minHeight: 32, padding: "4px 10px", fontSize: "0.8125rem" }}
           >
-            Learning History
+            {t({
+              ko: "학습 이력",
+              en: "Learning History",
+              ja: "学習履歴",
+              zh: "学习记录",
+              fr: "Historique",
+            })}
           </button>
           <button
             type="button"
             onClick={() => setTab("available")}
-            className={`rounded-md px-2 py-1 text-[11px] font-medium transition-all ${
-              tab === "available"
-                ? "bg-slate-700 text-white"
-                : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
-            }`}
+            aria-pressed={tab === "available"}
+            className="qg-choice"
+            style={{ width: "auto", minHeight: 32, padding: "4px 10px", fontSize: "0.8125rem" }}
           >
-            Available Skills
+            {t({
+              ko: "사용 가능한 스킬",
+              en: "Available Skills",
+              ja: "利用可能なスキル",
+              zh: "可用技能",
+              fr: "Compétences acquises",
+            })}
           </button>
         </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="rounded-md border border-slate-600 px-2 py-1 text-[11px] text-slate-300 transition-all hover:bg-slate-800"
-        >
-          Refresh
+        <button type="button" onClick={() => void load()} className="qg-btn qg-btn--sm qg-btn--ghost">
+          <RefreshCw size={16} aria-hidden="true" />
+          {t({ ko: "새로고침", en: "Refresh", ja: "更新", zh: "刷新", fr: "Actualiser" })}
         </button>
       </div>
 
-      <div className="flex items-center gap-1 overflow-x-auto px-3 py-2">
-        <button
-          type="button"
-          onClick={() => setProviderFilter("all")}
-          className={`rounded-md border px-2 py-1 text-[10px] transition-all ${
-            providerFilter === "all"
-              ? "border-blue-500/50 bg-blue-600/20 text-blue-300"
-              : "border-slate-700 text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
-          }`}
-        >
-          All
-        </button>
-        {activeProviders.map((provider) => (
-          <button
-            key={provider}
-            type="button"
-            onClick={() => setProviderFilter(provider)}
-            className={`rounded-md border px-2 py-1 text-[10px] transition-all ${
-              providerFilter === provider
-                ? "border-blue-500/50 bg-blue-600/20 text-blue-300"
-                : "border-slate-700 text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
-            }`}
-          >
-            {providerLabel(provider)}
-          </button>
-        ))}
+      <div
+        className="flex items-center gap-1.5 overflow-x-auto px-3 py-2"
+        role="group"
+        aria-label={t({
+          ko: "CLI 필터",
+          en: "CLI filter",
+          ja: "CLIフィルター",
+          zh: "CLI 筛选",
+          fr: "Filtrer par outil",
+        })}
+      >
+        {providerChip("all", t({ ko: "전체", en: "All", ja: "すべて", zh: "全部", fr: "Tous" }))}
+        {activeProviders.map((provider) => providerChip(provider, providerLabel(provider)))}
       </div>
 
-      <div className="px-3 pb-2 text-[10px] text-slate-500">Retention: {retentionDays} days</div>
+      <div className="px-3 pb-2 text-[13px] qg-text-muted">
+        {t({
+          ko: `보관 기간: ${retentionDays}일`,
+          en: `Retention: ${retentionDays} days`,
+          ja: `保存期間: ${retentionDays}日`,
+          zh: `保留期: ${retentionDays} 天`,
+          fr: `Conservation : ${retentionDays} jours`,
+        })}
+      </div>
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">
-        {loading && historyRows.length === 0 && availableRows.length === 0 && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-6 text-center text-xs text-slate-400">
-            Loading memory records...
-          </div>
-        )}
+        {loading &&
+          historyRows.length === 0 &&
+          availableRows.length === 0 &&
+          emptyBox(
+            t({
+              ko: "메모리 기록 불러오는 중...",
+              en: "Loading memory records...",
+              ja: "記録を読み込み中...",
+              zh: "正在加载记录...",
+              fr: "Chargement de l'historique…",
+            }),
+          )}
 
-        {error && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
-            {error}
-          </div>
-        )}
-        {unlearnError && (
-          <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
-            {unlearnError}
-          </div>
-        )}
+        {error && errorBox(error)}
+        {unlearnError && errorBox(unlearnError)}
 
-        {tab === "history" && historyRows.length === 0 && !loading && !error && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-6 text-center text-xs text-slate-400">
-            No learning history yet.
-          </div>
-        )}
+        {tab === "history" &&
+          historyRows.length === 0 &&
+          !loading &&
+          !error &&
+          emptyBox(
+            t({
+              ko: "아직 학습 이력이 없습니다.",
+              en: "No learning history yet.",
+              ja: "学習履歴はまだありません。",
+              zh: "暂无学习记录。",
+              fr: "Aucune compétence apprise pour le moment.",
+            }),
+          )}
 
         {tab === "history" &&
           visibleHistoryRows.map((row) => {
@@ -295,29 +373,24 @@ export default function SkillHistoryPanel({
             const unlearnEffect = unlearnEffects[rowKey];
             const canUnlearn = row.status === "succeeded";
             return (
-              <div
-                key={row.id}
-                className="skill-history-card rounded-lg border border-slate-700/70 bg-slate-800/50 p-2.5"
-              >
+              <div key={row.id} className="qg-card" style={{ padding: "10px 12px" }}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="truncate text-xs font-semibold text-slate-100">{label}</div>
-                    <div className="mt-0.5 truncate text-[10px] text-slate-500">{row.repo}</div>
+                    <div className="truncate text-sm font-semibold" style={{ color: "var(--th-text-heading)" }}>
+                      {label}
+                    </div>
+                    <div className="mt-0.5 truncate text-[13px] qg-text-muted">{row.repo}</div>
                   </div>
-                  <span className={`rounded-full border px-1.5 py-0.5 text-[10px] ${statusClass(row.status)}`}>
-                    {statusLabel(row.status)}
+                  <span
+                    className={statusClass(row.status)}
+                    style={statusIsPending(row.status) ? { borderStyle: "dashed" } : undefined}
+                  >
+                    {statusLabel(row.status, t)}
                   </span>
                 </div>
-                <div className="skill-history-meta mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-400">
+                <div className="mt-2 flex items-center justify-between gap-2 text-[13px] qg-text-secondary">
                   <div className="flex min-w-0 items-center gap-2">
-                    <div
-                      className={`relative h-5 w-5 overflow-hidden rounded-md bg-slate-800/80 ${unlearnEffect ? "unlearn-avatar-hit" : ""}`}
-                    >
-                      <AgentAvatar agent={agent ?? undefined} agents={agents} size={20} rounded="xl" />
-                      {unlearnEffect === "pot" && <span className="unlearn-pot-drop-sm">🪴</span>}
-                      {unlearnEffect === "hammer" && <span className="unlearn-hammer-swing-sm">🔨</span>}
-                      {unlearnEffect && <span className="unlearn-hit-text-sm">Bonk!</span>}
-                    </div>
+                    {renderAvatar(agent, unlearnEffect)}
                     <span className="truncate">
                       {providerLabel(row.provider)}
                       {agent ? ` · ${agent.name}` : ""}
@@ -329,19 +402,19 @@ export default function SkillHistoryPanel({
                         type="button"
                         onClick={() => void handleUnlearn(row)}
                         disabled={isUnlearning}
-                        className={`skill-unlearn-btn rounded-md border px-1.5 py-0.5 text-[10px] transition-all ${
-                          isUnlearning
-                            ? "cursor-not-allowed border-slate-700 text-slate-600"
-                            : "border-rose-500/35 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
-                        }`}
+                        className="qg-btn qg-btn--sm qg-btn--danger"
                       >
-                        {isUnlearning ? "Unlearning..." : "Unlearn"}
+                        {unlearnLabel(isUnlearning)}
                       </button>
                     )}
-                    <span className="skill-history-time text-slate-500">{relativeTime(eventAt)}</span>
+                    <span className="qg-text-muted">{relativeTime(eventAt, locale)}</span>
                   </div>
                 </div>
-                {row.error && <div className="mt-1 break-words text-[10px] text-rose-300">{row.error}</div>}
+                {row.error && (
+                  <div className="mt-1 break-words text-[13px]" style={{ color: "var(--th-danger-text)" }}>
+                    {row.error}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -351,18 +424,35 @@ export default function SkillHistoryPanel({
             <button
               type="button"
               onClick={() => setHistoryExpanded((prev) => !prev)}
-              className="rounded-md border border-slate-600 px-2.5 py-1 text-[11px] text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
+              aria-expanded={historyExpanded}
+              className="qg-btn qg-btn--sm"
             >
-              {historyExpanded ? "Show less" : `Show ${hiddenHistoryCount} more`}
+              {historyExpanded
+                ? t({ ko: "접기", en: "Show less", ja: "折りたたむ", zh: "收起", fr: "Voir moins" })
+                : t({
+                    ko: `${hiddenHistoryCount}개 더 보기`,
+                    en: `Show ${hiddenHistoryCount} more`,
+                    ja: `さらに${hiddenHistoryCount}件表示`,
+                    zh: `再显示 ${hiddenHistoryCount} 条`,
+                    fr: `Voir ${hiddenHistoryCount} de plus`,
+                  })}
             </button>
           </div>
         )}
 
-        {tab === "available" && availableRows.length === 0 && !loading && !error && (
-          <div className="rounded-lg border border-slate-700 bg-slate-800/40 px-3 py-6 text-center text-xs text-slate-400">
-            No available skills.
-          </div>
-        )}
+        {tab === "available" &&
+          availableRows.length === 0 &&
+          !loading &&
+          !error &&
+          emptyBox(
+            t({
+              ko: "사용 가능한 스킬이 없습니다.",
+              en: "No available skills.",
+              ja: "利用可能なスキルはありません。",
+              zh: "暂无可用技能。",
+              fr: "Aucune compétence acquise.",
+            }),
+          )}
 
         {tab === "available" &&
           availableRows.map((row) => {
@@ -374,20 +464,16 @@ export default function SkillHistoryPanel({
             return (
               <div
                 key={`${row.provider}-${row.repo}-${row.skill_id}`}
-                className="skill-history-card rounded-lg border border-slate-700/70 bg-slate-800/50 p-2.5"
+                className="qg-card"
+                style={{ padding: "10px 12px" }}
               >
-                <div className="truncate text-xs font-semibold text-slate-100">{label}</div>
-                <div className="mt-0.5 truncate text-[10px] text-slate-500">{row.repo}</div>
-                <div className="skill-history-meta mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-400">
+                <div className="truncate text-sm font-semibold" style={{ color: "var(--th-text-heading)" }}>
+                  {label}
+                </div>
+                <div className="mt-0.5 truncate text-[13px] qg-text-muted">{row.repo}</div>
+                <div className="mt-2 flex items-center justify-between gap-2 text-[13px] qg-text-secondary">
                   <div className="flex min-w-0 items-center gap-2">
-                    <div
-                      className={`relative h-5 w-5 overflow-hidden rounded-md bg-slate-800/80 ${unlearnEffect ? "unlearn-avatar-hit" : ""}`}
-                    >
-                      <AgentAvatar agent={agent ?? undefined} agents={agents} size={20} rounded="xl" />
-                      {unlearnEffect === "pot" && <span className="unlearn-pot-drop-sm">🪴</span>}
-                      {unlearnEffect === "hammer" && <span className="unlearn-hammer-swing-sm">🔨</span>}
-                      {unlearnEffect && <span className="unlearn-hit-text-sm">Bonk!</span>}
-                    </div>
+                    {renderAvatar(agent, unlearnEffect)}
                     <span className="truncate">
                       {providerLabel(row.provider)}
                       {agent ? ` · ${agent.name}` : ""}
@@ -398,15 +484,11 @@ export default function SkillHistoryPanel({
                       type="button"
                       onClick={() => void handleUnlearn(row)}
                       disabled={isUnlearning}
-                      className={`skill-unlearn-btn rounded-md border px-1.5 py-0.5 text-[10px] transition-all ${
-                        isUnlearning
-                          ? "cursor-not-allowed border-slate-700 text-slate-600"
-                          : "border-rose-500/35 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20"
-                      }`}
+                      className="qg-btn qg-btn--sm qg-btn--danger"
                     >
-                      {isUnlearning ? "Unlearning..." : "Unlearn"}
+                      {unlearnLabel(isUnlearning)}
                     </button>
-                    <span className="skill-history-time text-slate-500">{relativeTime(row.learned_at)}</span>
+                    <span className="qg-text-muted">{relativeTime(row.learned_at, locale)}</span>
                   </div>
                 </div>
               </div>
@@ -414,8 +496,15 @@ export default function SkillHistoryPanel({
           })}
       </div>
       {centerBonk && (
-        <div className="pointer-events-none fixed inset-0 z-[120] flex items-center justify-center">
-          <div className="skill-history-center-card unlearn-center-card rounded-2xl border border-rose-400/30 bg-slate-900/90 px-6 py-4 shadow-2xl shadow-black/50 backdrop-blur-sm">
+        <div className="pointer-events-none fixed inset-0 z-[120] flex items-center justify-center" aria-hidden="true">
+          <div
+            className="unlearn-center-card rounded-md px-6 py-4"
+            style={{
+              background: "var(--th-bg-surface)",
+              border: "1px solid var(--th-border-strong)",
+              boxShadow: "var(--qg-lift-high)",
+            }}
+          >
             <div className="relative mx-auto h-20 w-20 overflow-visible">
               <div className="unlearn-avatar-hit">
                 <AgentAvatar agent={centerBonk.agent ?? undefined} agents={agents} size={80} rounded="xl" />
@@ -423,7 +512,7 @@ export default function SkillHistoryPanel({
               <span className="unlearn-hammer-swing-center">🔨</span>
               <span className="unlearn-hit-text-center">Bonk!</span>
             </div>
-            <div className="skill-history-center-label mt-2 text-center text-xs font-medium text-rose-100">
+            <div className="mt-2 text-center text-[13px] font-medium" style={{ color: "var(--th-text-heading)" }}>
               {providerLabel(centerBonk.provider)}
             </div>
           </div>

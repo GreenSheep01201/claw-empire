@@ -1,12 +1,12 @@
 import { useCallback, useMemo, type ReactNode } from "react";
 import Sidebar from "../components/Sidebar";
-import OfficeView from "../components/OfficeView";
+import OfficeWorldView from "../components/office-view/OfficeWorldView";
 import Dashboard from "../components/Dashboard";
 import TaskBoard from "../components/TaskBoard";
 import AgentManager from "../components/AgentManager";
 import SkillsLibrary from "../components/SkillsLibrary";
 import SettingsPanel from "../components/SettingsPanel";
-import { I18nProvider } from "../i18n";
+import { I18nProvider, normalizeLanguage, pickLang } from "../i18n";
 import type {
   Agent,
   CeoOfficeCall,
@@ -23,7 +23,8 @@ import type {
 } from "../types";
 import type { UpdateStatus } from "../api";
 import type { OAuthCallbackResult, RoomThemeMap, View } from "./types";
-import AppHeaderBar from "./AppHeaderBar";
+import AppHeaderBar, { type AppHeaderLabels } from "./AppHeaderBar";
+import MobileTabBar, { type MobileTabBarLabels } from "./MobileTabBar";
 import {
   buildOfficePackStarterAgents,
   buildOfficePackPresentation,
@@ -38,13 +39,9 @@ import { applyOfficePackToTaskInput, filterTasksByOfficePack, type TaskCreateInp
 interface AppMainLayoutLabels {
   uiLanguage: string;
   viewTitle: string;
-  announcementLabel: string;
-  roomManagerLabel: string;
+  headerLabels: AppHeaderLabels;
+  tabBarLabels: MobileTabBarLabels;
   roomManagerDepartments: { id: string; name: string }[];
-  reportLabel: string;
-  tasksPrimaryLabel: string;
-  agentStatusLabel: string;
-  decisionLabel: string;
   autoUpdateNoticeVisible: boolean;
   autoUpdateNoticeTitle: string;
   autoUpdateNoticeHint: string;
@@ -124,6 +121,9 @@ interface AppMainLayoutProps {
   onRefreshCli: () => Promise<void>;
   onOauthResultClear: () => void;
   onOpenDecisionInbox: () => void;
+  /** Agents with a decision waiting for the CEO (red pins in the office). */
+  pendingDecisionAgentIds: string[];
+  onOpenChatWithAgent: (agent: Agent) => void;
   onOpenAgentStatus: () => void;
   onOpenReportHistory: () => void;
   onOpenAnnouncement: () => void;
@@ -185,6 +185,8 @@ export default function AppMainLayout({
   onRefreshCli,
   onOauthResultClear,
   onOpenDecisionInbox,
+  pendingDecisionAgentIds,
+  onOpenChatWithAgent,
   onOpenAgentStatus,
   onOpenReportHistory,
   onOpenAnnouncement,
@@ -198,14 +200,13 @@ export default function AppMainLayout({
     labels.uiLanguage === "ko" || labels.uiLanguage === "ja" || labels.uiLanguage === "zh" ? labels.uiLanguage : "en";
   const officePackKey = normalizeOfficeWorkflowPack(activeOfficeWorkflowPack);
   const officePackOptions = useMemo(() => listOfficePackOptions(uiLanguage), [uiLanguage]);
-  const officePackLabel =
-    labels.uiLanguage === "ko"
-      ? "오피스 팩"
-      : labels.uiLanguage === "ja"
-        ? "オフィスパック"
-        : labels.uiLanguage === "zh"
-          ? "办公室包"
-          : "Office Pack";
+  const officePackLabel = pickLang(normalizeLanguage(labels.uiLanguage), {
+    ko: "오피스 팩",
+    en: "Office pack",
+    ja: "オフィスパック",
+    zh: "办公室包",
+    fr: "Pack de bureau",
+  });
   const officePackBootstrappingMessage = useMemo(() => {
     if (!officePackBootstrappingLabel) return null;
     if (uiLanguage === "ko") return `${officePackBootstrappingLabel} 오피스 팩 배치중...`;
@@ -369,26 +370,20 @@ export default function AppMainLayout({
             agents={officePresentation.agents}
             settings={settings}
             connected={connected}
+            collapsible={false}
           />
         </div>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
+        <main className="qg-main flex-1 overflow-y-auto overflow-x-hidden min-w-0">
           <AppHeaderBar
-            currentView={view}
             connected={connected}
             viewTitle={labels.viewTitle}
-            tasksPrimaryLabel={labels.tasksPrimaryLabel}
-            decisionLabel={labels.decisionLabel}
+            labels={labels.headerLabels}
             decisionInboxLoading={decisionInboxLoading}
             decisionInboxCount={decisionInboxCount}
-            agentStatusLabel={labels.agentStatusLabel}
-            reportLabel={labels.reportLabel}
-            announcementLabel={labels.announcementLabel}
-            roomManagerLabel={labels.roomManagerLabel}
             theme={theme}
-            mobileHeaderMenuOpen={mobileHeaderMenuOpen}
+            menuOpen={mobileHeaderMenuOpen}
             onOpenMobileNav={() => setMobileNavOpen(true)}
-            onOpenTasks={() => setView("tasks")}
             onOpenDecisionInbox={onOpenDecisionInbox}
             onOpenAgentStatus={onOpenAgentStatus}
             onOpenReportHistory={onOpenReportHistory}
@@ -405,8 +400,8 @@ export default function AppMainLayout({
                 : null
             }
             onToggleTheme={toggleTheme}
-            onToggleMobileHeaderMenu={() => setMobileHeaderMenuOpen(!mobileHeaderMenuOpen)}
-            onCloseMobileHeaderMenu={() => setMobileHeaderMenuOpen(false)}
+            onToggleMenu={() => setMobileHeaderMenuOpen(!mobileHeaderMenuOpen)}
+            onCloseMenu={() => setMobileHeaderMenuOpen(false)}
           />
 
           {officePackBootstrappingMessage && (
@@ -470,23 +465,24 @@ export default function AppMainLayout({
 
           <div className="p-3 sm:p-4 lg:p-6">
             {view === "office" && (
-              <OfficeView
+              <OfficeWorldView
                 departments={officePresentation.departments}
                 agents={officePresentation.agents}
                 tasks={tasks}
-                subAgents={subAgents}
                 meetingPresence={meetingPresence}
-                activeMeetingTaskId={activeMeetingTaskId}
-                unreadAgentIds={unreadAgentIds}
+                pendingDecisionAgentIds={pendingDecisionAgentIds}
+                theme={theme}
                 crossDeptDeliveries={crossDeptDeliveries}
-                onCrossDeptDeliveryProcessed={onCrossDeptDeliveryProcessed}
                 ceoOfficeCalls={ceoOfficeCalls}
+                onCrossDeptDeliveryProcessed={onCrossDeptDeliveryProcessed}
                 onCeoOfficeCallProcessed={onCeoOfficeCallProcessed}
-                onOpenActiveMeetingMinutes={onOpenActiveMeetingMinutes}
-                customDeptThemes={officePresentation.roomThemes}
-                themeHighlightTargetId={activeRoomThemeTargetId}
-                onSelectAgent={onSelectAgent}
+                activeMeetingTaskId={activeMeetingTaskId}
+                onOpenMeetingMinutes={onOpenActiveMeetingMinutes}
+                onOpenDecisionInbox={onOpenDecisionInbox}
+                onOpenChat={onOpenChatWithAgent}
                 onSelectDepartment={onSelectDepartment}
+                customDeptThemes={officePresentation.roomThemes}
+                onSelectAgent={onSelectAgent}
               />
             )}
 
@@ -557,6 +553,16 @@ export default function AppMainLayout({
             )}
           </div>
         </main>
+
+        <MobileTabBar
+          currentView={view}
+          labels={labels.tabBarLabels}
+          decisionCount={decisionInboxCount}
+          onChangeView={setView}
+          onOpenAnnouncement={onOpenAnnouncement}
+          onOpenDecisionInbox={onOpenDecisionInbox}
+          onOpenMenu={() => setMobileNavOpen(true)}
+        />
 
         {children}
       </div>

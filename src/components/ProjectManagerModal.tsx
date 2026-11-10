@@ -1,3 +1,5 @@
+import { ArrowLeft } from "lucide-react";
+import Dialog from "./ui/Dialog";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Agent, AssignmentMode, Department, Project } from "../types";
 import {
@@ -253,6 +255,7 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
         en: `Delete project '${selectedProject.name}'?`,
         ja: `プロジェクト '${selectedProject.name}' を削除しますか？`,
         zh: `要删除项目 '${selectedProject.name}' 吗？`,
+        fr: `Supprimer le projet « ${selectedProject.name} » ?`,
       }),
     );
     if (!confirmed) return;
@@ -277,12 +280,30 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
     }
   }, []);
 
-  const headerTitle = t({ ko: "프로젝트 관리", en: "Project Management", ja: "プロジェクト管理", zh: "项目管理" });
+  const headerTitle = t({
+    ko: "프로젝트 관리",
+    en: "Project Management",
+    ja: "プロジェクト管理",
+    zh: "项目管理",
+    fr: "Projets",
+  });
   const formTitle = editingProjectId
-    ? t({ ko: "프로젝트 수정", en: "Edit Project", ja: "プロジェクト編集", zh: "编辑项目" })
+    ? t({ ko: "프로젝트 수정", en: "Edit Project", ja: "プロジェクト編集", zh: "编辑项目", fr: "Modifier le projet" })
     : isCreating
-      ? t({ ko: "신규 프로젝트 등록", en: "Register New Project", ja: "新規プロジェクト登録", zh: "新建项目" })
-      : t({ ko: "프로젝트 정보", en: "Project Info", ja: "プロジェクト情報", zh: "项目信息" });
+      ? t({
+          ko: "신규 프로젝트 등록",
+          en: "Register New Project",
+          ja: "新規プロジェクト登録",
+          zh: "新建项目",
+          fr: "Nouveau projet",
+        })
+      : t({
+          ko: "프로젝트 정보",
+          en: "Project Info",
+          ja: "プロジェクト情報",
+          zh: "项目信息",
+          fr: "Informations du projet",
+        });
 
   if (reportDetail) {
     return (
@@ -297,18 +318,19 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+    <Dialog
+      open
+      size="full"
+      onClose={onClose}
+      title={headerTitle}
+      closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
     >
-      <div className="flex h-[86vh] w-[min(1180px,95vw)] flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl md:flex-row">
+      <div className="flex h-full min-h-0 flex-col md:flex-row">
         <div
           className={`w-full md:w-[330px] ${selectedProjectId || isCreating || githubImportMode ? "hidden md:block" : "block"}`}
         >
           <ProjectSidebar
-            headerTitle={headerTitle}
             t={t as ProjectI18nTranslate}
-            onClose={onClose}
             search={search}
             setSearch={setSearch}
             loadProjects={loadProjects}
@@ -334,7 +356,7 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
         <section
           className={`flex min-w-0 flex-1 flex-col overflow-hidden ${!selectedProjectId && !isCreating && !githubImportMode ? "hidden md:flex" : "flex"}`}
         >
-          <div className="flex items-center gap-2 border-b border-slate-700 px-3 py-2 md:hidden">
+          <div className="flex items-center gap-2 border-b border-[var(--th-border)] px-3 py-2 md:hidden">
             <button
               type="button"
               onClick={() => {
@@ -343,9 +365,10 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
                 setEditingProjectId(null);
                 setGithubImportMode(false);
               }}
-              className="rounded-md px-2 py-1 text-xs text-slate-300 hover:bg-slate-800 hover:text-white"
+              className="qg-btn qg-btn--sm qg-btn--ghost"
             >
-              ← {t({ ko: "목록", en: "List", ja: "一覧", zh: "列表" })}
+              <ArrowLeft size={16} aria-hidden />
+              {t({ ko: "목록", en: "List", ja: "一覧", zh: "列表", fr: "Liste" })}
             </button>
           </div>
 
@@ -362,8 +385,8 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
             />
           ) : (
             <>
-              <div className="border-b border-slate-700 px-5 py-3">
-                <h3 className="text-sm font-semibold text-white">{formTitle}</h3>
+              <div className="border-b border-[var(--th-border)] px-5 py-3">
+                <h3 className="text-sm font-semibold">{formTitle}</h3>
               </div>
 
               <div className="grid min-w-0 flex-1 grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden p-5 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
@@ -490,6 +513,6 @@ export default function ProjectManagerModal({ agents, departments = [], onClose 
           pathTools.setManualPathPickerOpen(false);
         }}
       />
-    </div>
+    </Dialog>
   );
 }

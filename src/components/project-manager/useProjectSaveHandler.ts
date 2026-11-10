@@ -76,6 +76,7 @@ export function useProjectSaveHandler({
                 en: "This path is not a directory. Please enter a directory path.",
                 ja: "このパスはフォルダではありません。ディレクトリパスを入力してください。",
                 zh: "该路径不是文件夹，请输入目录路径。",
+                fr: "Ce chemin n’est pas un dossier. Saisir le chemin d’un dossier.",
               }),
             });
             return;
@@ -103,6 +104,7 @@ export function useProjectSaveHandler({
                 en: "Failed to verify project path.",
                 ja: "プロジェクトパスの確認に失敗しました。",
                 zh: "项目路径校验失败。",
+                fr: "Impossible de vérifier le chemin du projet.",
               }),
             });
             return;
@@ -191,6 +193,7 @@ export function useProjectSaveHandler({
             en: "Failed to save project. Please check your inputs.",
             ja: "プロジェクト保存に失敗しました。入力値を確認してください。",
             zh: "项目保存失败，请检查输入值。",
+            fr: "Impossible d’enregistrer le projet. Vérifier les champs.",
           }),
         });
       } finally {

@@ -1,14 +1,16 @@
+import { Circle, Orbit, Rocket } from "lucide-react";
 import type { ApiProviderType, OAuthConnectProvider } from "../../api";
+import type { LangText } from "../../i18n";
 import { AntigravityLogo, CliChatGPTLogo, CliClaudeLogo, CliGeminiLogo, CliKimiLogo, GitHubCopilotLogo } from "./Logos";
 
 export const CLI_INFO: Record<string, { label: string; icon: React.ReactNode }> = {
   claude: { label: "Claude Code", icon: <CliClaudeLogo /> },
   codex: { label: "Codex CLI", icon: <CliChatGPTLogo /> },
   gemini: { label: "Gemini CLI", icon: <CliGeminiLogo /> },
-  opencode: { label: "OpenCode", icon: "⚪" },
+  opencode: { label: "OpenCode", icon: <Circle size={16} aria-hidden="true" /> },
   kimi: { label: "Kimi Code", icon: <CliKimiLogo /> },
-  copilot: { label: "GitHub Copilot", icon: "🚀" },
-  antigravity: { label: "Antigravity", icon: "🌌" },
+  copilot: { label: "GitHub Copilot", icon: <Rocket size={16} aria-hidden="true" /> },
+  antigravity: { label: "Antigravity", icon: <Orbit size={16} aria-hidden="true" /> },
 };
 
 export const OAUTH_INFO: Record<string, { label: string }> = {
@@ -20,10 +22,28 @@ export const CONNECTABLE_PROVIDERS: Array<{
   id: OAuthConnectProvider;
   label: string;
   Logo: ({ className }: { className?: string }) => React.ReactElement;
-  description: string;
+  description: LangText;
 }> = [
-  { id: "github-copilot", label: "GitHub", Logo: GitHubCopilotLogo, description: "GitHub OAuth (Copilot included)" },
-  { id: "antigravity", label: "Antigravity", Logo: AntigravityLogo, description: "Google OAuth (Antigravity)" },
+  {
+    id: "github-copilot",
+    label: "GitHub",
+    Logo: GitHubCopilotLogo,
+    description: {
+      ko: "GitHub OAuth (Copilot 포함)",
+      en: "GitHub OAuth (Copilot included)",
+      fr: "OAuth GitHub (Copilot inclus)",
+    },
+  },
+  {
+    id: "antigravity",
+    label: "Antigravity",
+    Logo: AntigravityLogo,
+    description: {
+      ko: "Google OAuth (Antigravity)",
+      en: "Google OAuth (Antigravity)",
+      fr: "OAuth Google (Antigravity)",
+    },
+  },
 ];
 
 export const API_TYPE_PRESETS: Record<ApiProviderType, { label: string; base_url: string }> = {

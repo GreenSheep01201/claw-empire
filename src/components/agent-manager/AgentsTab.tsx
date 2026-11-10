@@ -1,4 +1,5 @@
 import type { Agent, Department } from "../../types";
+import { Briefcase, Building2, Search, SearchX } from "lucide-react";
 import { localeName } from "../../i18n";
 import AgentCard from "./AgentCard";
 import { StackedSpriteIcon } from "./EmojiPicker";
@@ -62,20 +63,28 @@ export default function AgentsTab({
       <div className="grid grid-cols-3 gap-3">
         {[
           {
-            label: tr("전체 인원", "Total"),
+            key: "total",
+            label: tr("전체 인원", "Total", "Effectif"),
             value: agents.length,
             icon: <StackedSpriteIcon sprites={randomIconSprites.total} />,
           },
-          { label: tr("근무 중", "Working"), value: workingCount, icon: "💼" },
-          { label: tr("부서", "Departments"), value: departments.length, icon: "🏢" },
+          {
+            key: "working",
+            label: tr("근무 중", "Working", "Au travail"),
+            value: workingCount,
+            icon: <Briefcase size={16} aria-hidden="true" />,
+          },
+          {
+            key: "departments",
+            label: tr("부서", "Departments", "Pôles"),
+            value: departments.length,
+            icon: <Building2 size={16} aria-hidden="true" />,
+          },
         ].map((summary) => (
-          <div
-            key={summary.label}
-            className="rounded-xl px-4 py-3"
-            style={{ background: "var(--th-card-bg)", border: "1px solid var(--th-card-border)" }}
-          >
-            <div className="text-xs mb-1" style={{ color: "var(--th-text-muted)" }}>
-              {summary.icon} {summary.label}
+          <div key={summary.key} className="qg-card">
+            <div className="mb-1 flex items-center gap-1.5 text-[13px] qg-text-muted">
+              {summary.icon}
+              <span className="truncate">{summary.label}</span>
             </div>
             <div className="text-2xl font-bold tabular-nums" style={{ color: "var(--th-text-heading)" }}>
               {summary.value}
@@ -84,58 +93,69 @@ export default function AgentsTab({
         ))}
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap" style={{ borderBottom: "1px solid var(--th-card-border)" }}>
-        <button
-          onClick={() => setDeptTab("all")}
-          className={`flex items-center gap-1 px-3 py-2 text-xs font-medium transition-colors ${
-            deptTab === "all" ? "text-blue-400 border-b-2 border-blue-400" : "hover:text-slate-200"
-          }`}
-          style={deptTab !== "all" ? { color: "var(--th-text-muted)" } : undefined}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div
+          className="flex flex-1 flex-wrap items-center gap-2"
+          role="group"
+          aria-label={tr("부서 필터", "Department filter", "Filtrer par pôle")}
         >
-          {tr("전체", "All")} <span className="opacity-60">{agents.length}</span>
-        </button>
-        {departments.map((department) => {
-          const count = deptCounts.get(department.id);
-          return (
-            <button
-              key={department.id}
-              onClick={() => setDeptTab(department.id)}
-              onDoubleClick={(e) => {
-                e.preventDefault();
-                onEditDepartment(department);
-              }}
-              title={tr("더블클릭: 부서 편집", "Double-click: edit dept")}
-              className={`flex items-center gap-1 px-3 py-2 text-xs font-medium transition-colors ${
-                deptTab === department.id ? "text-blue-400 border-b-2 border-blue-400" : "hover:text-slate-200"
-              }`}
-              style={deptTab !== department.id ? { color: "var(--th-text-muted)" } : undefined}
-            >
-              <span>{department.icon}</span>
-              <span className="hidden sm:inline">{localeName(locale, department)}</span>
-              <span className="opacity-60">{count?.total ?? 0}</span>
-            </button>
-          );
-        })}
-        <div className="ml-auto pb-1">
+          <button
+            type="button"
+            onClick={() => setDeptTab("all")}
+            aria-pressed={deptTab === "all"}
+            className="qg-choice"
+            style={{ width: "auto" }}
+          >
+            {tr("전체", "All", "Tous")}
+            <span className="qg-count">{agents.length}</span>
+          </button>
+          {departments.map((department) => {
+            const count = deptCounts.get(department.id);
+            const name = localeName(locale, department);
+            return (
+              <button
+                type="button"
+                key={department.id}
+                onClick={() => setDeptTab(department.id)}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  onEditDepartment(department);
+                }}
+                aria-pressed={deptTab === department.id}
+                aria-label={`${name} (${count?.total ?? 0})`}
+                title={tr("더블클릭: 부서 편집", "Double-click: edit dept", "Double-clic : modifier le pôle")}
+                className="qg-choice"
+                style={{ width: "auto" }}
+              >
+                <span aria-hidden="true">{department.icon}</span>
+                <span className="hidden sm:inline">{name}</span>
+                <span className="qg-count">{count?.total ?? 0}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative sm:w-56">
+          <Search
+            size={16}
+            aria-hidden="true"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 qg-text-muted"
+          />
           <input
-            type="text"
-            placeholder={`${tr("검색", "Search")}...`}
+            type="search"
+            placeholder={`${tr("검색", "Search", "Rechercher")}…`}
+            aria-label={tr("직원 검색", "Search agents", "Rechercher un agent")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-3 py-1.5 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/40 transition-shadow w-36"
-            style={{
-              background: "var(--th-input-bg)",
-              border: "1px solid var(--th-input-border)",
-              color: "var(--th-text-primary)",
-            }}
+            className="qg-input"
+            style={{ paddingLeft: 34 }}
           />
         </div>
       </div>
 
       {sortedAgents.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "var(--th-text-muted)" }}>
-          <div className="text-3xl mb-2">🔍</div>
-          {tr("검색 결과 없음", "No agents found")}
+        <div className="qg-empty flex flex-col items-center gap-2">
+          <SearchX size={28} aria-hidden="true" />
+          {tr("검색 결과 없음", "No agents found", "Aucun agent trouvé")}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

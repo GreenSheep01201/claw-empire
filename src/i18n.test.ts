@@ -33,7 +33,8 @@ describe("i18n helpers", () => {
     expect(normalizeLanguage("en_US")).toBe("en");
     expect(normalizeLanguage("ja-JP")).toBe("ja");
     expect(normalizeLanguage("zh-CN")).toBe("zh");
-    expect(normalizeLanguage("fr-FR")).toBe("en");
+    expect(normalizeLanguage("fr-FR")).toBe("fr");
+    expect(normalizeLanguage("de-DE")).toBe("en");
     expect(normalizeLanguage(undefined)).toBe("en");
   });
 
@@ -123,5 +124,11 @@ describe("i18n helpers", () => {
         zh: "你好",
       }),
     ).toBe("안녕하세요");
+  });
+
+  it("le français est une langue de premier rang avec repli sur l'anglais", () => {
+    expect(pickLang("fr", { ko: "오피스", en: "Office", fr: "Bureau" })).toBe("Bureau");
+    expect(pickLang("fr", { ko: "오피스", en: "Office" })).toBe("Office");
+    expect(localeFromLanguage("fr")).toBe("fr-FR");
   });
 });

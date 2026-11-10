@@ -10,30 +10,32 @@ export interface TerminalPanelProps {
   onClose: () => void;
 }
 
-export const STATUS_BADGES: Record<string, { label: LangText; color: string }> = {
+export type StatusBadgeTone = "accent" | "neutral";
+
+export const STATUS_BADGES: Record<string, { label: LangText; tone: StatusBadgeTone }> = {
   in_progress: {
-    label: { ko: "진행중", en: "Running", ja: "実行中", zh: "运行中" },
-    color: "bg-amber-500/20 text-amber-400 border-amber-500/40",
+    label: { ko: "진행중", en: "Running", fr: "En cours", ja: "実行中", zh: "运行中" },
+    tone: "accent",
   },
   review: {
-    label: { ko: "검토", en: "Review", ja: "レビュー", zh: "审核" },
-    color: "bg-purple-500/20 text-purple-400 border-purple-500/40",
+    label: { ko: "검토", en: "Review", fr: "En revue", ja: "レビュー", zh: "审核" },
+    tone: "neutral",
   },
   done: {
-    label: { ko: "완료", en: "Done", ja: "完了", zh: "完成" },
-    color: "bg-green-500/20 text-green-400 border-green-500/40",
+    label: { ko: "완료", en: "Done", fr: "Terminée", ja: "完了", zh: "完成" },
+    tone: "accent",
   },
   inbox: {
-    label: { ko: "수신함", en: "Inbox", ja: "受信箱", zh: "收件箱" },
-    color: "bg-slate-500/20 text-slate-400 border-slate-500/40",
+    label: { ko: "수신함", en: "Inbox", fr: "À trier", ja: "受信箱", zh: "收件箱" },
+    tone: "neutral",
   },
   planned: {
-    label: { ko: "예정", en: "Planned", ja: "予定", zh: "计划" },
-    color: "bg-blue-500/20 text-blue-400 border-blue-500/40",
+    label: { ko: "예정", en: "Planned", fr: "Planifiée", ja: "予定", zh: "计划" },
+    tone: "neutral",
   },
   cancelled: {
-    label: { ko: "취소", en: "Cancelled", ja: "キャンセル", zh: "已取消" },
-    color: "bg-red-500/20 text-red-400 border-red-500/40",
+    label: { ko: "취소", en: "Cancelled", fr: "Annulée", ja: "キャンセル", zh: "已取消" },
+    tone: "neutral",
   },
 };
 

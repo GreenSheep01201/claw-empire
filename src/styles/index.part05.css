@@ -2,33 +2,21 @@
   background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.2), transparent);
 }
 
+/* Reduced motion: stop movement, keep state feedback (colour/opacity changes, loading spinners). */
 @media (prefers-reduced-motion: reduce) {
-  *,
+  *:not(.animate-spin),
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
 
-/* ─── Sidebar nav item active indicator ─── */
-.sidebar-nav-active {
-  position: relative;
-}
-.sidebar-nav-active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 25%;
-  height: 50%;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: #3b82f6;
-}
-[data-theme="light"] .sidebar-nav-active::before {
-  background: #2563eb;
+  *,
+  *::before,
+  *::after {
+    transition-property: color, background-color, border-color, opacity, outline-color !important;
+  }
 }
 
 /* ─── Settings toggle switch improvements ─── */

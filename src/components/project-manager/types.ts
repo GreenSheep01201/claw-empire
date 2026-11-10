@@ -1,3 +1,4 @@
+import type { LangText } from "../../i18n";
 import type { Agent, Department, Project, AssignmentMode } from "../../types";
 import type {
   ProjectDecisionEventItem,
@@ -6,12 +7,7 @@ import type {
   ProjectTaskHistoryItem,
 } from "../../api";
 
-export interface I18nTextMap {
-  ko: string;
-  en: string;
-  ja: string;
-  zh: string;
-}
+export type I18nTextMap = LangText;
 
 export type ProjectI18nTranslate = (messages: I18nTextMap) => string;
 

@@ -1,4 +1,7 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useId } from "react";
+import { RotateCcw } from "lucide-react";
+import Dialog from "./ui/Dialog";
+import { pickLang, type LangText, type UiLanguage } from "../i18n";
 
 /* ================================================================== */
 /*  Types                                                               */
@@ -12,7 +15,7 @@ export interface OfficeRoomManagerProps {
   onThemeChange: (themes: Record<string, DeptTheme>) => void;
   onActiveDeptChange?: (deptId: string | null) => void;
   onClose: () => void;
-  language: "ko" | "en" | "ja" | "zh";
+  language: UiLanguage;
 }
 
 /* ================================================================== */
@@ -33,14 +36,29 @@ const DEFAULT_THEMES: Record<string, DeptTheme> = {
 const DEFAULT_TONE = 50;
 
 const labels = {
-  title: { ko: "사무실 관리", en: "Office Manager", ja: "オフィス管理", zh: "办公室管理" },
-  accent: { ko: "메인 색상", en: "Main Color", ja: "メインカラー", zh: "主色调" },
-  tone: { ko: "톤 (밝기)", en: "Tone (Brightness)", ja: "トーン（明るさ）", zh: "色调（亮度）" },
-  reset: { ko: "초기화", en: "Reset", ja: "リセット", zh: "重置" },
-  resetAll: { ko: "전체 초기화", en: "Reset All", ja: "全てリセット", zh: "全部重置" },
-  close: { ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭" },
-  presets: { ko: "프리셋", en: "Presets", ja: "プリセット", zh: "预设" },
-};
+  title: {
+    ko: "사무실 관리",
+    en: "Arrange the office",
+    ja: "オフィス管理",
+    zh: "办公室管理",
+    fr: "Aménager le bureau",
+  },
+  accent: { ko: "메인 색상", en: "Main color", ja: "メインカラー", zh: "主色调", fr: "Couleur principale" },
+  tone: {
+    ko: "톤 (밝기)",
+    en: "Tone (brightness)",
+    ja: "トーン（明るさ）",
+    zh: "色调（亮度）",
+    fr: "Teinte (luminosité)",
+  },
+  reset: { ko: "초기화", en: "Reset", ja: "リセット", zh: "重置", fr: "Réinitialiser" },
+  resetAll: { ko: "전체 초기화", en: "Reset all", ja: "全てリセット", zh: "全部重置", fr: "Tout réinitialiser" },
+  close: { ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" },
+  presets: { ko: "프리셋", en: "Presets", ja: "プリセット", zh: "预设", fr: "Teintes proposées" },
+  light: { ko: "밝게", en: "Light", ja: "明るい", zh: "浅", fr: "Clair" },
+  dark: { ko: "어둡게", en: "Dark", ja: "暗い", zh: "深", fr: "Foncé" },
+  presetTone: { ko: "톤", en: "Tone", ja: "トーン", zh: "色调", fr: "Teinte" },
+} satisfies Record<string, LangText>;
 
 /* ================================================================== */
 /*  Color helpers                                                       */
@@ -121,7 +139,7 @@ interface DeptCardProps {
   deptId: string;
   deptName: string;
   state: DeptState;
-  language: "ko" | "en" | "ja" | "zh";
+  language: UiLanguage;
   onActivate: () => void;
   onAccentChange: (accent: number) => void;
   onToneChange: (tone: number) => void;
@@ -140,57 +158,66 @@ function DeptCard({
 }: DeptCardProps) {
   const theme = deriveTheme(state.accent, state.tone);
   const presets = generateTonePresets(state.accent);
+  const accentId = useId();
+  const toneId = useId();
+  const tr = (text: LangText) => pickLang(language, text);
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 space-y-3">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-slate-100">{deptName}</span>
+    <section className="qg-card space-y-3" aria-label={deptName}>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-[15px] font-semibold text-[var(--th-text-heading)]">{deptName}</h3>
         <button
+          type="button"
           onClick={() => {
             onActivate();
             onReset();
           }}
-          className="text-xs text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded border border-slate-600 hover:border-slate-400 transition-colors"
+          className="qg-btn qg-btn--sm qg-btn--ghost"
         >
-          {labels.reset[language]}
+          <RotateCcw size={14} aria-hidden />
+          {tr(labels.reset)}
         </button>
       </div>
 
-      {/* Preview swatch */}
-      <div className="flex gap-1 h-6 rounded overflow-hidden border border-slate-600">
+      <div className="flex h-6 gap-1 overflow-hidden rounded border border-[var(--th-border)]" aria-hidden>
         <div className="flex-1" style={{ backgroundColor: numToHex(theme.floor1) }} />
         <div className="flex-1" style={{ backgroundColor: numToHex(theme.floor2) }} />
         <div className="flex-1" style={{ backgroundColor: numToHex(theme.wall) }} />
         <div className="w-6 flex-none" style={{ backgroundColor: numToHex(theme.accent) }} />
       </div>
 
-      {/* Preset palette */}
-      <div className="space-y-1">
-        <span className="text-xs text-slate-400">{labels.presets[language]}</span>
-        <div className="flex gap-1.5 flex-wrap">
-          {presets.map((preset) => (
-            <button
-              key={preset.tone}
-              onClick={() => {
-                onActivate();
-                onToneChange(preset.tone);
-              }}
-              title={`Tone ${preset.tone}`}
-              className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none"
-              style={{
-                backgroundColor: numToHex(preset.swatch),
-                borderColor: Math.abs(state.tone - preset.tone) <= 2 ? "#fff" : "transparent",
-              }}
-            />
-          ))}
+      <div className="qg-field">
+        <span className="qg-field__label">{tr(labels.presets)}</span>
+        <div className="flex flex-wrap gap-2">
+          {presets.map((preset) => {
+            const selected = Math.abs(state.tone - preset.tone) <= 2;
+            return (
+              <button
+                key={preset.tone}
+                type="button"
+                onClick={() => {
+                  onActivate();
+                  onToneChange(preset.tone);
+                }}
+                aria-label={`${tr(labels.presetTone)} ${preset.tone}`}
+                aria-pressed={selected}
+                className="h-7 w-7 rounded-full border-2 transition-transform hover:scale-110"
+                style={{
+                  backgroundColor: numToHex(preset.swatch),
+                  borderColor: selected ? "var(--th-text-heading)" : "transparent",
+                }}
+              />
+            );
+          })}
         </div>
       </div>
 
-      {/* Accent color picker */}
       <div className="flex items-center gap-3">
-        <label className="text-xs text-slate-400 w-20 shrink-0">{labels.accent[language]}</label>
+        <label htmlFor={accentId} className="qg-field__label w-36 shrink-0">
+          {tr(labels.accent)}
+        </label>
         <input
+          id={accentId}
           type="color"
           value={numToHex(state.accent)}
           onChange={(e) => {
@@ -201,20 +228,22 @@ function DeptCard({
             onActivate();
             onAccentChange(hexToNum((e.target as HTMLInputElement).value));
           }}
-          className="w-8 h-8 rounded cursor-pointer border border-slate-600 bg-transparent p-0"
+          className="h-9 w-9 cursor-pointer rounded border border-[var(--th-border-strong)] bg-transparent p-0"
         />
-        <span className="text-xs text-slate-500 font-mono">{numToHex(state.accent)}</span>
+        <span className="qg-text-muted font-mono text-[13px]">{numToHex(state.accent)}</span>
       </div>
 
-      {/* Tone slider */}
-      <div className="space-y-1">
+      <div className="qg-field">
         <div className="flex items-center justify-between">
-          <label className="text-xs text-slate-400">{labels.tone[language]}</label>
-          <span className="text-xs text-slate-500">{state.tone}</span>
+          <label htmlFor={toneId} className="qg-field__label">
+            {tr(labels.tone)}
+          </label>
+          <span className="qg-text-muted text-[13px]">{state.tone}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Light</span>
+          <span className="qg-text-muted text-[13px]">{tr(labels.light)}</span>
           <input
+            id={toneId}
             type="range"
             min={0}
             max={100}
@@ -227,12 +256,12 @@ function DeptCard({
               onActivate();
               onToneChange(Number((e.target as HTMLInputElement).value));
             }}
-            className="flex-1 accent-slate-400 h-1.5 cursor-pointer"
+            className="h-1.5 flex-1 cursor-pointer"
           />
-          <span className="text-xs text-slate-500">Dark</span>
+          <span className="qg-text-muted text-[13px]">{tr(labels.dark)}</span>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -312,66 +341,37 @@ export default function OfficeRoomManager({
   useEffect(() => () => onActiveDeptChange?.(null), [onActiveDeptChange]);
 
   return (
-    /* Overlay */
-    <div
-      className="fixed inset-0 z-50 flex items-stretch justify-end"
-      style={{ backdropFilter: "blur(2px)", WebkitBackdropFilter: "blur(2px)", backgroundColor: "rgba(0,0,0,0.5)" }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Dialog
+      open
+      placement="side"
+      onClose={onClose}
+      title={pickLang(language, labels.title)}
+      closeLabel={pickLang(language, labels.close)}
+      footer={
+        <button type="button" onClick={resetAll} className="qg-btn">
+          <RotateCcw size={16} aria-hidden />
+          {pickLang(language, labels.resetAll)}
+        </button>
+      }
     >
-      {/* Panel */}
-      <div className="w-full md:max-w-md bg-slate-900 flex flex-col h-full shadow-2xl border-l border-slate-700">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700 shrink-0">
-          <h2 className="text-base font-semibold text-slate-100">{labels.title[language]}</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-100 transition-colors w-8 h-8 flex items-center justify-center rounded hover:bg-slate-700"
-            aria-label={labels.close[language]}
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Scrollable dept list */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-          {departments.map((dept) => {
-            const state = deptStates[dept.id] ?? { accent: 0x5a9fd4, tone: DEFAULT_TONE };
-            return (
-              <DeptCard
-                key={dept.id}
-                deptId={dept.id}
-                deptName={dept.name}
-                state={state}
-                language={language}
-                onActivate={() => activateDept(dept.id)}
-                onAccentChange={(accent) => updateDept(dept.id, { accent })}
-                onToneChange={(tone) => updateDept(dept.id, { tone })}
-                onReset={() => resetDept(dept.id)}
-              />
-            );
-          })}
-        </div>
-
-        {/* Footer */}
-        <div className="px-4 py-4 border-t border-slate-700 shrink-0 flex gap-2">
-          <button
-            onClick={resetAll}
-            className="flex-1 py-2 rounded-md text-sm font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 transition-colors"
-          >
-            {labels.resetAll[language]}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2 rounded-md text-sm font-medium bg-slate-600 text-slate-100 hover:bg-slate-500 transition-colors"
-          >
-            {labels.close[language]}
-          </button>
-        </div>
+      <div className="space-y-3">
+        {departments.map((dept) => {
+          const state = deptStates[dept.id] ?? { accent: 0x5a9fd4, tone: DEFAULT_TONE };
+          return (
+            <DeptCard
+              key={dept.id}
+              deptId={dept.id}
+              deptName={dept.name}
+              state={state}
+              language={language}
+              onActivate={() => activateDept(dept.id)}
+              onAccentChange={(accent) => updateDept(dept.id, { accent })}
+              onToneChange={(tone) => updateDept(dept.id, { tone })}
+              onReset={() => resetDept(dept.id)}
+            />
+          );
+        })}
       </div>
-    </div>
+    </Dialog>
   );
 }

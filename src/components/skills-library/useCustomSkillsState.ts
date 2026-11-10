@@ -50,19 +50,30 @@ export function useCustomSkillsState({
     setShowCustomModal(false);
   }, [customSkillSubmitting]);
 
-  const handleCustomFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setCustomSkillFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setCustomSkillContent(reader.result as string);
-    };
-    reader.onerror = () => {
-      setCustomSkillError("파일 읽기 실패");
-    };
-    reader.readAsText(file);
-  }, []);
+  const handleCustomFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      setCustomSkillFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCustomSkillContent(reader.result as string);
+      };
+      reader.onerror = () => {
+        setCustomSkillError(
+          t({
+            ko: "파일 읽기 실패",
+            en: "Could not read the file",
+            ja: "ファイルを読み込めません",
+            zh: "无法读取文件",
+            fr: "Impossible de lire le fichier",
+          }),
+        );
+      };
+      reader.readAsText(file);
+    },
+    [t],
+  );
 
   const toggleCustomProvider = useCallback((provider: SkillLearnProvider) => {
     setCustomSkillProviders((prev) =>
@@ -79,6 +90,7 @@ export function useCustomSkillsState({
           en: "Skill name must be alphanumeric, dash or underscore (max 80 chars)",
           ja: "スキル名は英数字、ハイフン、アンダースコアのみ使用可能です（最大80文字）",
           zh: "技能名称仅限字母数字、短划线或下划线（最多80个字符）",
+          fr: "Le nom ne peut contenir que des lettres sans accent, des chiffres, des tirets et des tirets bas (80 caractères max.)",
         }),
       );
       return;

@@ -1,7 +1,9 @@
+import { Activity, Monitor, Moon, RefreshCw, Settings } from "lucide-react";
+import Dialog from "./ui/Dialog";
+import type { LangText, UiLanguage } from "../i18n";
 import { useEffect, useState, useCallback } from "react";
 import type { Agent } from "../types";
 import type { ActiveAgentInfo, CliProcessInfo } from "../api";
-import type { UiLanguage } from "../i18n";
 import { pickLang, localeName } from "../i18n";
 import { getActiveAgents, getCliProcesses, killCliProcess, stopTask } from "../api";
 import AgentAvatar from "./AgentAvatar";
@@ -40,7 +42,7 @@ function displayCliProvider(provider: CliProcessInfo["provider"]): string {
 }
 
 export default function AgentStatusPanel({ agents, uiLanguage, onClose }: AgentStatusPanelProps) {
-  const t = (text: { ko: string; en: string; ja?: string; zh?: string }) => pickLang(uiLanguage, text);
+  const t = (text: LangText) => pickLang(uiLanguage, text);
   const [activeAgents, setActiveAgents] = useState<ActiveAgentInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [killing, setKilling] = useState<Set<string>>(new Set());
@@ -148,321 +150,331 @@ export default function AgentStatusPanel({ agents, uiLanguage, onClose }: AgentS
       ? cliProcesses.filter((proc) => proc.provider === "node" || proc.provider === "python")
       : cliProcesses.filter((proc) => proc.provider !== "node" && proc.provider !== "python");
 
+  const refreshLabel = t({ ko: "새로고침", en: "Refresh", ja: "更新", zh: "刷新", fr: "Actualiser" });
+  const idlePrefix = t({ ko: "유휴", en: "Idle", ja: "アイドル", zh: "空闲", fr: "Inactif" });
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className={`relative mx-4 w-full rounded-2xl border border-blue-500/30 bg-slate-900 shadow-2xl shadow-blue-500/10 ${
-          inspectorMode ? "max-w-3xl" : "max-w-lg"
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-700/50 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">&#x1F6E0;</span>
-            <h2 className="text-lg font-bold text-white">
-              {t({ ko: "활성 에이전트", en: "Active Agents", ja: "アクティブエージェント", zh: "活跃代理" })}
-            </h2>
-            <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-400">
-              {activeAgents.length}
+    <Dialog
+      open
+      size="lg"
+      onClose={onClose}
+      closeLabel={t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+      title={t({
+        ko: "활성 에이전트",
+        en: "Active Agents",
+        ja: "アクティブエージェント",
+        zh: "活跃代理",
+        fr: "État des agents",
+      })}
+      titleAdornment={<span className="qg-count">{activeAgents.length}</span>}
+      headerActions={
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const nextMode = inspectorMode === "script" ? null : "script";
+              setInspectorMode(nextMode);
+              if (nextMode) refreshCli();
+            }}
+            aria-pressed={inspectorMode === "script"}
+            className={`qg-btn qg-btn--sm${inspectorMode === "script" ? " qg-btn--primary" : ""}`}
+            title={t({
+              ko: "Script 조회",
+              en: "Script Inspector",
+              ja: "Script確認",
+              zh: "Script查看",
+              fr: "Voir les scripts",
+            })}
+          >
+            <Settings size={16} aria-hidden />
+            <span>{t({ ko: "Script조회", en: "Script", ja: "Script", zh: "Script", fr: "Scripts" })}</span>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const nextMode = inspectorMode === "idle_cli" ? null : "idle_cli";
+              setInspectorMode(nextMode);
+              if (nextMode) refreshCli();
+            }}
+            aria-pressed={inspectorMode === "idle_cli"}
+            className={`qg-btn qg-btn--sm${inspectorMode === "idle_cli" ? " qg-btn--primary" : ""}`}
+            title={t({
+              ko: "유휴 CLI 조회",
+              en: "Idle CLI Inspector",
+              ja: "アイドルCLI確認",
+              zh: "闲置CLI查看",
+              fr: "Voir les CLI inactives",
+            })}
+          >
+            <Monitor size={16} aria-hidden />
+            <span>
+              {t({ ko: "유휴CLI조회", en: "Idle CLI", ja: "アイドルCLI", zh: "闲置CLI", fr: "CLI inactives" })}
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const nextMode = inspectorMode === "script" ? null : "script";
-                setInspectorMode(nextMode);
-                if (nextMode) refreshCli();
-              }}
-              className={`flex h-8 items-center gap-1 rounded-lg border px-2 text-[11px] font-medium whitespace-nowrap transition ${
-                inspectorMode === "script"
-                  ? "border-violet-500/40 bg-violet-500/20 text-violet-300"
-                  : "border-slate-700 text-slate-400 hover:border-slate-500 hover:bg-slate-800 hover:text-white"
-              }`}
-              title={t({ ko: "Script 조회", en: "Script Inspector", ja: "Script確認", zh: "Script查看" })}
-            >
-              <span>{t({ ko: "Script조회", en: "Script", ja: "Script", zh: "Script" })}</span>
-              <span aria-hidden>&#x2699;</span>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const nextMode = inspectorMode === "idle_cli" ? null : "idle_cli";
-                setInspectorMode(nextMode);
-                if (nextMode) refreshCli();
-              }}
-              className={`flex h-8 items-center gap-1 rounded-lg border px-2 text-[11px] font-medium whitespace-nowrap transition ${
-                inspectorMode === "idle_cli"
-                  ? "border-blue-500/40 bg-blue-500/20 text-blue-300"
-                  : "border-slate-700 text-slate-400 hover:border-slate-500 hover:bg-slate-800 hover:text-white"
-              }`}
-              title={t({ ko: "유휴 CLI 조회", en: "Idle CLI Inspector", ja: "アイドルCLI確認", zh: "闲置CLI查看" })}
-            >
-              <span>{t({ ko: "유휴CLI조회", en: "Idle CLI", ja: "アイドルCLI", zh: "闲置CLI" })}</span>
-              <span aria-hidden>&#x1F5A5;</span>
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                refresh();
-              }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
-              title={t({ ko: "새로고침", en: "Refresh", ja: "リフレッシュ", zh: "刷新" })}
-            >
-              &#x21BB;
-            </button>
-            <button
-              onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-white"
-            >
-              &#x2715;
-            </button>
-          </div>
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              refresh();
+            }}
+            className="qg-icon-btn"
+            aria-label={refreshLabel}
+            title={refreshLabel}
+          >
+            <RefreshCw size={16} aria-hidden />
+          </button>
+        </>
+      }
+      footer={
+        <div className="flex w-full items-center justify-between gap-3">
+          <span className="qg-text-muted text-[13px]">
+            {t({
+              ko: "5초마다 자동 갱신",
+              en: "Auto-refresh every 5s",
+              ja: "5秒ごとに自動更新",
+              zh: "每5秒自动刷新",
+              fr: "Actualisation automatique toutes les 5 s",
+            })}
+          </span>
+          <button type="button" onClick={onClose} className="qg-btn">
+            {t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭", fr: "Fermer" })}
+          </button>
         </div>
-
-        {/* Content */}
-        <div className="max-h-[70vh] overflow-y-auto">
-          {inspectorMode && (
-            <div className="border-b border-slate-700/50 bg-slate-950/40 px-4 py-3">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">
-                  {inspectorMode === "script"
-                    ? t({
-                        ko: "실행 중인 Script",
-                        en: "Running Script Processes",
-                        ja: "実行中Script",
-                        zh: "运行中的Script",
-                      })
-                    : t({
-                        ko: "실행 중인 유휴CLI",
-                        en: "Running Idle CLI Processes",
-                        ja: "実行中アイドルCLI",
-                        zh: "运行中的闲置CLI",
-                      })}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
-                    {visibleCliProcesses.length}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      refreshCli();
-                    }}
-                    className="rounded border border-slate-700 px-2 py-0.5 text-[11px] text-slate-300 transition hover:border-slate-500 hover:text-white"
-                  >
-                    {t({ ko: "새로고침", en: "Refresh", ja: "更新", zh: "刷新" })}
-                  </button>
-                </div>
+      }
+    >
+      <div>
+        {inspectorMode && (
+          <div className="qg-card mb-4">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="qg-field__label">
+                {inspectorMode === "script"
+                  ? t({
+                      ko: "실행 중인 Script",
+                      en: "Running Script Processes",
+                      ja: "実行中Script",
+                      zh: "运行中的Script",
+                      fr: "Scripts en cours",
+                    })
+                  : t({
+                      ko: "실행 중인 유휴CLI",
+                      en: "Running Idle CLI Processes",
+                      ja: "実行中アイドルCLI",
+                      zh: "运行中的闲置CLI",
+                      fr: "CLI inactives en cours",
+                    })}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="qg-badge">{visibleCliProcesses.length}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    refreshCli();
+                  }}
+                  className="qg-btn qg-btn--sm qg-btn--ghost"
+                >
+                  <RefreshCw size={16} aria-hidden />
+                  {refreshLabel}
+                </button>
               </div>
-              {cliLoading && visibleCliProcesses.length === 0 ? (
-                <div className="py-2 text-xs text-slate-500">
-                  {inspectorMode === "script"
-                    ? t({
-                        ko: "Script 목록 불러오는 중...",
-                        en: "Loading script list...",
-                        ja: "Script一覧を読み込み中...",
-                        zh: "正在加载Script列表...",
-                      })
-                    : t({
-                        ko: "유휴 CLI 목록 불러오는 중...",
-                        en: "Loading idle CLI list...",
-                        ja: "アイドルCLI一覧を読み込み中...",
-                        zh: "正在加载闲置CLI列表...",
-                      })}
-                </div>
-              ) : visibleCliProcesses.length === 0 ? (
-                <div className="py-2 text-xs text-slate-500">
-                  {inspectorMode === "script"
-                    ? t({
-                        ko: "실행 중인 Script가 없습니다",
-                        en: "No running script process",
-                        ja: "実行中Scriptなし",
-                        zh: "没有运行中的Script进程",
-                      })
-                    : t({
-                        ko: "실행 중인 유휴 CLI가 없습니다",
-                        en: "No running idle CLI",
-                        ja: "実行中アイドルCLIなし",
-                        zh: "没有运行中的闲置CLI",
-                      })}
-                </div>
-              ) : (
-                <div className="max-h-56 divide-y divide-slate-800 overflow-y-auto rounded-lg border border-slate-800/80 bg-slate-900/50">
-                  {visibleCliProcesses.map((proc) => {
-                    const isKilling = killingCliPids.has(proc.pid);
-                    const agentName =
-                      uiLanguage === "ko" ? proc.agent_name_ko || proc.agent_name || "-" : proc.agent_name || "-";
-                    const commandText = proc.command || proc.executable;
-                    const displayTitle = proc.task_title && proc.task_title !== commandText ? proc.task_title : null;
-                    return (
-                      <div key={proc.pid} className="px-3 py-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 text-[11px]">
-                              <span className="rounded bg-slate-700/80 px-1.5 py-0.5 text-slate-200">
-                                {displayCliProvider(proc.provider)}
+            </div>
+            {cliLoading && visibleCliProcesses.length === 0 ? (
+              <div className="qg-text-muted py-2 text-[13px]">
+                {inspectorMode === "script"
+                  ? t({
+                      ko: "Script 목록 불러오는 중...",
+                      en: "Loading script list...",
+                      ja: "Script一覧を読み込み中...",
+                      zh: "正在加载Script列表...",
+                      fr: "Chargement des scripts…",
+                    })
+                  : t({
+                      ko: "유휴 CLI 목록 불러오는 중...",
+                      en: "Loading idle CLI list...",
+                      ja: "アイドルCLI一覧を読み込み中...",
+                      zh: "正在加载闲置CLI列表...",
+                      fr: "Chargement des CLI inactives…",
+                    })}
+              </div>
+            ) : visibleCliProcesses.length === 0 ? (
+              <div className="qg-text-muted py-2 text-[13px]">
+                {inspectorMode === "script"
+                  ? t({
+                      ko: "실행 중인 Script가 없습니다",
+                      en: "No running script process",
+                      ja: "実行中Scriptなし",
+                      zh: "没有运行中的Script进程",
+                      fr: "Aucun script en cours",
+                    })
+                  : t({
+                      ko: "실행 중인 유휴 CLI가 없습니다",
+                      en: "No running idle CLI",
+                      ja: "実行中アイドルCLIなし",
+                      zh: "没有运行中的闲置CLI",
+                      fr: "Aucune CLI inactive en cours",
+                    })}
+              </div>
+            ) : (
+              <div className="max-h-56 divide-y divide-[var(--th-border)] overflow-y-auto">
+                {visibleCliProcesses.map((proc) => {
+                  const isKilling = killingCliPids.has(proc.pid);
+                  const agentName =
+                    uiLanguage === "ko" ? proc.agent_name_ko || proc.agent_name || "-" : proc.agent_name || "-";
+                  const commandText = proc.command || proc.executable;
+                  const displayTitle = proc.task_title && proc.task_title !== commandText ? proc.task_title : null;
+                  return (
+                    <div key={proc.pid} className="py-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="qg-badge">{displayCliProvider(proc.provider)}</span>
+                            <span className="qg-text-muted">PID {proc.pid}</span>
+                            {proc.is_idle ? (
+                              <span className="qg-badge">{idlePrefix}</span>
+                            ) : (
+                              <span className="qg-badge qg-badge--accent">
+                                {t({ ko: "활성", en: "Active", ja: "稼働中", zh: "活跃", fr: "Actif" })}
                               </span>
-                              <span className="text-slate-400">PID {proc.pid}</span>
-                              {proc.is_idle ? (
-                                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-300">
-                                  {t({ ko: "유휴", en: "Idle", ja: "アイドル", zh: "空闲" })}
-                                </span>
-                              ) : (
-                                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-emerald-300">
-                                  {t({ ko: "활성", en: "Active", ja: "稼働中", zh: "活跃" })}
-                                </span>
-                              )}
-                            </div>
-                            {displayTitle ? (
-                              <p className="mt-1 text-[11px] text-slate-300 break-all">{displayTitle}</p>
-                            ) : null}
-                            <p
-                              className="mt-1 overflow-x-auto font-mono text-[10px] leading-relaxed text-slate-400 whitespace-pre-wrap break-all"
-                              title={commandText}
-                            >
-                              {commandText}
-                            </p>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-slate-500">
-                              <span>
-                                {t({ ko: "담당", en: "Agent", ja: "担当", zh: "代理" })}: {agentName}
-                              </span>
-                              <span>
-                                {t({ ko: "작업", en: "Task", ja: "タスク", zh: "任务" })}: {proc.task_status || "-"}
-                              </span>
-                              <span>Idle: {fmtElapsed(proc.idle_seconds)}</span>
-                            </div>
+                            )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleKillCliProcess(proc.pid)}
-                            disabled={isKilling}
-                            className={`flex-shrink-0 rounded border px-2 py-1 text-[11px] font-medium transition ${
-                              isKilling
-                                ? "cursor-not-allowed border-slate-700 bg-slate-800 text-slate-500"
-                                : "border-red-500/40 bg-red-600/15 text-red-300 hover:bg-red-600/25"
-                            }`}
+                          {displayTitle ? (
+                            <p className="qg-text-secondary mt-1 text-[13px] break-all">{displayTitle}</p>
+                          ) : null}
+                          <p
+                            className="qg-text-muted mt-1 overflow-x-auto font-mono text-xs leading-relaxed whitespace-pre-wrap break-all"
+                            title={commandText}
                           >
-                            {isKilling
-                              ? t({ ko: "중지 중...", en: "Killing...", ja: "停止中...", zh: "停止中..." })
-                              : t({ ko: "Kill", en: "Kill", ja: "Kill", zh: "Kill" })}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-sm text-slate-500">
-                {t({ ko: "불러오는 중...", en: "Loading...", ja: "読み込み中...", zh: "加载中..." })}
-              </div>
-            </div>
-          ) : activeAgents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <span className="mb-2 text-3xl opacity-40">&#x1F634;</span>
-              <p className="text-sm text-slate-500">
-                {t({
-                  ko: "현재 작업 중인 에이전트가 없습니다",
-                  en: "No agents currently working",
-                  ja: "現在作業中のエージェントなし",
-                  zh: "当前没有工作中的代理",
-                })}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-700/30">
-              {activeAgents.map((ag) => {
-                const fullAgent = agents.find((a) => a.id === ag.id);
-                const agentName = localeName(uiLanguage, ag);
-                const deptName = localeName(uiLanguage, { name: ag.dept_name, name_ko: ag.dept_name_ko });
-                const isKilling = ag.task_id ? killing.has(ag.task_id) : false;
-                const idleText = ag.idle_seconds !== null ? fmtElapsed(ag.idle_seconds) : "-";
-                const isIdle = ag.idle_seconds !== null && ag.idle_seconds > 300; // 5분 이상 idle
-
-                return (
-                  <div key={ag.id} className="px-6 py-3">
-                    <div className="flex items-center gap-3">
-                      <AgentAvatar agent={fullAgent} agents={agents} size={40} rounded="xl" />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white">{agentName}</span>
-                          <span className="rounded bg-slate-700/80 px-1.5 py-0.5 text-[10px] text-slate-400">
-                            {deptName}
-                          </span>
-                          <span className="rounded bg-slate-700/60 px-1.5 py-0.5 text-[10px] text-slate-500">
-                            {ag.cli_provider}
-                          </span>
-                        </div>
-                        {ag.task_title && <p className="mt-0.5 truncate text-xs text-slate-400">{ag.task_title}</p>}
-                        <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
-                          {ag.has_active_process ? (
-                            <span className="flex items-center gap-1">
-                              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
-                              {t({ ko: "프로세스 활성", en: "Process active", ja: "プロセス実行中", zh: "进程活跃" })}
+                            {commandText}
+                          </p>
+                          <div className="qg-text-muted mt-1 flex flex-wrap items-center gap-2 text-xs">
+                            <span>
+                              {t({ ko: "담당", en: "Agent", ja: "担当", zh: "代理", fr: "Agent" })}: {agentName}
                             </span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
-                              {t({ ko: "프로세스 없음", en: "No process", ja: "プロセスなし", zh: "无进程" })}
+                            <span>
+                              {t({ ko: "작업", en: "Task", ja: "タスク", zh: "任务", fr: "Tâche" })}:{" "}
+                              {proc.task_status || "-"}
                             </span>
-                          )}
-                          <span>
-                            {t({ ko: "마지막 응답", en: "Last activity", ja: "最終応答", zh: "最后响应" })}:{" "}
-                            {fmtTime(ag.last_activity_at)}
-                          </span>
-                          <span className={isIdle ? "text-amber-400" : ""}>Idle: {idleText}</span>
+                            <span>
+                              {idlePrefix}: {fmtElapsed(proc.idle_seconds)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      {ag.task_id && (
                         <button
-                          onClick={() => handleKill(ag.task_id!)}
+                          type="button"
+                          onClick={() => handleKillCliProcess(proc.pid)}
                           disabled={isKilling}
-                          className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                            isKilling
-                              ? "bg-slate-700 text-slate-500 cursor-not-allowed"
-                              : "bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30"
-                          }`}
+                          className="qg-btn qg-btn--sm qg-btn--danger flex-shrink-0"
                         >
                           {isKilling
-                            ? t({ ko: "중지 중...", en: "Stopping...", ja: "停止中...", zh: "停止中..." })
-                            : t({ ko: "강제 중지", en: "Kill", ja: "強制停止", zh: "强制停止" })}
+                            ? t({ ko: "중지 중...", en: "Killing...", ja: "停止中...", zh: "停止中...", fr: "Arrêt…" })
+                            : t({ ko: "Kill", en: "Kill", ja: "Kill", zh: "Kill", fr: "Arrêter" })}
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-slate-700/50 px-6 py-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500">
-              {t({
-                ko: "5초마다 자동 갱신",
-                en: "Auto-refresh every 5s",
-                ja: "5秒ごとに自動更新",
-                zh: "每5秒自动刷新",
-              })}
-            </span>
-            <button
-              onClick={onClose}
-              className="rounded-lg bg-slate-700 px-4 py-1.5 text-sm font-medium text-slate-300 transition hover:bg-slate-600"
-            >
-              {t({ ko: "닫기", en: "Close", ja: "閉じる", zh: "关闭" })}
-            </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {loading ? (
+          <div className="qg-empty">
+            {t({ ko: "불러오는 중...", en: "Loading...", ja: "読み込み中...", zh: "加载中...", fr: "Chargement…" })}
+          </div>
+        ) : activeAgents.length === 0 ? (
+          <div className="qg-empty flex flex-col items-center gap-2">
+            <Moon size={16} aria-hidden />
+            <p>
+              {t({
+                ko: "현재 작업 중인 에이전트가 없습니다",
+                en: "No agents currently working",
+                ja: "現在作業中のエージェントなし",
+                zh: "当前没有工作中的代理",
+                fr: "Aucun agent au travail pour le moment",
+              })}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--th-border)]">
+            {activeAgents.map((ag) => {
+              const fullAgent = agents.find((a) => a.id === ag.id);
+              const agentName = localeName(uiLanguage, ag);
+              const deptName = localeName(uiLanguage, { name: ag.dept_name, name_ko: ag.dept_name_ko });
+              const isKilling = ag.task_id ? killing.has(ag.task_id) : false;
+              const idleText = ag.idle_seconds !== null ? fmtElapsed(ag.idle_seconds) : "-";
+              const isIdle = ag.idle_seconds !== null && ag.idle_seconds > 300; // 5분 이상 idle
+
+              return (
+                <div key={ag.id} className="py-3">
+                  <div className="flex items-center gap-3">
+                    <AgentAvatar agent={fullAgent} agents={agents} size={40} rounded="xl" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium">{agentName}</span>
+                        <span className="qg-badge">{deptName}</span>
+                        <span className="qg-badge">{ag.cli_provider}</span>
+                      </div>
+                      {ag.task_title && <p className="qg-text-secondary mt-1 truncate text-[13px]">{ag.task_title}</p>}
+                      <div className="qg-text-muted mt-1 flex flex-wrap items-center gap-3 text-xs">
+                        {ag.has_active_process ? (
+                          <span className="qg-badge qg-badge--accent">
+                            <Activity size={16} aria-hidden />
+                            {t({
+                              ko: "프로세스 활성",
+                              en: "Process active",
+                              ja: "プロセス実行中",
+                              zh: "进程活跃",
+                              fr: "Processus actif",
+                            })}
+                          </span>
+                        ) : (
+                          <span className="qg-badge">
+                            {t({
+                              ko: "프로세스 없음",
+                              en: "No process",
+                              ja: "プロセスなし",
+                              zh: "无进程",
+                              fr: "Aucun processus",
+                            })}
+                          </span>
+                        )}
+                        <span>
+                          {t({
+                            ko: "마지막 응답",
+                            en: "Last activity",
+                            ja: "最終応答",
+                            zh: "最后响应",
+                            fr: "Dernière activité",
+                          })}
+                          : {fmtTime(ag.last_activity_at)}
+                        </span>
+                        <span className={isIdle ? "qg-text-secondary font-semibold" : ""}>
+                          {idlePrefix}: {idleText}
+                        </span>
+                      </div>
+                    </div>
+                    {ag.task_id && (
+                      <button
+                        type="button"
+                        onClick={() => handleKill(ag.task_id!)}
+                        disabled={isKilling}
+                        className="qg-btn qg-btn--sm qg-btn--danger flex-shrink-0"
+                      >
+                        {isKilling
+                          ? t({ ko: "중지 중...", en: "Stopping...", ja: "停止中...", zh: "停止中...", fr: "Arrêt…" })
+                          : t({ ko: "강제 중지", en: "Kill", ja: "強制停止", zh: "强制停止", fr: "Forcer l’arrêt" })}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </Dialog>
   );
 }

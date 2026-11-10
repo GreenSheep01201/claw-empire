@@ -1,10 +1,9 @@
+import { Plus, Search } from "lucide-react";
 import type { Project } from "../../types";
 import type { ProjectI18nTranslate } from "./types";
 
 interface ProjectSidebarProps {
-  headerTitle: string;
   t: ProjectI18nTranslate;
-  onClose: () => void;
   search: string;
   setSearch: (value: string) => void;
   loadProjects: (targetPage: number, keyword: string) => Promise<void>;
@@ -19,9 +18,7 @@ interface ProjectSidebarProps {
 }
 
 export default function ProjectSidebar({
-  headerTitle,
   t,
-  onClose,
   search,
   setSearch,
   loadProjects,
@@ -35,19 +32,8 @@ export default function ProjectSidebar({
   totalPages,
 }: ProjectSidebarProps) {
   return (
-    <aside className="flex w-full flex-col border-r border-slate-700 bg-slate-900/70 md:w-[330px]">
-      <div className="flex items-center justify-between border-b border-slate-700 px-4 py-3">
-        <h2 className="text-sm font-semibold text-white">{headerTitle}</h2>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-md px-2 py-1 text-xs text-slate-400 hover:bg-slate-800 hover:text-white"
-        >
-          ✕
-        </button>
-      </div>
-
-      <div className="border-b border-slate-700 px-4 py-3">
+    <aside className="flex w-full flex-col border-r border-[var(--th-border)] md:w-[330px]">
+      <div className="border-b border-[var(--th-border)] px-4 py-3">
         <input
           type="text"
           value={search}
@@ -62,61 +48,79 @@ export default function ProjectSidebar({
             en: "Search projects",
             ja: "プロジェクト検索",
             zh: "搜索项目",
+            fr: "Rechercher un projet",
           })}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+          aria-label={t({
+            ko: "프로젝트 검색",
+            en: "Search projects",
+            ja: "プロジェクト検索",
+            zh: "搜索项目",
+            fr: "Rechercher un projet",
+          })}
+          className="qg-input"
         />
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => {
               void loadProjects(1, search);
             }}
-            className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-600"
+            className="qg-btn qg-btn--sm"
           >
-            {t({ ko: "조회", en: "Search", ja: "検索", zh: "查询" })}
+            <Search size={16} aria-hidden />
+            {t({ ko: "조회", en: "Search", ja: "検索", zh: "查询", fr: "Rechercher" })}
           </button>
-          <button
-            type="button"
-            onClick={startCreate}
-            className="rounded-md bg-blue-700 px-2.5 py-1 text-xs text-white hover:bg-blue-600"
-          >
-            {t({ ko: "신규", en: "New", ja: "新規", zh: "新建" })}
+          <button type="button" onClick={startCreate} className="qg-btn qg-btn--sm qg-btn--primary">
+            <Plus size={16} aria-hidden />
+            {t({ ko: "신규", en: "New", ja: "新規", zh: "新建", fr: "Nouveau" })}
           </button>
-          <button
-            type="button"
-            onClick={onOpenGitHubImport}
-            className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 hover:bg-slate-600"
-          >
-            {t({ ko: "GitHub 가져오기", en: "GitHub Import", ja: "GitHub インポート", zh: "GitHub 导入" })}
+          <button type="button" onClick={onOpenGitHubImport} className="qg-btn qg-btn--sm qg-btn--ghost">
+            {t({
+              ko: "GitHub 가져오기",
+              en: "GitHub Import",
+              ja: "GitHub インポート",
+              zh: "GitHub 导入",
+              fr: "Importer depuis GitHub",
+            })}
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         {loadingList ? (
-          <div className="px-4 py-6 text-xs text-slate-400">
-            {t({ ko: "불러오는 중...", en: "Loading...", ja: "読み込み中...", zh: "加载中..." })}
+          <div className="qg-empty">
+            {t({ ko: "불러오는 중...", en: "Loading...", ja: "読み込み中...", zh: "加载中...", fr: "Chargement…" })}
           </div>
         ) : projects.length === 0 ? (
-          <div className="px-4 py-6 text-xs text-slate-500">
-            {t({ ko: "등록된 프로젝트가 없습니다", en: "No projects", ja: "プロジェクトなし", zh: "暂无项目" })}
+          <div className="qg-empty">
+            {t({
+              ko: "등록된 프로젝트가 없습니다",
+              en: "No projects",
+              ja: "プロジェクトなし",
+              zh: "暂无项目",
+              fr: "Aucun projet",
+            })}
           </div>
         ) : (
-          <div className="divide-y divide-slate-800">
+          <div className="divide-y divide-[var(--th-border)]">
             {projects.map((project) => (
               <button
                 key={project.id}
                 type="button"
                 onClick={() => onSelectProject(project.id)}
+                aria-current={selectedProjectId === project.id ? "true" : undefined}
                 className={`w-full px-4 py-3 text-left transition ${
-                  selectedProjectId === project.id ? "bg-blue-900/30" : "hover:bg-slate-800/70"
+                  selectedProjectId === project.id
+                    ? "bg-[var(--qg-accent-soft)]"
+                    : "hover:bg-[var(--th-bg-surface-hover)]"
                 }`}
               >
-                <p className="flex items-center gap-1.5 truncate text-sm font-medium text-white">
+                <p className="flex items-center gap-1.5 truncate text-sm font-medium">
                   {project.name}
                   {project.github_repo && (
                     <svg
-                      className="inline-block h-3.5 w-3.5 shrink-0 text-slate-400"
+                      className="qg-text-muted inline-block h-3.5 w-3.5 shrink-0"
+                      aria-hidden
                       viewBox="0 0 16 16"
                       fill="currentColor"
                     >
@@ -124,33 +128,33 @@ export default function ProjectSidebar({
                     </svg>
                   )}
                 </p>
-                <p className="truncate text-[11px] text-slate-400">{project.project_path}</p>
-                <p className="mt-1 truncate text-[11px] text-slate-500">{project.core_goal}</p>
+                <p className="qg-text-muted truncate text-xs">{project.project_path}</p>
+                <p className="qg-text-secondary mt-1 truncate text-[13px]">{project.core_goal}</p>
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between border-t border-slate-700 px-4 py-2">
+      <div className="flex items-center justify-between border-t border-[var(--th-border)] px-4 py-2">
         <button
           type="button"
           disabled={page <= 1}
           onClick={() => void loadProjects(page - 1, search)}
-          className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 disabled:opacity-40"
+          className="qg-btn qg-btn--sm qg-btn--ghost"
         >
-          {t({ ko: "이전", en: "Prev", ja: "前へ", zh: "上一页" })}
+          {t({ ko: "이전", en: "Prev", ja: "前へ", zh: "上一页", fr: "Précédent" })}
         </button>
-        <span className="text-xs text-slate-500">
+        <span className="qg-text-muted text-[13px]">
           {page} / {totalPages}
         </span>
         <button
           type="button"
           disabled={page >= totalPages}
           onClick={() => void loadProjects(page + 1, search)}
-          className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 disabled:opacity-40"
+          className="qg-btn qg-btn--sm qg-btn--ghost"
         >
-          {t({ ko: "다음", en: "Next", ja: "次へ", zh: "下一页" })}
+          {t({ ko: "다음", en: "Next", ja: "次へ", zh: "下一页", fr: "Suivant" })}
         </button>
       </div>
     </aside>

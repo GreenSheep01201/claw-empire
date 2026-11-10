@@ -3,7 +3,7 @@ import type { Message } from "../../types";
 import type { DecisionOption } from "../chat/decision-request";
 import { isPromiseLike, type ChatMode } from "./model";
 
-type Tr = (ko: string, en: string, ja?: string, zh?: string) => string;
+type Tr = (ko: string, en: string, ja?: string, zh?: string, fr?: string) => string;
 
 interface UseDecisionReplyHandlersParams {
   tr: Tr;
@@ -37,6 +37,7 @@ export function useDecisionReplyHandlers({
         `[Decision Reply] Please proceed with option ${option.number}. (${option.label})`,
         `[意思決定返信] ${option.number}番で進めてください。(${option.label})`,
         `[决策回复] 请按选项 ${option.number} 推进。（${option.label}）`,
+        `[Réponse à la décision] Merci de poursuivre avec l'option ${option.number}. (${option.label})`,
       );
       const key = `${msg.id}:${option.number}`;
       setDecisionReplyKey(key);
@@ -59,6 +60,7 @@ export function useDecisionReplyHandlers({
           `Please proceed with option ${option.number}. Additional note: `,
           `${option.number}番で進めてください。追記事項: `,
           `请按选项 ${option.number} 推进。补充说明：`,
+          `Merci de poursuivre avec l'option ${option.number}. Précision : `,
         ),
       );
       requestAnimationFrame(() => textareaRef.current?.focus());

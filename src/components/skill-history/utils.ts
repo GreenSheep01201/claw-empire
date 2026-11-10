@@ -32,34 +32,46 @@ export function providerLabel(provider: SkillHistoryProvider): string {
   return "API Provider";
 }
 
-export function statusLabel(status: SkillLearningHistoryEntry["status"]): string {
-  if (status === "queued") return "Queued";
-  if (status === "running") return "Running";
-  if (status === "succeeded") return "Succeeded";
-  return "Failed";
+type Translate = (text: { ko: string; en: string; ja?: string; zh?: string; fr?: string }) => string;
+
+const fallbackTranslate: Translate = (text) => text.en;
+
+export function statusLabel(status: SkillLearningHistoryEntry["status"], t: Translate = fallbackTranslate): string {
+  if (status === "queued") return t({ ko: "대기중", en: "Queued", ja: "待機中", zh: "排队中", fr: "En attente" });
+  if (status === "running") return t({ ko: "학습중", en: "Running", ja: "学習中", zh: "学习中", fr: "En cours" });
+  if (status === "succeeded") return t({ ko: "완료", en: "Succeeded", ja: "完了", zh: "完成", fr: "Apprise" });
+  return t({ ko: "실패", en: "Failed", ja: "失敗", zh: "失败", fr: "Échec" });
 }
 
+/** Badge qg : vert = acquis, pointillé = en attente / en cours, contour = échec. */
 export function statusClass(status: SkillLearningHistoryEntry["status"]): string {
-  if (status === "succeeded") return "border-emerald-400/40 bg-emerald-500/10 text-emerald-300";
-  if (status === "running") return "border-amber-400/40 bg-amber-500/10 text-amber-200";
-  if (status === "queued") return "border-slate-500/40 bg-slate-600/10 text-slate-300";
-  return "border-rose-400/40 bg-rose-500/10 text-rose-300";
+  if (status === "succeeded") return "qg-badge qg-badge--accent";
+  return "qg-badge";
 }
 
-export function relativeTime(timestamp: number | null | undefined): string {
+export function statusIsPending(status: SkillLearningHistoryEntry["status"]): boolean {
+  return status === "running" || status === "queued";
+}
+
+const RELATIVE_UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
+  ["year", 60 * 60 * 24 * 365],
+  ["month", 60 * 60 * 24 * 30],
+  ["day", 60 * 60 * 24],
+  ["hour", 60 * 60],
+  ["minute", 60],
+  ["second", 1],
+];
+
+export function relativeTime(timestamp: number | null | undefined, localeTag = "en"): string {
   if (!timestamp || !Number.isFinite(timestamp)) return "-";
   const diffSec = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
-  if (diffSec < 60) return `${diffSec}s ago`;
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return `${diffHour}h ago`;
-  const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 30) return `${diffDay}d ago`;
-  const diffMonth = Math.floor(diffDay / 30);
-  if (diffMonth < 12) return `${diffMonth}mo ago`;
-  const diffYear = Math.floor(diffMonth / 12);
-  return `${diffYear}y ago`;
+  const formatter = new Intl.RelativeTimeFormat(localeTag, { numeric: "auto", style: "short" });
+  for (const [unit, seconds] of RELATIVE_UNITS) {
+    if (diffSec >= seconds || unit === "second") {
+      return formatter.format(-Math.floor(diffSec / seconds), unit);
+    }
+  }
+  return "-";
 }
 
 export function normalizeSkillLabel(row: { repo: string; skill_id: string; skill_label: string }): string {

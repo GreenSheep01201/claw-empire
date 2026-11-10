@@ -1,3 +1,4 @@
+import type { LangText } from "../../../i18n";
 import { useCallback, useMemo } from "react";
 import { isApiRequestError } from "../../../api";
 import type { Locale, TFunction } from "../constants";
@@ -10,6 +11,7 @@ export function usePathHelperMessages(t: TFunction) {
         en: "This server does not support path helper APIs. Enter the path manually.",
         ja: "現在のサーバーではパス補助 API をサポートしていません。手入力してください。",
         zh: "当前服务器不支持路径辅助 API，请手动输入路径。",
+        fr: "Ce serveur ne propose pas l’aide à la saisie de chemin. Saisissez le chemin à la main.",
       }),
     [t],
   );
@@ -21,6 +23,7 @@ export function usePathHelperMessages(t: TFunction) {
         en: "OS folder picker is unavailable in this environment. Use in-app browser or manual input.",
         ja: "この環境では OS フォルダ選択が利用できません。アプリ内閲覧または手入力を使ってください。",
         zh: "当前环境无法使用系统文件夹选择器，请使用应用内浏览或手动输入。",
+        fr: "Le sélecteur de dossiers du système n’est pas disponible ici. Parcourez les dossiers dans l’application ou saisissez le chemin.",
       }),
     [t],
   );
@@ -33,6 +36,7 @@ export function usePathHelperMessages(t: TFunction) {
           en: "Path is outside allowed project roots.",
           ja: "許可されたプロジェクトパス範囲外です。",
           zh: "路径超出允许的项目根目录范围。",
+          fr: "Ce chemin est hors des dossiers de projet autorisés.",
         });
       }
       return t({
@@ -40,13 +44,14 @@ export function usePathHelperMessages(t: TFunction) {
         en: `Path is outside allowed project roots. Allowed roots: ${allowedRoots.join(", ")}`,
         ja: `許可されたプロジェクトパス範囲外です。許可パス: ${allowedRoots.join(", ")}`,
         zh: `路径超出允许的项目根目录范围。允许路径：${allowedRoots.join(", ")}`,
+        fr: `Ce chemin est hors des dossiers de projet autorisés. Dossiers autorisés : ${allowedRoots.join(", ")}`,
       });
     },
     [t],
   );
 
   const resolvePathHelperErrorMessage = useCallback(
-    (error: unknown, fallback: Record<Locale, string>) => {
+    (error: unknown, fallback: LangText) => {
       if (!isApiRequestError(error)) return t(fallback);
 
       if (error.status === 404) {
@@ -69,6 +74,7 @@ export function usePathHelperMessages(t: TFunction) {
           en: "This path is not a directory. Please enter a directory path.",
           ja: "このパスはフォルダではありません。ディレクトリパスを入力してください。",
           zh: "该路径不是文件夹，请输入目录路径。",
+          fr: "Ce chemin n’est pas un dossier. Saisissez le chemin d’un dossier.",
         });
       }
       if (error.code === "project_path_not_found") {
@@ -77,6 +83,7 @@ export function usePathHelperMessages(t: TFunction) {
           en: "Path not found.",
           ja: "パスが見つかりません。",
           zh: "找不到该路径。",
+          fr: "Chemin introuvable.",
         });
       }
       return t(fallback);

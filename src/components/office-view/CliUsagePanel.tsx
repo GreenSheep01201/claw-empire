@@ -1,11 +1,11 @@
+import type { LangText, UiLanguage } from "../../i18n";
 import type { ReactNode } from "react";
 import type { CliUsageEntry, CliUsageWindow } from "../../api";
-import type { UiLanguage } from "../../i18n";
 import type { CliStatusMap } from "../../types";
 import { formatReset } from "./drawing-furniture-b";
 import { LOCALE_TEXT } from "./themes-locale";
 
-type TFunction = (messages: Record<UiLanguage, string>) => string;
+type TFunction = (messages: LangText) => string;
 
 interface CliUsagePanelProps {
   cliStatus: CliStatusMap | null;

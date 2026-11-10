@@ -26,7 +26,7 @@ export default function EmojiPicker({
   onChange,
   size = "md",
 }: {
-  tr: (ko: string, en: string) => string;
+  tr: (ko: string, en: string, fr?: string) => string;
   value: string;
   onChange: (emoji: string) => void;
   size?: "sm" | "md";
@@ -50,39 +50,37 @@ export default function EmojiPicker({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`${btnSize} rounded-lg border flex items-center justify-center transition-all hover:scale-105 hover:shadow-md`}
+        className={`${btnSize} rounded-md border flex items-center justify-center transition-colors hover:border-[var(--qg-accent)]`}
         style={{ background: "var(--th-input-bg)", borderColor: "var(--th-input-border)" }}
       >
         {value || "❓"}
       </button>
       {open && (
         <div
-          className="absolute z-[60] top-full mt-1 left-0 rounded-xl shadow-2xl p-3 w-72 max-h-[60vh] overflow-y-auto overscroll-contain"
+          className="absolute z-[60] top-full mt-1 left-0 rounded-md p-3 w-72 max-h-[60vh] overflow-y-auto overscroll-contain"
           style={{
-            background: "var(--th-card-bg)",
-            border: "1px solid var(--th-card-border)",
-            backdropFilter: "blur(20px)",
+            background: "var(--th-bg-primary)",
+            border: "1px solid var(--th-border-strong)",
+            boxShadow: "var(--qg-lift-high)",
           }}
         >
           {EMOJI_GROUPS.map((group) => (
             <div key={group.labelEn} className="mb-2 last:mb-0">
-              <div
-                className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-                style={{ color: "var(--th-text-muted)" }}
-              >
-                {tr(group.label, group.labelEn)}
+              <div className="text-[13px] font-semibold mb-1" style={{ color: "var(--th-text-muted)" }}>
+                {tr(group.label, group.labelEn, group.labelFr)}
               </div>
               <div className="grid grid-cols-8 gap-0.5">
                 {group.emojis.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
+                    aria-pressed={value === emoji}
                     onClick={() => {
                       onChange(emoji);
                       setOpen(false);
                     }}
-                    className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all hover:scale-125 hover:bg-[var(--th-bg-surface-hover)] ${
-                      value === emoji ? "ring-2 ring-blue-400 bg-blue-500/15" : ""
+                    className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-colors hover:bg-[var(--th-bg-surface-hover)] ${
+                      value === emoji ? "ring-2 ring-[var(--qg-accent)] bg-[var(--qg-accent-soft)]" : ""
                     }`}
                   >
                     {emoji}

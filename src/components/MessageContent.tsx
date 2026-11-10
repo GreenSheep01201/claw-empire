@@ -50,7 +50,7 @@ function renderInline(text: string): (string | JSX.Element)[] {
     if (match[1]) {
       // **bold**
       parts.push(
-        <strong key={key++} className="font-bold text-white">
+        <strong key={key++} className="font-bold">
           {match[2]}
         </strong>,
       );
@@ -64,7 +64,10 @@ function renderInline(text: string): (string | JSX.Element)[] {
     } else if (match[5]) {
       // `code`
       parts.push(
-        <code key={key++} className="px-1 py-0.5 bg-gray-700 text-emerald-300 rounded text-xs font-mono">
+        <code
+          key={key++}
+          className="px-1 py-0.5 bg-[color-mix(in_srgb,currentColor_10%,transparent)] rounded text-[13px] font-mono"
+        >
           {match[6]}
         </code>,
       );
@@ -76,7 +79,7 @@ function renderInline(text: string): (string | JSX.Element)[] {
           href={match[9]}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-400 underline hover:text-blue-300"
+          className="font-medium underline underline-offset-2 hover:opacity-80"
         >
           {match[8]}
         </a>,
@@ -84,7 +87,10 @@ function renderInline(text: string): (string | JSX.Element)[] {
     } else if (match[10]) {
       // @mention
       parts.push(
-        <span key={key++} className="px-1 py-0.5 bg-blue-500/20 text-blue-300 rounded font-medium">
+        <span
+          key={key++}
+          className="px-1 py-0.5 bg-[color-mix(in_srgb,currentColor_10%,transparent)] rounded font-semibold"
+        >
           {match[10]}
         </span>,
       );
@@ -160,7 +166,7 @@ export default function MessageContent({ content, className = "" }: MessageConte
           return (
             <pre
               key={bi}
-              className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-xs font-mono text-green-300 overflow-x-auto whitespace-pre-wrap"
+              className="bg-[color-mix(in_srgb,currentColor_10%,transparent)] border border-[color-mix(in_srgb,currentColor_22%,transparent)] rounded-lg px-3 py-2 text-[13px] font-mono overflow-x-auto whitespace-pre-wrap"
             >
               {block.content}
             </pre>
@@ -171,14 +177,17 @@ export default function MessageContent({ content, className = "" }: MessageConte
           const table = parseTable(block.content);
           if (table) {
             return (
-              <div key={bi} className="overflow-x-auto rounded-lg border border-gray-600">
-                <table className="w-full text-xs">
+              <div
+                key={bi}
+                className="overflow-x-auto rounded-lg border border-[color-mix(in_srgb,currentColor_22%,transparent)]"
+              >
+                <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="bg-gray-700/80">
+                    <tr className="bg-[color-mix(in_srgb,currentColor_10%,transparent)]">
                       {table.headers.map((h, hi) => (
                         <th
                           key={hi}
-                          className="px-2.5 py-1.5 text-left font-semibold text-gray-200 border-b border-gray-600 whitespace-nowrap"
+                          className="px-2.5 py-1.5 text-left font-semibold border-b border-[color-mix(in_srgb,currentColor_22%,transparent)] whitespace-nowrap"
                         >
                           {renderInline(h)}
                         </th>
@@ -187,11 +196,14 @@ export default function MessageContent({ content, className = "" }: MessageConte
                   </thead>
                   <tbody>
                     {table.rows.map((row, ri) => (
-                      <tr key={ri} className={ri % 2 === 0 ? "bg-gray-800/50" : "bg-gray-800/30"}>
+                      <tr
+                        key={ri}
+                        className={ri % 2 === 0 ? "" : "bg-[color-mix(in_srgb,currentColor_10%,transparent)]"}
+                      >
                         {row.map((cell, ci) => (
                           <td
                             key={ci}
-                            className="px-2.5 py-1.5 text-gray-300 border-b border-gray-700/50 whitespace-nowrap"
+                            className="px-2.5 py-1.5 border-b border-[color-mix(in_srgb,currentColor_22%,transparent)] whitespace-nowrap"
                           >
                             {renderInline(cell)}
                           </td>
@@ -218,21 +230,21 @@ export default function MessageContent({ content, className = "" }: MessageConte
               // Headers
               if (trimmed.startsWith("### ")) {
                 return (
-                  <div key={li} className="font-bold text-white text-sm mt-1">
+                  <div key={li} className="font-bold text-sm mt-1">
                     {renderInline(trimmed.slice(4))}
                   </div>
                 );
               }
               if (trimmed.startsWith("## ")) {
                 return (
-                  <div key={li} className="font-bold text-white text-sm mt-1">
+                  <div key={li} className="font-bold text-sm mt-1">
                     {renderInline(trimmed.slice(3))}
                   </div>
                 );
               }
               if (trimmed.startsWith("# ")) {
                 return (
-                  <div key={li} className="font-bold text-white mt-1">
+                  <div key={li} className="font-bold mt-1">
                     {renderInline(trimmed.slice(2))}
                   </div>
                 );
@@ -242,7 +254,7 @@ export default function MessageContent({ content, className = "" }: MessageConte
               if (/^[-*]\s/.test(trimmed)) {
                 return (
                   <div key={li} className="flex gap-1.5 items-start">
-                    <span className="text-gray-500 mt-0.5 shrink-0">•</span>
+                    <span className="opacity-60 mt-0.5 shrink-0">•</span>
                     <span>{renderInline(trimmed.slice(2))}</span>
                   </div>
                 );
@@ -253,7 +265,7 @@ export default function MessageContent({ content, className = "" }: MessageConte
               if (olMatch) {
                 return (
                   <div key={li} className="flex gap-1.5 items-start">
-                    <span className="text-gray-500 mt-0.5 shrink-0 min-w-[1em] text-right">{olMatch[1]}.</span>
+                    <span className="opacity-60 mt-0.5 shrink-0 min-w-[1em] text-right">{olMatch[1]}.</span>
                     <span>{renderInline(olMatch[2])}</span>
                   </div>
                 );
@@ -261,7 +273,7 @@ export default function MessageContent({ content, className = "" }: MessageConte
 
               // Horizontal rule
               if (/^[-*_]{3,}$/.test(trimmed)) {
-                return <hr key={li} className="border-gray-600 my-1" />;
+                return <hr key={li} className="border-[color-mix(in_srgb,currentColor_22%,transparent)] my-1" />;
               }
 
               // Normal paragraph
