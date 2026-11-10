@@ -16,6 +16,9 @@ import { stretchDelegationWire } from "./delegationWire";
 import type { TilePoint } from "./world/officeMap";
 import { interactionAt, type Interaction } from "./world/interaction";
 import { applyOfficeEvents, type ErrandState } from "./world/errands";
+import { agentFatigue } from "./world/fatigue";
+import { useCliUsage } from "./useCliUsage";
+import CliUsagePanel from "./CliUsagePanel";
 import type { RoomTheme } from "./model";
 
 interface OfficeWorldViewProps {
@@ -119,6 +122,13 @@ export default function OfficeWorldView({
   onSelectAgentRef.current = onSelectAgent;
   // Movement input shared by keyboard, the touch pad and click-to-walk.
   const keysRef = useRef(new Set<string>());
+  // Survives scene rebuilds (theme or colour changes) so you stay where you were.
+  const avatarPosRef = useRef<{ x: number; y: number } | null>(null);
+  const { cliStatus, cliUsage, cliUsageRef, refreshing, handleRefreshUsage } = useCliUsage(tasks);
+  // Rebuild on actual colour changes, not on every new object identity.
+  const themesKey = JSON.stringify(customDeptThemes ?? {});
+  const themesRef = useRef(customDeptThemes);
+  themesRef.current = customDeptThemes;
   const [zoom, setZoom] = useState(initialZoom);
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
@@ -282,7 +292,7 @@ export default function OfficeWorldView({
       if (disposed) return;
 
       const isDark = theme === "dark";
-      const roomTheme = (deptId: string) => customDeptThemes?.[deptId] ?? DEPT_THEME[deptId] ?? DEPT_THEME.dev;
+      const roomTheme = (deptId: string) => themesRef.current?.[deptId] ?? DEPT_THEME[deptId] ?? DEPT_THEME.dev;
       const worldAgents: WorldAgent[] = agents
         .filter((agent) => agent.department_id)
         .map((agent) => ({
@@ -352,9 +362,16 @@ export default function OfficeWorldView({
       let knownAssignments: Set<string> | null = null;
       const pins = new Map<string, Graphics>();
       const bubbleNodes = new Map<string, Container>();
+      const snores = new Map<string, Text>();
 
       const avatar = new Container();
-      const pos = tileToPixel(map, map.spawn);
+      const remembered = avatarPosRef.current;
+      const pos =
+        remembered &&
+        isWalkableTile(map, Math.floor(remembered.x / map.tileSize), Math.floor(remembered.y / map.tileSize))
+          ? { ...remembered }
+          : tileToPixel(map, map.spawn);
+      avatarPosRef.current = pos;
       if (textures.ceo) {
         const sprite = new Sprite(textures.ceo);
         sprite.anchor.set(0.5, 0.85);
@@ -427,16 +444,18 @@ export default function OfficeWorldView({
         for (const agent of live.agents) {
           const walker = walkers.get(agent.id);
           if (!walker || !agent.department_id) continue;
+          // Out of CLI quota: tired agents redden, exhausted ones go rest on the break-room sofa.
+          const fatigue = agentFatigue(cliUsageRef.current, agent.cli_provider);
           const spot = desiredSpot(
             map,
             {
               id: agent.id,
               poleId: agent.department_id,
               seatIndex: seatIndexOf.get(agent.id) ?? 0,
-              status: agent.status,
+              status: fatigue === "exhausted" ? "break" : agent.status,
             },
             live.meetingPresence,
-            agent.status === "break" ? breakCount++ : 0,
+            agent.status === "break" || fatigue === "exhausted" ? breakCount++ : 0,
             Date.now(),
             errandsRef.current.errands.get(agent.id),
           );
@@ -461,6 +480,8 @@ export default function OfficeWorldView({
           walker.node.zIndex = feetY;
           if (walker.sprite) {
             const moving = !step.arrived;
+            walker.sprite.tint = fatigue === "fresh" ? 0xffffff : 0xff9999;
+            walker.sprite.alpha = agent.status === "offline" ? 0.45 : fatigue === "exhausted" ? 0.85 : 1;
             // A light stride bounce so walking reads as walking, not sliding.
             walker.sprite.y = moving ? -Math.abs(Math.sin(performance.now() / 110)) * STEP_BOUNCE : 0;
             const dx = walker.x - before;
@@ -500,6 +521,34 @@ export default function OfficeWorldView({
           } else if (pin) {
             pin.destroy();
             pins.delete(agentId);
+          }
+        }
+
+        // Exhausted agents doze on the sofa.
+        for (const [agentId, walker] of walkers) {
+          const agent = live.agents.find((candidate) => candidate.id === agentId);
+          const exhausted = agent ? agentFatigue(cliUsageRef.current, agent.cli_provider) === "exhausted" : false;
+          let zzz = snores.get(agentId);
+          if (exhausted) {
+            if (!zzz) {
+              zzz = new Text({
+                text: "z z",
+                style: new TextStyle({
+                  fontSize: 12,
+                  fill: 0x5c6680,
+                  fontWeight: "bold",
+                  fontFamily: "Archivo, system-ui, sans-serif",
+                }),
+              });
+              overlay.addChild(zzz);
+              snores.set(agentId, zzz);
+            }
+            const phase = (performance.now() / 900) % 1;
+            zzz.position.set(walker.x + 12, walker.node.position.y - 70 - phase * 10);
+            zzz.alpha = 1 - phase;
+          } else if (zzz) {
+            zzz.destroy();
+            snores.delete(agentId);
           }
         }
 
@@ -593,7 +642,8 @@ export default function OfficeWorldView({
         // App may not have finished initialising.
       }
     };
-  }, [map, customDeptThemes, language, theme]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- colours tracked by value (themesKey)
+  }, [map, themesKey, language, theme]);
 
   const promptLabel = (() => {
     if (!prompt) return null;
@@ -612,68 +662,78 @@ export default function OfficeWorldView({
   })();
 
   return (
-    <div className="relative">
-      <div
-        ref={hostRef}
-        className="relative h-[calc(100dvh-140px)] min-h-[420px] w-full overflow-hidden rounded-[var(--qg-radius)] border border-[var(--th-border)]"
-        style={{ background: "var(--th-bg-primary)" }}
-        aria-label={pickLocale(language, LOCALE_TEXT.hint)}
-        tabIndex={0}
-      />
-      <OfficeMiniMap
-        map={map}
-        dotRef={avatarDotRef}
-        label={t({ ko: "미니맵", en: "Floor map", fr: "Plan de l'étage" })}
-        onPick={(tile) => walkToRef.current(tile)}
-      />
-      <div
-        className="absolute left-3 top-3 flex flex-col gap-1"
-        role="group"
-        aria-label={t({ ko: "확대/축소", en: "Zoom", fr: "Zoom" })}
-      >
-        <button
-          type="button"
-          className="qg-icon-btn"
-          onClick={() => changeZoom(1)}
-          disabled={zoom >= ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
-          aria-label={t({ ko: "확대", en: "Zoom in", fr: "Zoomer" })}
-        >
-          <Plus size={18} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className="qg-icon-btn"
-          onClick={() => changeZoom(-1)}
-          disabled={zoom <= ZOOM_LEVELS[0]}
-          aria-label={t({ ko: "축소", en: "Zoom out", fr: "Dézoomer" })}
-        >
-          <Minus size={18} aria-hidden />
-        </button>
-      </div>
-      {coarsePointer && (
-        <MovePad
-          keys={keysRef.current}
-          labels={{
-            up: t({ ko: "위", en: "Up", fr: "Haut" }),
-            down: t({ ko: "아래", en: "Down", fr: "Bas" }),
-            left: t({ ko: "왼쪽", en: "Left", fr: "Gauche" }),
-            right: t({ ko: "오른쪽", en: "Right", fr: "Droite" }),
-          }}
+    <div className="space-y-4">
+      <div className="relative">
+        <div
+          ref={hostRef}
+          className="relative h-[calc(100dvh-140px)] min-h-[420px] w-full overflow-hidden rounded-[var(--qg-radius)] border border-[var(--th-border)]"
+          style={{ background: "var(--th-bg-primary)" }}
+          aria-label={pickLocale(language, LOCALE_TEXT.hint)}
+          tabIndex={0}
         />
-      )}
-      {promptLabel && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-4">
+        <OfficeMiniMap
+          map={map}
+          dotRef={avatarDotRef}
+          label={t({ ko: "미니맵", en: "Floor map", fr: "Plan de l'étage" })}
+          onPick={(tile) => walkToRef.current(tile)}
+        />
+        <div
+          className="absolute left-3 top-3 flex flex-col gap-1"
+          role="group"
+          aria-label={t({ ko: "확대/축소", en: "Zoom", fr: "Zoom" })}
+        >
           <button
             type="button"
-            onClick={() => actRef.current()}
-            className={`qg-btn pointer-events-auto${prompt?.kind === "pin" ? " qg-btn--pin is-pending" : " qg-btn--primary"}`}
-            aria-keyshortcuts="Enter E"
+            className="qg-icon-btn"
+            onClick={() => changeZoom(1)}
+            disabled={zoom >= ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+            aria-label={t({ ko: "확대", en: "Zoom in", fr: "Zoomer" })}
           >
-            <kbd className="qg-badge">{t({ ko: "Enter", en: "Enter", fr: "Entrée" })}</kbd>
-            {promptLabel}
+            <Plus size={18} aria-hidden />
+          </button>
+          <button
+            type="button"
+            className="qg-icon-btn"
+            onClick={() => changeZoom(-1)}
+            disabled={zoom <= ZOOM_LEVELS[0]}
+            aria-label={t({ ko: "축소", en: "Zoom out", fr: "Dézoomer" })}
+          >
+            <Minus size={18} aria-hidden />
           </button>
         </div>
-      )}
+        {coarsePointer && (
+          <MovePad
+            keys={keysRef.current}
+            labels={{
+              up: t({ ko: "위", en: "Up", fr: "Haut" }),
+              down: t({ ko: "아래", en: "Down", fr: "Bas" }),
+              left: t({ ko: "왼쪽", en: "Left", fr: "Gauche" }),
+              right: t({ ko: "오른쪽", en: "Right", fr: "Droite" }),
+            }}
+          />
+        )}
+        {promptLabel && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-4">
+            <button
+              type="button"
+              onClick={() => actRef.current()}
+              className={`qg-btn pointer-events-auto${prompt?.kind === "pin" ? " qg-btn--pin is-pending" : " qg-btn--primary"}`}
+              aria-keyshortcuts="Enter E"
+            >
+              <kbd className="qg-badge">{t({ ko: "Enter", en: "Enter", fr: "Entrée" })}</kbd>
+              {promptLabel}
+            </button>
+          </div>
+        )}
+      </div>
+      <CliUsagePanel
+        cliStatus={cliStatus}
+        cliUsage={cliUsage}
+        language={language}
+        refreshing={refreshing}
+        onRefreshUsage={handleRefreshUsage}
+        t={t}
+      />
     </div>
   );
 }

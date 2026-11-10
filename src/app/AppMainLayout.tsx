@@ -201,14 +201,15 @@ export default function AppMainLayout({
     labels.uiLanguage === "ko" || labels.uiLanguage === "ja" || labels.uiLanguage === "zh" ? labels.uiLanguage : "en";
   const officePackKey = normalizeOfficeWorkflowPack(activeOfficeWorkflowPack);
   const officePackOptions = useMemo(() => listOfficePackOptions(uiLanguage), [uiLanguage]);
-  // Walkable office floor (in progress): opt in with ?world=1, remembered per browser.
+  // Walkable office floor: default view; ?world=0 / ?world=1 switch (remembered per browser).
   const officeWorldEnabled = useMemo(() => {
     try {
       const param = new URLSearchParams(window.location.search).get("world");
       if (param === "1" || param === "0") window.localStorage.setItem("qg.officeWorld", param);
-      return window.localStorage.getItem("qg.officeWorld") === "1";
+      // The walkable floor is the default office; ?world=0 brings the previous view back.
+      return window.localStorage.getItem("qg.officeWorld") !== "0";
     } catch {
-      return false;
+      return true;
     }
   }, []);
   const officePackLabel = pickLang(normalizeLanguage(labels.uiLanguage), {
