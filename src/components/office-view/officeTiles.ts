@@ -6,13 +6,12 @@ import { Assets, Rectangle, Texture } from "pixi.js";
  * the office draws them at TILE_SCALE.
  */
 const BASE = "/office-assets/pixel-agents";
-export const SOURCE_TILE = 16;
+const SOURCE_TILE = 16;
 export const TILE_SCALE = 2;
-export const TILE_PX = SOURCE_TILE * TILE_SCALE;
 /** Source pixel rows of a wall piece that form its cap (top edge + wall top). */
 export const WALL_CAP_PX = 8;
 
-export const FURNITURE_FILES = [
+const FURNITURE_FILES = [
   "DESK/DESK_FRONT",
   "PC/PC_FRONT_ON_1",
   "PC/PC_FRONT_ON_2",
